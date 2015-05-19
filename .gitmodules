@@ -1,0 +1,9 @@
+[submodule "src/rct"]
+	path = src/rct
+	url = https://github.com/Andersbakken/rct.git
+[submodule "src/wslay"]
+	path = src/wslay
+	url = https://github.com/tatsuhiro-t/wslay.git
+[submodule "src/json"]
+	path = src/json
+	url = https://github.com/nlohmann/json.git
