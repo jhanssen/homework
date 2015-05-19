@@ -8,10 +8,16 @@
 #include <rct/SocketServer.h>
 #include <memory>
 
-class Daemon
+class Daemon : public std::enable_shared_from_this<Daemon>
 {
 public:
+    typedef std::shared_ptr<Daemon> SharedPtr;
+    typedef std::weak_ptr<Daemon> WeakPtr;
+
     Daemon();
+    ~Daemon();
+
+    void init();
 
 private:
     void initializeModules();

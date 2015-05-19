@@ -28,8 +28,6 @@ static inline const char* guessMime(const Path& file)
 
 Daemon::Daemon()
 {
-    initializeModules();
-
     mHttpServer.listen(8089);
     mHttpServer.request().connect([this](const HttpServer::Request::SharedPtr& req) {
             error() << "got request" << req->protocol() << req->method() << req->path();
@@ -96,6 +94,15 @@ Daemon::Daemon()
                 }
             }
         });
+}
+
+Daemon::~Daemon()
+{
+}
+
+void Daemon::init()
+{
+    initializeModules();
 }
 
 void Daemon::initializeModules()
