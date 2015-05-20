@@ -11,6 +11,7 @@
 #include <rct/List.h>
 #include <rct/Map.h>
 #include <memory>
+#include <stdio.h>
 
 class Modules
 {
@@ -79,6 +80,9 @@ inline void Modules::initialize()
     auto module = mModules.cbegin();
     const auto end = mModules.cend();
     while (module != end) {
+        (*module)->log().connect([](Module::LogLevel level, const String& msg) {
+                printf("Log: %s\n", msg.constData());
+            });
         (*module)->initialize();
         ++module;
     }

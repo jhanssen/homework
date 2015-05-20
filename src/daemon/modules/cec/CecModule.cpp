@@ -72,8 +72,8 @@ CecModule::Connection::~Connection()
         adapter->Close();
         CECDestroy(adapter);
     }
-    delete callbacks;
     delete cecConfig;
+    delete callbacks;
 }
 
 void CecModule::initialize()
@@ -138,6 +138,7 @@ void CecModule::initialize()
     callbacks.CBCecKeyPress = [](void* ptr, const cec_keypress key) -> int {
         Controller::WeakPtr* ctrlPtr = static_cast<CecController::WeakPtr*>(ptr);
         if (Controller::SharedPtr controller = ctrlPtr->lock()) {
+            std::shared_ptr<CecController> cec = std::static_pointer_cast<CecController>(controller);
         }
         return 1;
     };
