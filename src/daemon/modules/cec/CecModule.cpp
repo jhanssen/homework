@@ -6,189 +6,6 @@
 
 using namespace CEC;
 
-static inline const char* convertKeyCode(cec_user_control_code code)
-{
-    switch (code) {
-    case CEC_USER_CONTROL_CODE_SELECT:
-        return "SELECT";
-    case CEC_USER_CONTROL_CODE_UP:
-        return "UP";
-    case CEC_USER_CONTROL_CODE_DOWN:
-        return "DOWN";
-    case CEC_USER_CONTROL_CODE_LEFT:
-        return "LEFT";
-    case CEC_USER_CONTROL_CODE_RIGHT:
-        return "RIGHT";
-    case CEC_USER_CONTROL_CODE_RIGHT_UP:
-        return "RIGHT_UP";
-    case CEC_USER_CONTROL_CODE_RIGHT_DOWN:
-        return "RIGHT_DOWN";
-    case CEC_USER_CONTROL_CODE_LEFT_UP:
-        return "LEFT_UP";
-    case CEC_USER_CONTROL_CODE_LEFT_DOWN:
-        return "LEFT_DOWN";
-    case CEC_USER_CONTROL_CODE_ROOT_MENU:
-        return "ROOT_MENU";
-    case CEC_USER_CONTROL_CODE_SETUP_MENU:
-        return "SETUP_MENU";
-    case CEC_USER_CONTROL_CODE_CONTENTS_MENU:
-        return "CONTENTS_MENU";
-    case CEC_USER_CONTROL_CODE_FAVORITE_MENU:
-        return "FAVORITE_MENU";
-    case CEC_USER_CONTROL_CODE_EXIT:
-        return "EXIT";
-    case CEC_USER_CONTROL_CODE_TOP_MENU:
-        return "TOP_MENU";
-    case CEC_USER_CONTROL_CODE_DVD_MENU:
-        return "DVD_MENU";
-    case CEC_USER_CONTROL_CODE_NUMBER_ENTRY_MODE:
-        return "NUMBER_ENTRY_MODE";
-    case CEC_USER_CONTROL_CODE_NUMBER11:
-        return "NUMBER11";
-    case CEC_USER_CONTROL_CODE_NUMBER12:
-        return "NUMBER12";
-    case CEC_USER_CONTROL_CODE_NUMBER0:
-        return "NUMBER0";
-    case CEC_USER_CONTROL_CODE_NUMBER1:
-        return "NUMBER1";
-    case CEC_USER_CONTROL_CODE_NUMBER2:
-        return "NUMBER2";
-    case CEC_USER_CONTROL_CODE_NUMBER3:
-        return "NUMBER3";
-    case CEC_USER_CONTROL_CODE_NUMBER4:
-        return "NUMBER4";
-    case CEC_USER_CONTROL_CODE_NUMBER5:
-        return "NUMBER5";
-    case CEC_USER_CONTROL_CODE_NUMBER6:
-        return "NUMBER6";
-    case CEC_USER_CONTROL_CODE_NUMBER7:
-        return "NUMBER7";
-    case CEC_USER_CONTROL_CODE_NUMBER8:
-        return "NUMBER8";
-    case CEC_USER_CONTROL_CODE_NUMBER9:
-        return "NUMBER9";
-    case CEC_USER_CONTROL_CODE_DOT:
-        return "DOT";
-    case CEC_USER_CONTROL_CODE_ENTER:
-        return "ENTER";
-    case CEC_USER_CONTROL_CODE_CLEAR:
-        return "CLEAR";
-    case CEC_USER_CONTROL_CODE_NEXT_FAVORITE:
-        return "NEXT_FAVORITE";
-    case CEC_USER_CONTROL_CODE_CHANNEL_UP:
-        return "CHANNEL_UP";
-    case CEC_USER_CONTROL_CODE_CHANNEL_DOWN:
-        return "CHANNEL_DOWN";
-    case CEC_USER_CONTROL_CODE_PREVIOUS_CHANNEL:
-        return "PREVIOUS_CHANNEL";
-    case CEC_USER_CONTROL_CODE_SOUND_SELECT:
-        return "SOUND_SELECT";
-    case CEC_USER_CONTROL_CODE_INPUT_SELECT:
-        return "INPUT_SELECT";
-    case CEC_USER_CONTROL_CODE_DISPLAY_INFORMATION:
-        return "DISPLAY_INFORMATION";
-    case CEC_USER_CONTROL_CODE_HELP:
-        return "HELP";
-    case CEC_USER_CONTROL_CODE_PAGE_UP:
-        return "PAGE_UP";
-    case CEC_USER_CONTROL_CODE_PAGE_DOWN:
-        return "PAGE_DOWN";
-    case CEC_USER_CONTROL_CODE_POWER:
-        return "POWER";
-    case CEC_USER_CONTROL_CODE_VOLUME_UP:
-        return "VOLUME_UP";
-    case CEC_USER_CONTROL_CODE_VOLUME_DOWN:
-        return "VOLUME_DOWN";
-    case CEC_USER_CONTROL_CODE_MUTE:
-        return "MUTE";
-    case CEC_USER_CONTROL_CODE_PLAY:
-        return "PLAY";
-    case CEC_USER_CONTROL_CODE_STOP:
-        return "STOP";
-    case CEC_USER_CONTROL_CODE_PAUSE:
-        return "PAUSE";
-    case CEC_USER_CONTROL_CODE_RECORD:
-        return "RECORD";
-    case CEC_USER_CONTROL_CODE_REWIND:
-        return "REWIND";
-    case CEC_USER_CONTROL_CODE_FAST_FORWARD:
-        return "FAST_FORWARD";
-    case CEC_USER_CONTROL_CODE_EJECT:
-        return "EJECT";
-    case CEC_USER_CONTROL_CODE_FORWARD:
-        return "FORWARD";
-    case CEC_USER_CONTROL_CODE_BACKWARD:
-        return "BACKWARD";
-    case CEC_USER_CONTROL_CODE_STOP_RECORD:
-        return "STOP_RECORD";
-    case CEC_USER_CONTROL_CODE_PAUSE_RECORD:
-        return "PAUSE_RECORD";
-    case CEC_USER_CONTROL_CODE_ANGLE:
-        return "ANGLE";
-    case CEC_USER_CONTROL_CODE_SUB_PICTURE:
-        return "SUB_PICTURE";
-    case CEC_USER_CONTROL_CODE_VIDEO_ON_DEMAND:
-        return "VIDEO_ON_DEMAND";
-    case CEC_USER_CONTROL_CODE_ELECTRONIC_PROGRAM_GUIDE:
-        return "ELECTRONIC_PROGRAM_GUIDE";
-    case CEC_USER_CONTROL_CODE_TIMER_PROGRAMMING:
-        return "TIMER_PROGRAMMING";
-    case CEC_USER_CONTROL_CODE_INITIAL_CONFIGURATION:
-        return "INITIAL_CONFIGURATION";
-    case CEC_USER_CONTROL_CODE_SELECT_BROADCAST_TYPE:
-        return "SELECT_BROADCAST_TYPE";
-    case CEC_USER_CONTROL_CODE_SELECT_SOUND_PRESENTATION:
-        return "SELECT_SOUNDPRESENTATION";
-    case CEC_USER_CONTROL_CODE_PLAY_FUNCTION:
-        return "PLAY_FUNCTION";
-    case CEC_USER_CONTROL_CODE_PAUSE_PLAY_FUNCTION:
-        return "PAUSE_PLAY_FUNCTION";
-    case CEC_USER_CONTROL_CODE_RECORD_FUNCTION:
-        return "RECORD_FUNCTION";
-    case CEC_USER_CONTROL_CODE_PAUSE_RECORD_FUNCTION:
-        return "PAUSE_RECORD_FUNCTION";
-    case CEC_USER_CONTROL_CODE_STOP_FUNCTION:
-        return "STOP_FUNCTION";
-    case CEC_USER_CONTROL_CODE_MUTE_FUNCTION:
-        return "MUTE_FUNCTION";
-    case CEC_USER_CONTROL_CODE_RESTORE_VOLUME_FUNCTION:
-        return "RESTORE_VOLUME_FUNCTION";
-    case CEC_USER_CONTROL_CODE_TUNE_FUNCTION:
-        return "TUNE_FUNCTION";
-    case CEC_USER_CONTROL_CODE_SELECT_MEDIA_FUNCTION:
-        return "SELECT_MEDIA_FUNCTION";
-    case CEC_USER_CONTROL_CODE_SELECT_AV_INPUT_FUNCTION:
-        return "SELECT_AV_INPUT_FUNCTION";
-    case CEC_USER_CONTROL_CODE_SELECT_AUDIO_INPUT_FUNCTION:
-        return "SELECT_AUDIO_INPUT_FUNCTION";
-    case CEC_USER_CONTROL_CODE_POWER_TOGGLE_FUNCTION:
-        return "POWER_TOGGLE_FUNCTION";
-    case CEC_USER_CONTROL_CODE_POWER_OFF_FUNCTION:
-        return "POWER_OFF_FUNCTION";
-    case CEC_USER_CONTROL_CODE_POWER_ON_FUNCTION:
-        return "POWER_ON_FUNCTION";
-    case CEC_USER_CONTROL_CODE_F1_BLUE:
-        return "F1_BLUE";
-    case CEC_USER_CONTROL_CODE_F2_RED:
-        return "F2_RED";
-    case CEC_USER_CONTROL_CODE_F3_GREEN:
-        return "F3_GREEN";
-    case CEC_USER_CONTROL_CODE_F4_YELLOW:
-        return "F4_YELLOW";
-    case CEC_USER_CONTROL_CODE_F5:
-        return "F5";
-    case CEC_USER_CONTROL_CODE_DATA:
-        return "DATA";
-    case CEC_USER_CONTROL_CODE_AN_RETURN:
-        return "AN_RETURN";
-    case CEC_USER_CONTROL_CODE_AN_CHANNELS_LIST:
-        return "AN_CHANNELS_LIST";
-    case CEC_USER_CONTROL_CODE_UNKNOWN:
-        return "UNKNOWN";
-    }
-    return "";
-}
-
 class CecController : public Controller
 {
 public:
@@ -200,6 +17,8 @@ public:
     virtual void set(const Value& value);
 
     void changeState(const Value& value);
+
+    std::shared_ptr<CecModule::Connection> connection() const;
 
 private:
     std::weak_ptr<CecModule::Connection> mConnection;
@@ -220,6 +39,11 @@ CecModule* CecController::module() const
     if (std::shared_ptr<CecModule::Connection> conn = mConnection.lock())
         return conn->module;
     return 0;
+}
+
+std::shared_ptr<CecModule::Connection> CecController::connection() const
+{
+    return mConnection.lock();
 }
 
 Value CecController::get() const
@@ -329,12 +153,15 @@ void CecModule::initialize()
         Controller::WeakPtr* ctrlPtr = static_cast<CecController::WeakPtr*>(ptr);
         if (Controller::SharedPtr controller = ctrlPtr->lock()) {
             std::shared_ptr<CecController> cec = std::static_pointer_cast<CecController>(controller);
-            Value event;
-            event["type"] = !key.duration ? "press" : "release";
-            event["key"] = convertKeyCode(key.keycode);
-            cec->changeState(event);
-
-            return 1;
+            if (std::shared_ptr<CecModule::Connection> conn = cec->connection()) {
+                Value event;
+                event["type"] = !key.duration ? "press" : "release";
+                event["key"] = conn->adapter->ToString(key.keycode);
+                cec->changeState(event);
+                return 1;
+            } else {
+                cec->module()->mLog(Module::Error, "unable to get cec connection for controller");
+            }
         }
         return 0;
     };
