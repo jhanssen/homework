@@ -43,6 +43,7 @@ public:
 
     void connectRule(const Rule::SharedPtr& rule, const Scene::SharedPtr& scene);
     void disconnectRule(const Rule::SharedPtr& rule, const Scene::SharedPtr& scene);
+    Map<Rule::WeakPtr, Set<Scene::WeakPtr> > ruleConnections() const;
 
     static Daemon::SharedPtr instance();
 
@@ -128,6 +129,11 @@ inline void Daemon::disconnectRule(const Rule::SharedPtr& rule, const Scene::Sha
 {
     assert(mRuleConnections.contains(rule));
     mRuleConnections[rule].erase(scene);
+}
+
+inline Map<Rule::WeakPtr, Set<Scene::WeakPtr> > Daemon::ruleConnections() const
+{
+    return mRuleConnections;
 }
 
 #endif
