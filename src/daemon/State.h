@@ -2,7 +2,7 @@
 #define STATE_H
 
 #include <Controller.h>
-#include <rct/Hash.h>
+#include <rct/Map.h>
 #include <memory>
 
 class State
@@ -15,18 +15,24 @@ public:
     ~State() {}
 
     void set(const Controller::SharedPtr& controller, const json& json);
+    void add(const Controller::SharedPtr& controller);
     void remove(const Controller::SharedPtr& controller);
 
     void restore();
 
 private:
-    Hash<Controller::SharedPtr, json> mData;
+    Map<Controller::WeakPtr, json> mData;
 };
 
 inline void State::set(const Controller::SharedPtr& controller, const json& json)
 {
     mData[controller] = json;
     controller->set(json);
+}
+
+inline void State::add(const Controller::SharedPtr& controller)
+{
+    mData[controller] = controller->get();
 }
 
 inline void State::remove(const Controller::SharedPtr& controller)
@@ -39,9 +45,15 @@ inline void State::restore()
     auto it = mData.cbegin();
     const auto end = mData.cend();
     while (it != end) {
-        it->first->set(it->second);
+        if (Controller::SharedPtr ptr = it->first.lock())
+            ptr->set(it->second);
         ++it;
     }
+}
+
+inline bool operator<(const Controller::WeakPtr& a, const Controller::WeakPtr& b)
+{
+    return a.owner_before(b);
 }
 
 #endif

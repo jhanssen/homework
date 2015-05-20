@@ -14,8 +14,9 @@ public:
 
     virtual ~Controller() {}
 
-    json get() const = 0;
-    void set(const json& json) = 0;
+    virtual json get() const = 0;
+    virtual void set(const json& json) = 0;
+    virtual void configure(const json&) { }
 };
 
 #endif

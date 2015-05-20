@@ -106,6 +106,7 @@ Daemon::~Daemon()
 void Daemon::init()
 {
     daemonInstance = shared_from_this();
+    mStates.append(std::make_shared<State>());
     initializeModules();
 }
 
@@ -116,4 +117,40 @@ Daemon::SharedPtr Daemon::instance()
 
 void Daemon::initializeModules()
 {
+}
+
+void Daemon::registerController(const Controller::SharedPtr& controller)
+{
+    mControllers.append(controller);
+
+    // add to all states
+    auto state = mStates.cbegin();
+    const auto end = mStates.cend();
+    while (state != end) {
+        (*state)->add(controller);
+        ++state;
+    }
+}
+
+void Daemon::unregisterController(const Controller::SharedPtr& controller)
+{
+    mControllers.remove(controller);
+
+    // remove from all states
+    auto state = mStates.cbegin();
+    const auto end = mStates.cend();
+    while (state != end) {
+        (*state)->remove(controller);
+        ++state;
+    }
+}
+
+void Daemon::registerSensor(const Sensor::SharedPtr& sensor)
+{
+    mSensors.append(sensor);
+}
+
+void Daemon::unregisterSensor(const Sensor::SharedPtr& sensor)
+{
+    mSensors.remove(sensor);
 }
