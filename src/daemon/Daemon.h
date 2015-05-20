@@ -91,6 +91,7 @@ inline void Daemon::registerRule(const Rule::SharedPtr& rule)
 {
     rule->triggered().connect([this](const Rule::SharedPtr& rule) {
             assert(mRules.contains(rule));
+            assert(mRuleConnections.contains(rule));
             const Set<Scene::WeakPtr>& scenes = mRuleConnections[rule];
 
             auto scene = scenes.cbegin();
