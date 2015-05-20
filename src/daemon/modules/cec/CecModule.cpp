@@ -48,11 +48,44 @@ std::shared_ptr<CecModule::Connection> CecController::connection() const
 
 Value CecController::get() const
 {
-    return Value();
+    Value value;
+    if (std::shared_ptr<CecModule::Connection> conn = mConnection.lock()) {
+        const cec_osd_name name = conn->adapter->GetDeviceOSDName(CECDEVICE_TV);
+        value["name"] = name.name;
+
+        const cec_power_status status = conn->adapter->GetDevicePowerStatus(CECDEVICE_TV);
+        switch (status) {
+        case CEC_POWER_STATUS_ON:
+        case CEC_POWER_STATUS_IN_TRANSITION_STANDBY_TO_ON:
+            value["status"] = "on";
+            break;
+        case CEC_POWER_STATUS_STANDBY:
+        case CEC_POWER_STATUS_IN_TRANSITION_ON_TO_STANDBY:
+            value["status"] = "standby";
+            break;
+        case CEC_POWER_STATUS_UNKNOWN:
+            value["status"] = "unknown";
+            break;
+        }
+    }
+    return value;
 }
 
 void CecController::set(const Value& value)
 {
+    if (std::shared_ptr<CecModule::Connection> conn = mConnection.lock()) {
+        const String cmd = value.value<String>("command");
+        if (cmd == "powerOn") {
+            conn->adapter->PowerOnDevices(CECDEVICE_TV);
+        } else if (cmd == "powerOff") {
+            conn->adapter->StandbyDevices(CECDEVICE_TV);
+        } else if (cmd == "message") {
+            const String msg = value.value<String>("message");
+            conn->adapter->SetOSDString(CECDEVICE_TV, CEC_DISPLAY_CONTROL_DISPLAY_FOR_DEFAULT_TIME, msg.constData());
+        } else if (cmd == "setActive") {
+            conn->adapter->SetActiveSource();
+        }
+    }
 }
 
 CecModule::CecModule()
@@ -155,8 +188,9 @@ void CecModule::initialize()
             std::shared_ptr<CecController> cec = std::static_pointer_cast<CecController>(controller);
             if (std::shared_ptr<CecModule::Connection> conn = cec->connection()) {
                 Value event;
-                event["type"] = !key.duration ? "press" : "release";
+                event["type"] = !key.duration ? "keyPress" : "keyRelease";
                 event["key"] = conn->adapter->ToString(key.keycode);
+                event["cecCode"] = key.keycode;
                 cec->changeState(event);
                 return 1;
             } else {
