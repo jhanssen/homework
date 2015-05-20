@@ -10,6 +10,7 @@ add_subdirectory(modules)
 
 set(SOURCES
     Daemon.cpp
+    Module.cpp
     RuleJS.cpp
     main.cpp)
 

@@ -2,6 +2,8 @@
 #define MODULE_H
 
 #include <memory>
+#include <rct/String.h>
+#include <rct/Value.h>
 
 class Module
 {
@@ -13,6 +15,9 @@ public:
     virtual ~Module() {}
 
     virtual void initialize() = 0;
+
+protected:
+    Value configuration(const String& name) const;
 };
 
 #endif

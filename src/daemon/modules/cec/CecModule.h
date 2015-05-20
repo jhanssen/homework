@@ -3,6 +3,10 @@
 
 #include <Module.h>
 
+namespace CEC {
+class libcec_configuration;
+};
+
 class CecModule : public Module
 {
 public:
@@ -10,6 +14,9 @@ public:
     ~CecModule();
 
     virtual void initialize();
+
+private:
+    CEC::libcec_configuration* mCecConfig;
 };
 
 #endif
