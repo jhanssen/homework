@@ -106,7 +106,7 @@ Daemon::~Daemon()
 void Daemon::init()
 {
     daemonInstance = shared_from_this();
-    mStates.append(std::make_shared<State>());
+    mScenes.append(std::make_shared<Scene>());
     initializeModules();
 }
 
@@ -123,12 +123,12 @@ void Daemon::registerController(const Controller::SharedPtr& controller)
 {
     mControllers.append(controller);
 
-    // add to all states
-    auto state = mStates.cbegin();
-    const auto end = mStates.cend();
-    while (state != end) {
-        (*state)->add(controller);
-        ++state;
+    // add to all scenes
+    auto scene = mScenes.cbegin();
+    const auto end = mScenes.cend();
+    while (scene != end) {
+        (*scene)->add(controller);
+        ++scene;
     }
 }
 
@@ -136,12 +136,12 @@ void Daemon::unregisterController(const Controller::SharedPtr& controller)
 {
     mControllers.remove(controller);
 
-    // remove from all states
-    auto state = mStates.cbegin();
-    const auto end = mStates.cend();
-    while (state != end) {
-        (*state)->remove(controller);
-        ++state;
+    // remove from all scenes
+    auto scene = mScenes.cbegin();
+    const auto end = mScenes.cend();
+    while (scene != end) {
+        (*scene)->remove(controller);
+        ++scene;
     }
 }
 

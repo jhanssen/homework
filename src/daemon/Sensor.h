@@ -2,12 +2,10 @@
 #define SENSOR_H
 
 #include <rct/SignalSlot.h>
-#include <json.hpp>
+#include <rct/Value.h>
 #include <memory>
 
-using nlohmann::json;
-
-class Sensor
+class Sensor : public std::enable_shared_from_this<Sensor>
 {
 public:
     typedef std::shared_ptr<Sensor> SharedPtr;
@@ -15,13 +13,13 @@ public:
 
     virtual ~Sensor() {}
 
-    virtual json get() const = 0;
-    virtual void configure(const json&) { }
+    virtual Value get() const = 0;
+    virtual void configure(const Value&) { }
 
-    Signal<std::function<void(const json&)> >& stateChanged() { return mStateChanged; }
+    Signal<std::function<void(const Sensor::SharedPtr&, const Value&)> >& stateChanged() { return mStateChanged; }
 
 protected:
-    Signal<std::function<void(const json&)> > mStateChanged;
+    Signal<std::function<void(const Sensor::SharedPtr&, const Value&)> > mStateChanged;
 };
 
 #endif

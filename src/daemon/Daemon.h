@@ -3,7 +3,7 @@
 
 #include "Controller.h"
 #include "Sensor.h"
-#include "State.h"
+#include "Scene.h"
 #include "Rule.h"
 #include "Scene.h"
 #include <HttpServer.h>
@@ -11,7 +11,7 @@
 #include <rct/Hash.h>
 #include <rct/List.h>
 #include <rct/Set.h>
-#include <rct/SocketServer.h>
+#include <rct/ScriptEngine.h>
 #include <memory>
 
 class Daemon : public std::enable_shared_from_this<Daemon>
@@ -31,43 +31,43 @@ public:
     void registerSensor(const Sensor::SharedPtr& sensor);
     void unregisterSensor(const Sensor::SharedPtr& sensor);
 
-    State::SharedPtr state() const;
-    void pushState(const State::SharedPtr& state);
-    void popState();
+    Scene::SharedPtr scene() const;
+    void pushScene(const Scene::SharedPtr& scene);
+    void popScene();
 
     static Daemon::SharedPtr instance();
 
 private:
     void initializeModules();
-    void initializeState();
+    void initializeScene();
 
 private:
-    SocketServer mServer;
     HttpServer mHttpServer;
+    ScriptEngine mScriptEngine;
     Hash<WebSocket*, WebSocket::SharedPtr> mWebSockets;
-    List<State::SharedPtr> mStates;
+    List<Scene::SharedPtr> mScenes;
     List<Controller::SharedPtr> mControllers;
     List<Sensor::SharedPtr> mSensors;
 };
 
-inline State::SharedPtr Daemon::state() const
+inline Scene::SharedPtr Daemon::scene() const
 {
-    assert(!mStates.isEmpty());
-    return mStates.last();
+    assert(!mScenes.isEmpty());
+    return mScenes.last();
 }
 
-inline void Daemon::pushState(const State::SharedPtr& state)
+inline void Daemon::pushScene(const Scene::SharedPtr& scene)
 {
-    mStates.append(state);
-    state->restore();
+    mScenes.append(scene);
+    scene->enable();
 }
 
-inline void Daemon::popState()
+inline void Daemon::popScene()
 {
-    assert(!mStates.isEmpty());
-    mStates.removeLast();
-    if (!mStates.isEmpty())
-        mStates.last()->restore();
+    assert(!mScenes.isEmpty());
+    mScenes.removeLast();
+    if (!mScenes.isEmpty())
+        mScenes.last()->enable();
 }
 
 #endif

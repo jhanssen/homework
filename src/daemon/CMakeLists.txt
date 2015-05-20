@@ -7,6 +7,7 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
 
 set(SOURCES
     Daemon.cpp
+    RuleJS.cpp
     main.cpp)
 
 add_executable(daemon ${SOURCES})
