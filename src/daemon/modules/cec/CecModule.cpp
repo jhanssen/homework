@@ -47,7 +47,7 @@ CecModule* CecController::module() const
 void CecController::log(Module::LogLevel level, const String& msg)
 {
     if (std::shared_ptr<CecModule::Connection> conn = mConnection.lock())
-        conn->module->mLog(level, msg);
+        conn->module->log(level, msg);
 }
 
 std::shared_ptr<CecModule::Connection> CecController::connection() const
@@ -86,22 +86,23 @@ void CecController::set(const Value& value)
         const String cmd = value.value<String>("command");
         if (cmd == "powerOn") {
             if (!conn->adapter->PowerOnDevices(CECDEVICE_TV))
-                log(Module::Error, "cec unable to turn tv on");
+                log(Module::Error, "unable to turn tv on");
         } else if (cmd == "powerOff") {
             if (!conn->adapter->StandbyDevices(CECDEVICE_TV))
-                log(Module::Error, "cec unable to turn tv off");
+                log(Module::Error, "unable to turn tv off");
         } else if (cmd == "message") {
             const String msg = value.value<String>("message");
             if (!conn->adapter->SetOSDString(CECDEVICE_TV, CEC_DISPLAY_CONTROL_DISPLAY_FOR_DEFAULT_TIME, msg.constData()))
-                log(Module::Error, "cec unable to show message");
+                log(Module::Error, "unable to show message");
         } else if (cmd == "setActive") {
             if (!conn->adapter->SetActiveSource())
-                log(Module::Error, "cec unable to set active source");
+                log(Module::Error, "unable to set active source");
         }
     }
 }
 
 CecModule::CecModule()
+    : Module("cec")
 {
 }
 
@@ -144,7 +145,7 @@ void CecModule::initialize()
 
     const Value cfg = configuration("cec");
     if (cfg.type() != Value::Type_Map && cfg.type() != Value::Type_Invalid) {
-        mLog(Error, "Invalid cec config");
+        log(Error, "invalid config");
         return;
     }
 
@@ -190,7 +191,7 @@ void CecModule::initialize()
                 // this will never happen but put this in to avoid compiler warning
                 break;
             }
-            cec->module()->mLog(level, message.message);
+            cec->module()->log(level, message.message);
             return 1;
         }
         return 0;
@@ -207,7 +208,7 @@ void CecModule::initialize()
                 cec->changeState(event);
                 return 1;
             } else {
-                cec->module()->mLog(Module::Error, "unable to get cec connection for controller");
+                cec->module()->log(Module::Error, "unable to get connection for controller");
             }
         }
         return 0;
@@ -223,7 +224,7 @@ void CecModule::initialize()
 
     conn->adapter = static_cast<ICECAdapter*>(CECInitialise(&config));
     if (!conn->adapter) {
-        mLog(Error, "Unable to initialize cec");
+        log(Error, "unable to initialize");
         return;
     }
 
@@ -234,7 +235,7 @@ void CecModule::initialize()
     cec_adapter adapters[MaxAdapters];
     const uint8_t num = conn->adapter->FindAdapters(adapters, MaxAdapters, 0);
     if (!num) {
-        mLog(Error, "No cec adapters");
+        log(Error, "no adapters");
         CECDestroy(conn->adapter);
         conn->adapter = 0;
         return;
@@ -242,15 +243,15 @@ void CecModule::initialize()
 
     uint8_t selected = 0;
     for (uint8_t i = 0; i < num; ++i) {
-        mLog(Debug, String::format<64>("available cec adapter %s", adapters[i].comm));
+        log(Debug, String::format<64>("available adapter %s", adapters[i].comm));
         if (!device.isEmpty() && device == adapters[i].comm) {
             selected = i;
-            mLog(Info, String::format<64>("selected cec adapter %s", device.constData()));
+            log(Info, String::format<64>("selected adapter %s", device.constData()));
         }
     }
 
     if (!conn->adapter->Open(adapters[selected].comm)) {
-        mLog(Error, String::format<64>("unable to open adapter %s", adapters[selected].comm));
+        log(Error, String::format<64>("unable to open adapter %s", adapters[selected].comm));
         CECDestroy(conn->adapter);
         conn->adapter = 0;
         return;

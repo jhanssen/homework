@@ -80,8 +80,8 @@ inline void Modules::initialize()
     auto module = mModules.cbegin();
     const auto end = mModules.cend();
     while (module != end) {
-        (*module)->log().connect([](Module::LogLevel level, const String& msg) {
-                printf("Log: %s\n", msg.constData());
+        (*module)->log().connect([](Module::LogLevel level, const String& name, const String& msg) {
+                printf("Log: %s: %s\n", name.constData(), msg.constData());
             });
         (*module)->initialize();
         ++module;
