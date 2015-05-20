@@ -21,6 +21,9 @@ public:
     std::shared_ptr<CecModule::Connection> connection() const;
 
 private:
+    void log(Module::LogLevel level, const String& msg);
+
+private:
     std::weak_ptr<CecModule::Connection> mConnection;
 };
 
@@ -39,6 +42,12 @@ CecModule* CecController::module() const
     if (std::shared_ptr<CecModule::Connection> conn = mConnection.lock())
         return conn->module;
     return 0;
+}
+
+void CecController::log(Module::LogLevel level, const String& msg)
+{
+    if (std::shared_ptr<CecModule::Connection> conn = mConnection.lock())
+        conn->module->mLog(level, msg);
 }
 
 std::shared_ptr<CecModule::Connection> CecController::connection() const
@@ -76,14 +85,18 @@ void CecController::set(const Value& value)
     if (std::shared_ptr<CecModule::Connection> conn = mConnection.lock()) {
         const String cmd = value.value<String>("command");
         if (cmd == "powerOn") {
-            conn->adapter->PowerOnDevices(CECDEVICE_TV);
+            if (!conn->adapter->PowerOnDevices(CECDEVICE_TV))
+                log(Module::Error, "cec unable to turn tv on");
         } else if (cmd == "powerOff") {
-            conn->adapter->StandbyDevices(CECDEVICE_TV);
+            if (!conn->adapter->StandbyDevices(CECDEVICE_TV))
+                log(Module::Error, "cec unable to turn tv off");
         } else if (cmd == "message") {
             const String msg = value.value<String>("message");
-            conn->adapter->SetOSDString(CECDEVICE_TV, CEC_DISPLAY_CONTROL_DISPLAY_FOR_DEFAULT_TIME, msg.constData());
+            if (!conn->adapter->SetOSDString(CECDEVICE_TV, CEC_DISPLAY_CONTROL_DISPLAY_FOR_DEFAULT_TIME, msg.constData()))
+                log(Module::Error, "cec unable to show message");
         } else if (cmd == "setActive") {
-            conn->adapter->SetActiveSource();
+            if (!conn->adapter->SetActiveSource())
+                log(Module::Error, "cec unable to set active source");
         }
     }
 }
