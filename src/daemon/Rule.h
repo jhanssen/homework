@@ -5,18 +5,22 @@
 #include <rct/Map.h>
 #include <rct/SignalSlot.h>
 #include <rct/Value.h>
+#include <memory>
 #include <assert.h>
 
-class Rule
+class Rule : public std::enable_shared_from_this<Rule>
 {
 public:
+    typedef std::shared_ptr<Rule> SharedPtr;
+    typedef std::weak_ptr<Rule> WeakPtr;
+
     Rule() : mValid(false) { }
     virtual ~Rule() { }
 
     void registerSensor(const Sensor::SharedPtr& sensor);
     void unregisterSensor(const Sensor::SharedPtr& sensor);
 
-    Signal<std::function<void()> >& triggered() { return mTriggered; }
+    Signal<std::function<void(const Rule::SharedPtr&)> >& triggered() { return mTriggered; }
 
     bool isValid() const { return mValid; }
 
@@ -30,7 +34,7 @@ protected:
         unsigned int connectKey;
     };
     Map<Sensor::WeakPtr, Data> mSensors;
-    Signal<std::function<void()> > mTriggered;
+    Signal<std::function<void(const Rule::SharedPtr&)> > mTriggered;
     bool mValid;
 
 private:
@@ -62,10 +66,10 @@ inline void Rule::sensorChanged(const Sensor::SharedPtr& sensor, const Value& va
 inline void Rule::checkTriggered()
 {
     if (check())
-        mTriggered();
+        mTriggered(shared_from_this());
 }
 
-inline bool operator<(const Sensor::WeakPtr& a, const Sensor::WeakPtr& b)
+inline bool operator<(const Rule::WeakPtr& a, const Rule::WeakPtr& b)
 {
     return a.owner_before(b);
 }

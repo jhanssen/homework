@@ -33,9 +33,16 @@ public:
     void unregisterSensor(const Sensor::SharedPtr& sensor);
     Set<Sensor::SharedPtr> sensors() const;
 
-    void addScene(const Scene::SharedPtr& scene);
-    void removeScene(const Scene::SharedPtr& scene);
+    void registerScene(const Scene::SharedPtr& scene);
+    void unregisterScene(const Scene::SharedPtr& scene);
     Set<Scene::SharedPtr> scenes() const;
+
+    void registerRule(const Rule::SharedPtr& rule);
+    void unregisterRule(const Rule::SharedPtr& rule);
+    Set<Rule::SharedPtr> rules() const;
+
+    void connectRule(const Rule::SharedPtr& rule, const Scene::SharedPtr& scene);
+    void disconnectRule(const Rule::SharedPtr& rule, const Scene::SharedPtr& scene);
 
     static Daemon::SharedPtr instance();
 
@@ -50,6 +57,8 @@ private:
     Set<Scene::SharedPtr> mScenes;
     Set<Controller::SharedPtr> mControllers;
     Set<Sensor::SharedPtr> mSensors;
+    Set<Rule::SharedPtr> mRules;
+    Map<Rule::WeakPtr, Set<Scene::WeakPtr> > mRuleConnections;
 };
 
 inline Set<Controller::SharedPtr> Daemon::controllers() const
@@ -62,19 +71,62 @@ inline Set<Sensor::SharedPtr> Daemon::sensors() const
     return mSensors;
 }
 
-inline void Daemon::addScene(const Scene::SharedPtr& scene)
+inline void Daemon::registerScene(const Scene::SharedPtr& scene)
 {
     mScenes.insert(scene);
 }
 
-inline void Daemon::removeScene(const Scene::SharedPtr& scene)
+inline void Daemon::unregisterScene(const Scene::SharedPtr& scene)
 {
+    assert(mScenes.contains(scene));
     mScenes.remove(scene);
 }
 
 inline Set<Scene::SharedPtr> Daemon::scenes() const
 {
     return mScenes;
+}
+
+inline void Daemon::registerRule(const Rule::SharedPtr& rule)
+{
+    rule->triggered().connect([this](const Rule::SharedPtr& rule) {
+            assert(mRules.contains(rule));
+            const Set<Scene::WeakPtr>& scenes = mRuleConnections[rule];
+
+            auto scene = scenes.cbegin();
+            const auto end = scenes.cend();
+            while (scene != end) {
+                if (Scene::SharedPtr ptr = scene->lock())
+                    ptr->enable();
+                ++scene;
+            }
+        });
+    mRules.insert(rule);
+}
+
+inline void Daemon::unregisterRule(const Rule::SharedPtr& rule)
+{
+    assert(mRules.contains(rule));
+    assert(mRuleConnections.contains(rule));
+    mRules.remove(rule);
+    mRuleConnections.remove(rule);
+}
+
+inline Set<Rule::SharedPtr> Daemon::rules() const
+{
+    return mRules;
+}
+
+inline void Daemon::connectRule(const Rule::SharedPtr& rule, const Scene::SharedPtr& scene)
+{
+    assert(mRuleConnections.contains(rule));
+    mRuleConnections[rule].insert(scene);
+}
+
+inline void Daemon::disconnectRule(const Rule::SharedPtr& rule, const Scene::SharedPtr& scene)
+{
+    assert(mRuleConnections.contains(rule));
+    mRuleConnections[rule].erase(scene);
 }
 
 #endif

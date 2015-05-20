@@ -22,4 +22,9 @@ protected:
     Signal<std::function<void(const Sensor::SharedPtr&, const Value&)> > mStateChanged;
 };
 
+inline bool operator<(const Sensor::WeakPtr& a, const Sensor::WeakPtr& b)
+{
+    return a.owner_before(b);
+}
+
 #endif

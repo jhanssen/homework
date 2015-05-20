@@ -50,7 +50,7 @@ inline void Scene::enable()
     }
 }
 
-inline bool operator<(const Controller::WeakPtr& a, const Controller::WeakPtr& b)
+inline bool operator<(const Scene::WeakPtr& a, const Scene::WeakPtr& b)
 {
     return a.owner_before(b);
 }

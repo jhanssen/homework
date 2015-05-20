@@ -16,4 +16,9 @@ public:
     virtual void set(const Value& value) = 0;
 };
 
+inline bool operator<(const Controller::WeakPtr& a, const Controller::WeakPtr& b)
+{
+    return a.owner_before(b);
+}
+
 #endif
