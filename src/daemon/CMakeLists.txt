@@ -10,7 +10,6 @@ add_subdirectory(modules)
 
 set(SOURCES
     Daemon.cpp
-    RuleJS.cpp
     main.cpp)
 
 add_executable(daemon ${SOURCES})

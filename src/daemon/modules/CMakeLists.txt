@@ -6,5 +6,5 @@ include_directories(..)
 
 cmake_policy(SET CMP0042 NEW)
 
-add_library(modules SHARED Module.cpp)
+add_library(modules SHARED Modules.cpp Module.cpp RuleJS.cpp)
 target_link_libraries(modules rct)

@@ -105,7 +105,6 @@ void Daemon::init()
     daemonInstance = shared_from_this();
 
     initializeModules();
-    initializeScene();
 }
 
 Daemon::SharedPtr Daemon::instance()
@@ -123,54 +122,4 @@ void Daemon::initializeModules()
     mModules.add<CecModule>();
 
     mModules.initialize();
-}
-
-void Daemon::initializeScene()
-{
-    Scene::SharedPtr scene = std::make_shared<Scene>();
-
-    auto controller = mControllers.cbegin();
-    const auto end = mControllers.cend();
-    while (controller != end) {
-        scene->add(*controller);
-        ++controller;
-    }
-
-    mScenes.insert(scene);
-}
-
-void Daemon::registerController(const Controller::SharedPtr& controller)
-{
-    mControllers.insert(controller);
-
-    // add to all scenes
-    auto scene = mScenes.cbegin();
-    const auto end = mScenes.cend();
-    while (scene != end) {
-        (*scene)->add(controller);
-        ++scene;
-    }
-}
-
-void Daemon::unregisterController(const Controller::SharedPtr& controller)
-{
-    mControllers.remove(controller);
-
-    // remove from all scenes
-    auto scene = mScenes.cbegin();
-    const auto end = mScenes.cend();
-    while (scene != end) {
-        (*scene)->remove(controller);
-        ++scene;
-    }
-}
-
-void Daemon::registerSensor(const Sensor::SharedPtr& sensor)
-{
-    mSensors.insert(sensor);
-}
-
-void Daemon::unregisterSensor(const Sensor::SharedPtr& sensor)
-{
-    mSensors.remove(sensor);
 }

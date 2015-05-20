@@ -4,6 +4,7 @@
 #include <memory>
 #include <rct/String.h>
 #include <rct/Value.h>
+#include <rct/SignalSlot.h>
 
 class Module
 {
@@ -16,8 +17,14 @@ public:
 
     virtual void initialize() = 0;
 
+    enum LogLevel { Debug, Info, Warning, Error };
+    Signal<std::function<void(LogLevel, const String&)> >& log() { return mLog; }
+
 protected:
     Value configuration(const String& name) const;
+
+protected:
+    Signal<std::function<void(LogLevel, const String&)> > mLog;
 };
 
 #endif
