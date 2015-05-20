@@ -6,6 +6,7 @@
 #include "Scene.h"
 #include "Rule.h"
 #include "Scene.h"
+#include "Modules.h"
 #include <HttpServer.h>
 #include <WebSocket.h>
 #include <rct/Hash.h>
@@ -60,6 +61,7 @@ private:
     Set<Sensor::SharedPtr> mSensors;
     Set<Rule::SharedPtr> mRules;
     Map<Rule::WeakPtr, Set<Scene::WeakPtr> > mRuleConnections;
+    Modules mModules;
 };
 
 inline Set<Controller::SharedPtr> Daemon::controllers() const

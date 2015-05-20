@@ -1,10 +1,7 @@
 #include "Daemon.h"
 #include <rct/Log.h>
 #include <rct/Rct.h>
-#include <json.hpp>
-#include <JsonUtils.h>
-
-using nlohmann::json;
+#include <cec/CecModule.h>
 
 static Daemon::SharedPtr daemonInstance;
 
@@ -118,6 +115,9 @@ Daemon::SharedPtr Daemon::instance()
 
 void Daemon::initializeModules()
 {
+    mModules.add<CecModule>();
+
+    mModules.initialize();
 }
 
 void Daemon::initializeScene()
