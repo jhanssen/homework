@@ -62,5 +62,7 @@ int main(int argc, char** argv)
 
     loop->exec();
 
+    daemon->reset();
+
     return 0;
 }

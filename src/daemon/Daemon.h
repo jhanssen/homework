@@ -47,6 +47,7 @@ public:
     Map<Rule::WeakPtr, Set<Scene::WeakPtr> > ruleConnections() const;
 
     static Daemon::SharedPtr instance();
+    static void reset();
 
 private:
     void initializeModules();

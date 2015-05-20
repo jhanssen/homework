@@ -113,6 +113,11 @@ Daemon::SharedPtr Daemon::instance()
     return daemonInstance;
 }
 
+void Daemon::reset()
+{
+    daemonInstance.reset();
+}
+
 void Daemon::initializeModules()
 {
     mModules.add<CecModule>();
