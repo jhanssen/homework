@@ -6,6 +6,8 @@
 
 using nlohmann::json;
 
+static Daemon::SharedPtr daemonInstance;
+
 static inline const char* guessMime(const Path& file)
 {
     const char* ext = file.extension();
@@ -98,11 +100,18 @@ Daemon::Daemon()
 
 Daemon::~Daemon()
 {
+    daemonInstance.reset();
 }
 
 void Daemon::init()
 {
+    daemonInstance = shared_from_this();
     initializeModules();
+}
+
+Daemon::SharedPtr Daemon::instance()
+{
+    return daemonInstance;
 }
 
 void Daemon::initializeModules()
