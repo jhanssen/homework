@@ -27,13 +27,15 @@ public:
 
     void registerController(const Controller::SharedPtr& controller);
     void unregisterController(const Controller::SharedPtr& controller);
+    Set<Controller::SharedPtr> controllers() const;
 
     void registerSensor(const Sensor::SharedPtr& sensor);
     void unregisterSensor(const Sensor::SharedPtr& sensor);
+    Set<Sensor::SharedPtr> sensors() const;
 
-    Scene::SharedPtr scene() const;
-    void pushScene(const Scene::SharedPtr& scene);
-    void popScene();
+    void addScene(const Scene::SharedPtr& scene);
+    void removeScene(const Scene::SharedPtr& scene);
+    Set<Scene::SharedPtr> scenes() const;
 
     static Daemon::SharedPtr instance();
 
@@ -45,29 +47,34 @@ private:
     HttpServer mHttpServer;
     ScriptEngine mScriptEngine;
     Hash<WebSocket*, WebSocket::SharedPtr> mWebSockets;
-    List<Scene::SharedPtr> mScenes;
-    List<Controller::SharedPtr> mControllers;
-    List<Sensor::SharedPtr> mSensors;
+    Set<Scene::SharedPtr> mScenes;
+    Set<Controller::SharedPtr> mControllers;
+    Set<Sensor::SharedPtr> mSensors;
 };
 
-inline Scene::SharedPtr Daemon::scene() const
+inline Set<Controller::SharedPtr> Daemon::controllers() const
 {
-    assert(!mScenes.isEmpty());
-    return mScenes.last();
+    return mControllers;
 }
 
-inline void Daemon::pushScene(const Scene::SharedPtr& scene)
+inline Set<Sensor::SharedPtr> Daemon::sensors() const
 {
-    mScenes.append(scene);
-    scene->enable();
+    return mSensors;
 }
 
-inline void Daemon::popScene()
+inline void Daemon::addScene(const Scene::SharedPtr& scene)
 {
-    assert(!mScenes.isEmpty());
-    mScenes.removeLast();
-    if (!mScenes.isEmpty())
-        mScenes.last()->enable();
+    mScenes.insert(scene);
+}
+
+inline void Daemon::removeScene(const Scene::SharedPtr& scene)
+{
+    mScenes.remove(scene);
+}
+
+inline Set<Scene::SharedPtr> Daemon::scenes() const
+{
+    return mScenes;
 }
 
 #endif
