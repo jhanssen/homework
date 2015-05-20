@@ -10,12 +10,11 @@ add_subdirectory(modules)
 
 set(SOURCES
     Daemon.cpp
-    Module.cpp
     RuleJS.cpp
     main.cpp)
 
 add_executable(daemon ${SOURCES})
-target_link_libraries(daemon rct common cec_module)
+target_link_libraries(daemon rct common modules cec_module)
 
 #add_custom_command(TARGET daemon POST_BUILD
 #  COMMAND ln -sf ${CMAKE_CURRENT_LIST_DIR}/stats ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
