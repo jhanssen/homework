@@ -9,7 +9,8 @@ target_link_libraries(ws_module rct modules)
 
 if (APPLE)
   find_library(SECURITY_LIBRARY Security)
-  target_link_libraries(ws_module ${SECURITY_LIBRARY})
+  find_library(COREFOUNDATION_LIBRARY CoreFoundation)
+  target_link_libraries(ws_module ${SECURITY_LIBRARY} ${COREFOUNDATION_LIBRARY})
 endif()
 
 target_link_libraries(ws_module -L${WSLAY_INSTALL_DIR}/lib -lwslay -Wl,-rpath,${WSLAY_INSTALL_DIR}/lib)
