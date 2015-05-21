@@ -151,7 +151,9 @@ void CecModule::initialize()
 
     config.Clear();
     strcpy(config.strDeviceName, "homework");
-    config.deviceTypes.Add(CEC_DEVICE_TYPE_TUNER);
+    config.clientVersion = CEC_CLIENT_VERSION_CURRENT;
+    config.bActivateSource = 0;
+    config.deviceTypes.Add(CEC_DEVICE_TYPE_PLAYBACK_DEVICE);
 
     if (cfg.contains("baseDevice")) {
         const int base = cfg.value<int>("baseDevice");
@@ -229,6 +231,8 @@ void CecModule::initialize()
         return;
     }
 
+    conn->adapter->InitVideoStandalone();
+
     // find adapters
     enum { MaxAdapters = 10 };
     cec_adapter adapters[MaxAdapters];
@@ -249,6 +253,7 @@ void CecModule::initialize()
         }
     }
 
+    log(Info, String::format<64>("opening adapter %s", adapters[selected].comm));
     if (!conn->adapter->Open(adapters[selected].comm)) {
         log(Error, String::format<64>("unable to open adapter %s", adapters[selected].comm));
         CECDestroy(conn->adapter);
