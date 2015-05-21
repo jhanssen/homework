@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-// var global, require, process
+/*global global, require, process*/
 
 var WebSocket = require("ws");
 var ws = new WebSocket("ws://localhost:8087/");
