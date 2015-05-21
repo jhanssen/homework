@@ -32,7 +32,7 @@ ws.on("open", function() {
     console.log("ready.");
     prompt();
 }).on("message", function(data, flags) {
-    console.log("message");
+    console.log("message", data);
     prompt();
 }).on("close", function() {
     console.log("ws closed");
