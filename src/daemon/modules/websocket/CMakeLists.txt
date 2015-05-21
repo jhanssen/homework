@@ -1,6 +1,8 @@
 include_directories(../..)
 
-cmake_policy(SET CMP0042 NEW)
+if (POLICY CMP0042)
+  cmake_policy(SET CMP0042 NEW)
+endif()
 
 add_library(ws_module SHARED WSModule.cpp WebSocket.cpp HttpServer.cpp)
 target_link_libraries(ws_module rct modules)

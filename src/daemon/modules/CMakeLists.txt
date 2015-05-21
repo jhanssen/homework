@@ -5,7 +5,9 @@ add_subdirectory(websocket)
 
 include_directories(..)
 
-cmake_policy(SET CMP0042 NEW)
+if (POLICY CMP0042)
+  cmake_policy(SET CMP0042 NEW)
+endif()
 
 add_library(modules SHARED Modules.cpp Module.cpp RuleJS.cpp)
 target_link_libraries(modules rct)
