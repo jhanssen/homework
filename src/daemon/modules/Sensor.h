@@ -2,6 +2,7 @@
 #define SENSOR_H
 
 #include <rct/SignalSlot.h>
+#include <rct/String.h>
 #include <rct/Value.h>
 #include <memory>
 
@@ -11,16 +12,32 @@ public:
     typedef std::shared_ptr<Sensor> SharedPtr;
     typedef std::weak_ptr<Sensor> WeakPtr;
 
+    Sensor(const String& name);
     virtual ~Sensor() {}
 
     virtual Value get() const = 0;
     virtual void configure(const Value&) { }
 
+    String name() const;
+
     Signal<std::function<void(const Sensor::SharedPtr&, const Value&)> >& stateChanged() { return mStateChanged; }
 
 protected:
     Signal<std::function<void(const Sensor::SharedPtr&, const Value&)> > mStateChanged;
+
+private:
+    String mName;
 };
+
+inline Sensor::Sensor(const String& name)
+    : mName(name)
+{
+}
+
+inline String Sensor::name() const
+{
+    return mName;
+}
 
 inline bool operator<(const Sensor::WeakPtr& a, const Sensor::WeakPtr& b)
 {

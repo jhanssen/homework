@@ -32,6 +32,25 @@ WSModule::~WSModule()
 {
 }
 
+static inline Value handleMessage(const Value& msg)
+{
+    Value ret;
+    const String get = msg.value<String>("get");
+    printf("get %s\n", get.constData());
+
+    if (get == "controllers") {
+        const auto& ctrls = Modules::instance()->controllers();
+        auto ctrl = ctrls.cbegin();
+        const auto end = ctrls.cend();
+        while (ctrl != end) {
+            ret.push_back((*ctrl)->name());
+            ++ctrl;
+        }
+    }
+
+    return ret;
+}
+
 void WSModule::initialize()
 {
     mHttpServer.listen(8087);
@@ -46,6 +65,15 @@ void WSModule::initialize()
                         WebSocket::SharedPtr websocket = std::make_shared<WebSocket>(req->takeSocket());
                         mWebSockets[websocket.get()] = websocket;
 
+                        websocket->message().connect([this](WebSocket* websocket, const WebSocket::Message& msg) {
+                                const Value data = Value::fromJSON(msg.message());
+                                if (data.isInvalid()) {
+                                    // invalid message
+                                    return;
+                                }
+                                const Value ret = handleMessage(data);
+                                websocket->write(ret.toJSON());
+                            });
                         websocket->error().connect([this](WebSocket* websocket) {
                                 mWebSockets.erase(websocket);
                             });

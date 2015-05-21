@@ -11,10 +11,16 @@ public:
     typedef std::shared_ptr<Controller> SharedPtr;
     typedef std::weak_ptr<Controller> WeakPtr;
 
+    Controller(const String& name);
     virtual ~Controller() {}
 
     virtual void set(const Value& value) = 0;
 };
+
+inline Controller::Controller(const String& name)
+    : Sensor(name)
+{
+}
 
 inline bool operator<(const Controller::WeakPtr& a, const Controller::WeakPtr& b)
 {

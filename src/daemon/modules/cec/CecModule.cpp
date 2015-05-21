@@ -9,7 +9,7 @@ using namespace CEC;
 class CecController : public Controller
 {
 public:
-    CecController(const std::shared_ptr<CecModule::Connection>& connection);
+    CecController(const String& name, const std::shared_ptr<CecModule::Connection>& connection);
 
     CecModule* module() const;
 
@@ -27,8 +27,8 @@ private:
     std::weak_ptr<CecModule::Connection> mConnection;
 };
 
-CecController::CecController(const std::shared_ptr<CecModule::Connection>& connection)
-    : mConnection(connection)
+CecController::CecController(const String& name, const std::shared_ptr<CecModule::Connection>& connection)
+    : Controller(name), mConnection(connection)
 {
 }
 
@@ -163,8 +163,9 @@ void CecModule::initialize()
         if (hdmi >= CEC_MIN_HDMI_PORTNUMBER && hdmi <= CEC_MAX_HDMI_PORTNUMBER)
             config.iHDMIPort = hdmi;
     }
+    const String device = cfg.value<String>("device");
 
-    Controller::SharedPtr controller(new CecController(conn));
+    Controller::SharedPtr controller(new CecController("cec-" + device, conn));
     conn->controller = controller;
 
     config.callbackParam = &conn->controller;
@@ -227,8 +228,6 @@ void CecModule::initialize()
         log(Error, "unable to initialize");
         return;
     }
-
-    const String device = cfg.value<String>("device");
 
     // find adapters
     enum { MaxAdapters = 10 };
