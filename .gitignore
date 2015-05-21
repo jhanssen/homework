@@ -7,6 +7,8 @@
 /bin/.gdb_history
 /bin/daemon
 /bin/stats
+/bin/*.dylib
+/bin/*.so
 /build.ninja
 build.ninja
 /CMakeCache.txt
