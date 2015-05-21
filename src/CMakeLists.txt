@@ -1,7 +1,8 @@
 cmake_minimum_required(VERSION 2.8)
 
 include(rct/rct.cmake)
-include(common/common.cmake)
+
+set(WSLAY_INSTALL_DIR ${CMAKE_CURRENT_BINARY_DIR}/wslay-install)
 
 add_subdirectory(daemon)
 
@@ -16,5 +17,4 @@ ExternalProject_Add(
   INSTALL_COMMAND make -C lib -j install
   )
 
-add_dependencies(common wslay)
-add_dependencies(daemon rct common)
+add_dependencies(daemon rct)

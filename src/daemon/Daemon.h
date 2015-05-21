@@ -2,8 +2,6 @@
 #define DAEMON_H
 
 #include "Modules.h"
-#include <HttpServer.h>
-#include <WebSocket.h>
 #include <rct/Hash.h>
 #include <memory>
 
@@ -25,8 +23,6 @@ private:
     void initializeModules();
 
 private:
-    HttpServer mHttpServer;
-    Hash<WebSocket*, WebSocket::SharedPtr> mWebSockets;
     Modules mModules;
 };
 
