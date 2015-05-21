@@ -9,6 +9,7 @@
 /bin/stats
 /bin/*.dylib
 /bin/*.so
+/src/console/node_modules
 /build.ninja
 build.ninja
 /CMakeCache.txt
