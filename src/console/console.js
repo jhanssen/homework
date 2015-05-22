@@ -45,8 +45,9 @@ function completer(line, callback)
     var candidate = completions;
     var splitLine = line.split(' ');
     // console.log(JSON.stringify(splitLine));
-    var used = line;
+    var used = line, last = "";
     for (var i = 0; i < splitLine.length; ++i) {
+        last = splitLine[i];
         if (candidate.hasOwnProperty(splitLine[i])) {
             candidate = candidate[splitLine[i]];
             var sofar = splitLine[i] + " ";
@@ -56,18 +57,19 @@ function completer(line, callback)
                 ++i;
             }
             used = used.substr(sofar.length);
+            last = "";
         } else {
             break;
         }
     }
 
     if (typeof candidate.candidates === "function") {
-        candidate.candidates(used, splitLine[i]);
+        candidate.candidates(used, last);
         return;
     }
 
-    hits = candidate.candidates.filter(function(c) { return c.indexOf(splitLine[i]) == 0; });
-    callback(null, [hits.length ? hits : candidate.candidates, used]);
+    hits = candidate.candidates.filter(function(c) { return c.indexOf(last) == 0; });
+    callback(null, [hits, used]);
 }
 
 function showHelp()
@@ -86,12 +88,13 @@ function handleMessage(msg)
         // yes, send it back
         var data = pendingCompletions.pending[msg.id];
         var hits = msg.data.filter(function(c) { return c.indexOf(data.part) == 0; });
-        data.callback(null, [hits.length ? hits : msg.data, data.used]);
+        data.callback(null, [hits, data.used]);
 
         delete pendingCompletions.pending[msg.id];
-        return;
+        return false;
     }
     console.log("got message", JSON.stringify(msg));
+    return true;
 }
 
 prompt();
@@ -101,8 +104,8 @@ ws.on("open", function() {
     prompt();
 }).on("message", function(data, flags) {
     var msg = JSON.parse(data);
-    handleMessage(msg);
-    prompt();
+    if (handleMessage(msg))
+        prompt();
 }).on("close", function() {
     console.log("ws closed");
     process.exit(0);
