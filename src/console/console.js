@@ -181,7 +181,8 @@ function handleLine(line)
     };
     var handler = handlers[line[0]];
     if (handler) {
-        handler(line.splice(0, 1));
+        line.splice(0, 1);
+        handler(line);
     } else {
         console.log("Unknown command:", line[0]);
     }
