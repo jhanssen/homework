@@ -22,26 +22,45 @@ var pendingCompletions = {id: 0, pending: Object.create(null)};
 
 function completer(line, callback)
 {
+    var requestCompletion = function(req, used, part) {
+        var id = pendingCompletions.id;
+        pendingCompletions.pending[id] = {
+            used: used,
+            callback: callback,
+            part: part
+        };
+        req.id = id;
+        send(req);
+        ++pendingCompletions.id;
+    };
+
     var completions = {
         candidates: ["help ", "controllers ", "quit ", "set "],
         set: {
             candidates: ["controller ", "sensor ", "rule ", "scene "],
             controller: {
                 candidates: function(used, part) {
-                    var id = pendingCompletions.id;
-                    pendingCompletions.pending[id] = {
-                        used: used,
-                        callback: callback,
-                        part: part
-                    };
-                    send({get: "controllers", id: id});
-                    ++pendingCompletions.id;
+                    requestCompletion({get: "controllers"});
+                }
+            },
+            sensor: {
+                candidates: function(used, part) {
+                    requestCompletion({get: "sensor"});
+                }
+            },
+            rule: {
+                candidates: function(used, part) {
+                    requestCompletion({get: "rule"});
+                }
+            },
+            scene: {
+                candidates: function(used, part) {
+                    requestCompletion({get: "scene"});
                 }
             }
         }
     };
 
-    var hits;
     var candidate = completions;
     var splitLine = line.split(' ');
     // console.log(JSON.stringify(splitLine));
@@ -65,11 +84,10 @@ function completer(line, callback)
 
     if (typeof candidate.candidates === "function") {
         candidate.candidates(used, last);
-        return;
+    } else {
+        var hits = candidate.candidates.filter(function(c) { return c.indexOf(last) == 0; });
+        callback(null, [hits, used]);
     }
-
-    hits = candidate.candidates.filter(function(c) { return c.indexOf(last) == 0; });
-    callback(null, [hits, used]);
 }
 
 function showHelp()
@@ -115,12 +133,19 @@ ws.on("open", function() {
 });
 
 rl.on("line", function(line) {
-    if (line == "help")
+    if (line == "help") {
         showHelp();
-    else if (line == "controllers")
+    } else if (line == "controllers") {
         send({get: "controllers"});
-    else
+    } else if (line == "sensors") {
+        send({get: "sensors"});
+    } else if (line == "rules") {
+        send({get: "rules"});
+    } else if (line == "scenes") {
+        send({get: "scenes"});
+    } else {
         console.log("Unknown command");
+    }
     prompt();
 }).on("close", function() {
     process.stdout.write("\n");
