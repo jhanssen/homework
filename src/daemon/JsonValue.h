@@ -10,7 +10,7 @@ using json = nlohmann::json;
 namespace Json {
 json fromValue(const Value& value);
 Value toValue(const json& json);
-};
+}
 
 namespace Json {
 inline json fromValue(const Value& value)
@@ -86,6 +86,6 @@ inline Value toValue(const json& json)
     }
     return Value();
 }
-};
+}
 
 #endif

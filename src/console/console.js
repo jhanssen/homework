@@ -12,13 +12,14 @@ var rl = readline.createInterface({
     terminal: true
 });
 
-function prompt()
+function prompt(arg)
 {
     rl.setPrompt("> ", 2);
-    rl.prompt();
+    rl.prompt(arg);
 }
 
 var pendingCompletions = {id: 0, pending: Object.create(null)};
+var state = {};
 
 function completer(line, callback)
 {
@@ -35,28 +36,45 @@ function completer(line, callback)
     };
 
     var completions = {
-        candidates: ["help ", "controllers ", "quit ", "set "],
+        candidates: ["help ", "list ", "controller ", "sensor ", "rule ", "scene ", "quit ", "set "],
         set: {
             candidates: ["controller ", "sensor ", "rule ", "scene "],
             controller: {
                 candidates: function(used, part) {
                     requestCompletion({get: "controllers"}, used, part);
+                    return true;
                 }
             },
             sensor: {
                 candidates: function(used, part) {
                     requestCompletion({get: "sensor"}, used, part);
+                    return true;
                 }
             },
             rule: {
                 candidates: function(used, part) {
                     requestCompletion({get: "rule"}, used, part);
+                    return true;
                 }
             },
             scene: {
                 candidates: function(used, part) {
                     requestCompletion({get: "scene"}, used, part);
+                    return true;
                 }
+            }
+        },
+        list: {
+            candidates: ["controllers", "sensors", "rules", "scenes"]
+        },
+        controller: {
+            candidates: function(used, part) {
+                if (state.controller === undefined) {
+                    console.log("\nno controller set");
+                    return false;
+                }
+                requestCompletion({get: "controller", controller: state.controller}, used, part);
+                return true;
             }
         }
     };
@@ -83,7 +101,10 @@ function completer(line, callback)
     }
 
     if (typeof candidate.candidates === "function") {
-        candidate.candidates(used, last);
+        if (!candidate.candidates(used, last)) {
+            callback(null, [null, line]);
+            prompt(true);
+        }
     } else {
         var hits = candidate.candidates.filter(function(c) { return c.indexOf(last) == 0; });
         callback(null, [hits, used]);
@@ -115,6 +136,57 @@ function handleMessage(msg)
     return true;
 }
 
+function handleLine(line)
+{
+    var handlers = {
+        help: function(args) {
+            showHelp();
+        },
+        list: function(args) {
+            switch (args[0]) {
+            case "controllers":
+                send({get: "controllers"});
+                break;
+            case "sensors":
+                send({get: "controllers"});
+                break;
+            case "rules":
+                send({get: "rules"});
+                break;
+            case "scenes":
+                send({get: "scenes"});
+                break;
+            default:
+                console.log("can't list", args[0]);
+                break;
+            }
+        },
+        set: function(args) {
+            if (args.length != 2) {
+                console.log("invalid number of args to set");
+                return;
+            }
+            switch (args[0]) {
+            case "controller":
+            case "sensor":
+            case "rule":
+            case "scene":
+                state[args[0]] = args[1];
+                break;
+            default:
+                console.log("can't set", args[0]);
+                break;
+            }
+        }
+    };
+    var handler = handlers[line[0]];
+    if (handler) {
+        handler(line.splice(0, 1));
+    } else {
+        console.log("Unknown command:", line[0]);
+    }
+}
+
 prompt();
 
 ws.on("open", function() {
@@ -133,19 +205,7 @@ ws.on("open", function() {
 });
 
 rl.on("line", function(line) {
-    if (line == "help") {
-        showHelp();
-    } else if (line == "controllers") {
-        send({get: "controllers"});
-    } else if (line == "sensors") {
-        send({get: "sensors"});
-    } else if (line == "rules") {
-        send({get: "rules"});
-    } else if (line == "scenes") {
-        send({get: "scenes"});
-    } else {
-        console.log("Unknown command");
-    }
+    handleLine(line.split(' ').filter(function(el) { return el.length != 0; }));
     prompt();
 }).on("close", function() {
     process.stdout.write("\n");
