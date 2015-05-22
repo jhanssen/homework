@@ -3,6 +3,7 @@
 #include <rct/Rct.h>
 #include <cec/CecModule.h>
 #include <websocket/WSModule.h>
+#include <fake/FakeModule.h>
 
 static Daemon::SharedPtr daemonInstance;
 
@@ -36,6 +37,7 @@ void Daemon::initializeModules()
 {
     mModules.add<CecModule>();
     mModules.add<WSModule>();
+    mModules.add<FakeModule>();
 
     mModules.initialize();
 }
