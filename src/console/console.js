@@ -27,9 +27,13 @@ function completer(line, callback)
         set: {
             candidates: ["controller ", "sensor ", "rule ", "scene "],
             controller: {
-                candidates: function() {
+                candidates: function(used, part) {
                     var id = pendingCompletions.id;
-                    pendingCompletions.pending[id] = callback;
+                    pendingCompletions.pending[id] = {
+                        used: used,
+                        callback: callback,
+                        part: part
+                    };
                     send({get: "controllers", id: id});
                     ++pendingCompletions.id;
                 }
@@ -56,9 +60,13 @@ function completer(line, callback)
             break;
         }
     }
+
+    if (typeof candidate.candidates === "function") {
+        candidate.candidates(used, splitLine[i]);
+        return;
+    }
+
     hits = candidate.candidates.filter(function(c) { return c.indexOf(splitLine[i]) == 0; });
-    // show all completions if none found
-    // console.log("callback " + JSON.stringify([hits.length ? hits : candidate.candidates, used]));
     callback(null, [hits.length ? hits : candidate.candidates, used]);
 }
 
@@ -71,13 +79,29 @@ function send(obj)
     ws.send(JSON.stringify(obj));
 }
 
+function handleMessage(msg)
+{
+    // do we have a pending completion for this id?
+    if (msg.id in pendingCompletions.pending) {
+        // yes, send it back
+        var data = pendingCompletions.pending[msg.id];
+        var hits = msg.data.filter(function(c) { return c.indexOf(data.part) == 0; });
+        data.callback(null, [hits.length ? hits : msg.data, data.used]);
+
+        delete pendingCompletions.pending[msg.id];
+        return;
+    }
+    console.log("got message", JSON.stringify(msg));
+}
+
 prompt();
 
 ws.on("open", function() {
     console.log("ready.");
     prompt();
 }).on("message", function(data, flags) {
-    console.log("message", data);
+    var msg = JSON.parse(data);
+    handleMessage(msg);
     prompt();
 }).on("close", function() {
     console.log("ws closed");

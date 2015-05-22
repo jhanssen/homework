@@ -34,18 +34,25 @@ WSModule::~WSModule()
 
 static inline Value handleMessage(const Value& msg)
 {
-    Value ret;
     const String get = msg.value<String>("get");
+    const int id = msg.value<int>("id", -1);
     printf("get %s\n", get.constData());
 
+    Value ret;
+    ret["id"] = id;
+
     if (get == "controllers") {
+        Value list;
+
         const auto& ctrls = Modules::instance()->controllers();
         auto ctrl = ctrls.cbegin();
         const auto end = ctrls.cend();
         while (ctrl != end) {
-            ret.push_back((*ctrl)->name());
+            list.push_back((*ctrl)->name());
             ++ctrl;
         }
+
+        ret["data"] = list;
     }
 
     return ret;

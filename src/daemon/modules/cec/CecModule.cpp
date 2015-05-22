@@ -58,7 +58,7 @@ std::shared_ptr<CecModule::Connection> CecController::connection() const
 
 Value CecController::describe() const
 {
-    json j = {
+    const json j = {
         { "methods", { "powerOn", "powerOff", "message", "setActive" }},
         { "events", { "keyPress", "keyRelease" } },
         { "arguments", {
