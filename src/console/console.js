@@ -177,6 +177,16 @@ function handleLine(line)
                 console.log("can't set", args[0]);
                 break;
             }
+        },
+        controller: function(args) {
+            if (!state.controller) {
+                console.log("no controller set");
+                return;
+            }
+            if (args.length === 0) {
+                console.log("current controller", state.controller);
+                return;
+            }
         }
     };
     var handler = handlers[line[0]];
