@@ -40,22 +40,22 @@ function completer(line, callback)
             candidates: ["controller ", "sensor ", "rule ", "scene "],
             controller: {
                 candidates: function(used, part) {
-                    requestCompletion({get: "controllers"});
+                    requestCompletion({get: "controllers"}, used, part);
                 }
             },
             sensor: {
                 candidates: function(used, part) {
-                    requestCompletion({get: "sensor"});
+                    requestCompletion({get: "sensor"}, used, part);
                 }
             },
             rule: {
                 candidates: function(used, part) {
-                    requestCompletion({get: "rule"});
+                    requestCompletion({get: "rule"}, used, part);
                 }
             },
             scene: {
                 candidates: function(used, part) {
-                    requestCompletion({get: "scene"});
+                    requestCompletion({get: "scene"}, used, part);
                 }
             }
         }
