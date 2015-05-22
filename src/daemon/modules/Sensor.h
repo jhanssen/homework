@@ -4,6 +4,7 @@
 #include <rct/SignalSlot.h>
 #include <rct/String.h>
 #include <rct/Value.h>
+#include <JsonValue.h>
 #include <memory>
 
 class Sensor : public std::enable_shared_from_this<Sensor>
@@ -15,6 +16,7 @@ public:
     Sensor(const String& name);
     virtual ~Sensor() {}
 
+    virtual Value describe() const = 0;
     virtual Value get() const = 0;
     virtual void configure(const Value&) { }
 

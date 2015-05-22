@@ -13,6 +13,7 @@ public:
 
     CecModule* module() const;
 
+    virtual Value describe() const;
     virtual Value get() const;
     virtual void set(const Value& value);
 
@@ -53,6 +54,28 @@ void CecController::log(Module::LogLevel level, const String& msg)
 std::shared_ptr<CecModule::Connection> CecController::connection() const
 {
     return mConnection.lock();
+}
+
+Value CecController::describe() const
+{
+    json j = {
+        { "methods", { "powerOn", "powerOff", "message", "setActive" }},
+        { "events", { "keyPress", "keyRelease" } },
+        { "arguments", {
+            { "message", {
+                { "message", "string" }
+            }},
+            { "keyPress", {
+                { "key", "string" },
+                { "cecCode", "int" }
+            }},
+            { "keyRelease", {
+                { "key", "string" },
+                { "cecCode", "int" }
+            }}
+        }}
+    };
+    return Json::toValue(j);
 }
 
 Value CecController::get() const
