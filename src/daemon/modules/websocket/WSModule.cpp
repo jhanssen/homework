@@ -53,6 +53,19 @@ static inline Value handleMessage(const Value& msg)
         }
 
         ret["data"] = list;
+    } else if (get == "controller") {
+        const String name = msg.value<String>("controller");
+
+        const auto& ctrls = Modules::instance()->controllers();
+        auto ctrl = ctrls.cbegin();
+        const auto end = ctrls.cend();
+        while (ctrl != end) {
+            if ((*ctrl)->name() == name) {
+                ret["data"] = (*ctrl)->describe();
+                break;
+            }
+            ++ctrl;
+        }
     }
 
     return ret;
