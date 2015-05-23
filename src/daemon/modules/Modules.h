@@ -32,6 +32,7 @@ public:
     void registerController(const Controller::SharedPtr& controller);
     void unregisterController(const Controller::SharedPtr& controller);
     Set<Controller::SharedPtr> controllers() const;
+    Controller::SharedPtr controller(const String& name) const;
 
     void registerSensor(const Sensor::SharedPtr& sensor);
     void unregisterSensor(const Sensor::SharedPtr& sensor);

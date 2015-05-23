@@ -34,40 +34,47 @@ WSModule::~WSModule()
 
 static inline Value handleMessage(const Value& msg)
 {
-    const String get = msg.value<String>("get");
-    const int id = msg.value<int>("id", -1);
-    printf("get %s\n", get.constData());
-
     Value ret;
-    ret["id"] = id;
+    const String get = msg.value<String>("get");
+    const String set = msg.value<String>("set");
+    const int id = msg.value<int>("id", -1);
+    if (!get.isEmpty()) {
+        printf("get %s\n", get.constData());
 
-    if (get == "controllers") {
-        Value list;
+        ret["id"] = id;
 
-        const auto& ctrls = Modules::instance()->controllers();
-        auto ctrl = ctrls.cbegin();
-        const auto end = ctrls.cend();
-        while (ctrl != end) {
-            list.push_back((*ctrl)->name());
-            ++ctrl;
-        }
+        if (get == "controllers") {
+            Value list;
 
-        ret["data"] = list;
-    } else if (get == "controller") {
-        const String name = msg.value<String>("controller");
-
-        const auto& ctrls = Modules::instance()->controllers();
-        auto ctrl = ctrls.cbegin();
-        const auto end = ctrls.cend();
-        while (ctrl != end) {
-            if ((*ctrl)->name() == name) {
-                ret["data"] = (*ctrl)->describe();
-                break;
+            const auto& ctrls = Modules::instance()->controllers();
+            auto ctrl = ctrls.cbegin();
+            const auto end = ctrls.cend();
+            while (ctrl != end) {
+                list.push_back((*ctrl)->name());
+                ++ctrl;
             }
-            ++ctrl;
+
+            Value cand;
+            cand["candidates"] = list;
+            Value comp;
+            comp["completions"] = cand;
+            ret["data"] = comp;
+        } else if (get == "controller") {
+            const String name = msg.value<String>("controller");
+            error() << "finding controller" << name;
+            if (auto ctrl = Modules::instance()->controller(name)) {
+                error() << "found controller" << name;
+                ret["data"] = ctrl->describe();
+            }
+        }
+    } else if (!set.isEmpty()) {
+        if (set == "controller") {
+            const String name = msg.value<String>("name");
+
+            if (auto ctrl = Modules::instance()->controller(name))
+                ctrl->set(msg);
         }
     }
-
     return ret;
 }
 

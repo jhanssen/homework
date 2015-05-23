@@ -19,6 +19,12 @@ FakeController::FakeController()
 Value FakeController::describe() const
 {
     const json j = {
+        { "completions", {
+            { "candidates", { "method " }},
+            { "method", {
+                { "candidates", { "fakeOn ", "fakeOff " }}
+            }}
+        }},
         { "methods", { "fakeOn", "fakeOff" }},
         { "events", { "keyPress", "keyRelease" } },
         { "arguments", {
@@ -45,6 +51,8 @@ Value FakeController::get() const
 
 void FakeController::set(const Value& value)
 {
+    const String method = value.value<String>("method");
+    error() << "setting method" << method;
 }
 
 FakeModule::FakeModule()

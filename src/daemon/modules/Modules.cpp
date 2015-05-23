@@ -54,6 +54,19 @@ void Modules::unregisterController(const Controller::SharedPtr& controller)
     }
 }
 
+Controller::SharedPtr Modules::controller(const String& name) const
+{
+    auto ctrl = mControllers.cbegin();
+    const auto end = mControllers.cend();
+    while (ctrl != end) {
+        if ((*ctrl)->name() == name) {
+            return *ctrl;
+        }
+        ++ctrl;
+    }
+    return Controller::SharedPtr();
+}
+
 void Modules::registerSensor(const Sensor::SharedPtr& sensor)
 {
     mSensors.insert(sensor);

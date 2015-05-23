@@ -21,64 +21,24 @@ function prompt(arg)
 var pendingCompletions = {id: 0, pending: Object.create(null)};
 var state = {};
 
-function completer(line, callback)
+function requestCompletion(req, used, part, callback, remaining)
 {
-    var requestCompletion = function(req, used, part) {
-        var id = pendingCompletions.id;
-        pendingCompletions.pending[id] = {
-            used: used,
-            callback: callback,
-            part: part
-        };
-        req.id = id;
-        send(req);
-        ++pendingCompletions.id;
+    var id = pendingCompletions.id;
+    pendingCompletions.pending[id] = {
+        used: used,
+        callback: callback,
+        part: part,
+        remaining: remaining
     };
+    req.id = id;
+    send(req);
+    ++pendingCompletions.id;
+};
 
-    var completions = {
-        candidates: ["help ", "list ", "controller ", "sensor ", "rule ", "scene ", "quit ", "set "],
-        set: {
-            candidates: ["controller ", "sensor ", "rule ", "scene "],
-            controller: {
-                candidates: function(used, part) {
-                    requestCompletion({get: "controllers"}, used, part);
-                    return true;
-                }
-            },
-            sensor: {
-                candidates: function(used, part) {
-                    requestCompletion({get: "sensor"}, used, part);
-                    return true;
-                }
-            },
-            rule: {
-                candidates: function(used, part) {
-                    requestCompletion({get: "rule"}, used, part);
-                    return true;
-                }
-            },
-            scene: {
-                candidates: function(used, part) {
-                    requestCompletion({get: "scene"}, used, part);
-                    return true;
-                }
-            }
-        },
-        list: {
-            candidates: ["controllers", "sensors", "rules", "scenes"]
-        },
-        controller: {
-            candidates: function(used, part) {
-                if (state.controller === undefined) {
-                    console.log("\nno controller set");
-                    return false;
-                }
-                requestCompletion({get: "controller", controller: state.controller}, used, part);
-                return true;
-            }
-        }
-    };
-
+function processCompletions(completions, line, callback, extraused)
+{
+    if (!extraused)
+        extraused = "";
     var candidate = completions;
     var splitLine = line.split(' ');
     // console.log(JSON.stringify(splitLine));
@@ -99,9 +59,16 @@ function completer(line, callback)
             break;
         }
     }
+    var remaining;
+    if (i < splitLine.length) {
+        splitLine.splice(0, i);
+        remaining = splitLine.join(' ');
+    } else {
+        remaining = "";
+    }
 
     if (typeof candidate.candidates === "function") {
-        if (!candidate.candidates(used, last)) {
+        if (!candidate.candidates(extraused + used, last, remaining)) {
             callback(null, [null, line]);
             prompt(true);
         }
@@ -109,6 +76,54 @@ function completer(line, callback)
         var hits = candidate.candidates.filter(function(c) { return c.indexOf(last) == 0; });
         callback(null, [hits, used]);
     }
+}
+
+function completer(line, callback)
+{
+    var completions = {
+        candidates: ["help ", "list ", "controller ", "sensor ", "rule ", "scene ", "quit ", "set "],
+        set: {
+            candidates: ["controller ", "sensor ", "rule ", "scene "],
+            controller: {
+                candidates: function(used, part, remaining) {
+                    requestCompletion({get: "controllers"}, used, part, callback, remaining);
+                    return true;
+                }
+            },
+            sensor: {
+                candidates: function(used, part, remaining) {
+                    requestCompletion({get: "sensor"}, used, part, callback, remaining);
+                    return true;
+                }
+            },
+            rule: {
+                candidates: function(used, part, remaining) {
+                    requestCompletion({get: "rule"}, used, part, callback, remaining);
+                    return true;
+                }
+            },
+            scene: {
+                candidates: function(used, part, remaining) {
+                    requestCompletion({get: "scene"}, used, part, callback, remaining);
+                    return true;
+                }
+            }
+        },
+        list: {
+            candidates: ["controllers", "sensors", "rules", "scenes"]
+        },
+        controller: {
+            candidates: function(used, part, remaining) {
+                if (state.controller === undefined) {
+                    console.log("\nno controller set");
+                    return false;
+                }
+                requestCompletion({get: "controller", controller: state.controller}, used, part, callback, remaining);
+                return true;
+            }
+        }
+    };
+    processCompletions(completions, line, callback);
 }
 
 function showHelp()
@@ -122,18 +137,27 @@ function send(obj)
 
 function handleMessage(msg)
 {
+    if (typeof msg !== "object" || msg === null)
+        return true;
     // do we have a pending completion for this id?
     if (msg.id in pendingCompletions.pending) {
         // yes, send it back
         var data = pendingCompletions.pending[msg.id];
-        var hits = msg.data.filter(function(c) { return c.indexOf(data.part) == 0; });
-        data.callback(null, [hits, data.used]);
-
         delete pendingCompletions.pending[msg.id];
+        processCompletions(msg.data.completions, data.remaining, data.callback, data.used);
         return false;
     }
     console.log("got message", JSON.stringify(msg));
     return true;
+}
+
+function sendSetRequest(object, name, args)
+{
+    var obj = { "set": object, name: name };
+    obj[args[0]] = args[1];
+    args.splice(0, 2);
+    obj["arguments"] = args;
+    send(obj);
 }
 
 function handleLine(line)
@@ -187,6 +211,12 @@ function handleLine(line)
                 console.log("current controller", state.controller);
                 return;
             }
+            if (args.length < 2) {
+                console.log("invalid controller command");
+                return;
+            }
+            // send a request
+            sendSetRequest("controller", state.controller, args);
         }
     };
     var handler = handlers[line[0]];
