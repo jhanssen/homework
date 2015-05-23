@@ -39,6 +39,8 @@ void Modules::registerController(const Controller::SharedPtr& controller)
         (*scene)->add(controller);
         ++scene;
     }
+
+    mControllerAdded(controller);
 }
 
 void Modules::unregisterController(const Controller::SharedPtr& controller)
@@ -52,6 +54,8 @@ void Modules::unregisterController(const Controller::SharedPtr& controller)
         (*scene)->remove(controller);
         ++scene;
     }
+
+    mControllerRemoved(controller);
 }
 
 Controller::SharedPtr Modules::controller(const String& name) const
@@ -70,9 +74,11 @@ Controller::SharedPtr Modules::controller(const String& name) const
 void Modules::registerSensor(const Sensor::SharedPtr& sensor)
 {
     mSensors.insert(sensor);
+    mSensorAdded(sensor);
 }
 
 void Modules::unregisterSensor(const Sensor::SharedPtr& sensor)
 {
     mSensors.remove(sensor);
+    mSensorRemoved(sensor);
 }

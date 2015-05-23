@@ -20,6 +20,23 @@ function prompt(arg)
 
 var pendingCompletions = {id: 0, pending: Object.create(null)};
 var state = {};
+var listeners = {};
+
+function addEventListener(type, callback)
+{
+    if (!listeners[type])
+        listeners[type] = [];
+    listeners[type].push(callback);
+}
+
+function callEventListeners(type, name, event)
+{
+    var l = listeners[type];
+    if (l instanceof Array) {
+        for (var i = 0; i < l.length; ++i)
+            l[i](name, event);
+    }
+}
 
 function requestCompletion(req, used, part, callback, remaining)
 {
@@ -147,6 +164,10 @@ function handleMessage(msg)
         processCompletions(msg.data.completions, data.remaining, data.callback, data.used);
         return false;
     }
+    if (typeof msg.type === "string" && listeners.hasOwnProperty(msg.type)) {
+        callEventListeners(msg.type, msg.name, msg.data);
+        return true;
+    }
     console.log("got message", JSON.stringify(msg));
     return true;
 }
@@ -251,4 +272,8 @@ rl.on("line", function(line) {
 }).on("close", function() {
     process.stdout.write("\n");
     process.exit(0);
+});
+
+addEventListener("sensor", function(name, event) {
+    console.log("got sensor", name, event);
 });

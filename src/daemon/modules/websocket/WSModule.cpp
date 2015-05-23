@@ -80,6 +80,51 @@ static inline Value handleMessage(const Value& msg)
 
 void WSModule::initialize()
 {
+    auto addSensor = [this](const Sensor::SharedPtr& sensor) {
+        sensor->stateChanged().connect([this](const Sensor::SharedPtr& sensor, const Value& value) {
+                // send message to all connected websockets
+                Value v;
+                v["type"] = "sensor";
+                v["name"] = sensor->name();
+                v["data"] = value;
+                const String msg = v.toJSON();
+
+                auto it = mWebSockets.cbegin();
+                const auto end = mWebSockets.cend();
+                while (it != end) {
+                    const auto& socket = it->second;
+                    socket->write(msg);
+                    ++it;
+                }
+            });
+    };
+
+    Modules* modules = Modules::instance();
+    modules->controllerAdded().connect([this, addSensor](const Controller::SharedPtr& ptr) {
+            addSensor(ptr);
+        });
+    modules->sensorAdded().connect([this, addSensor](const Sensor::SharedPtr& ptr) {
+            addSensor(ptr);
+        });
+    {
+        const auto& ctrls = modules->controllers();
+        auto it = ctrls.cbegin();
+        const auto end = ctrls.cend();
+        while (it != end) {
+            addSensor(*it);
+            ++it;
+        }
+    }
+    {
+        const auto& sensors = modules->sensors();
+        auto it = sensors.cbegin();
+        const auto end = sensors.cend();
+        while (it != end) {
+            addSensor(*it);
+            ++it;
+        }
+    }
+
     mHttpServer.listen(8087);
     mHttpServer.request().connect([this](const HttpServer::Request::SharedPtr& req) {
             error() << "got request" << req->protocol() << req->method() << req->path();
