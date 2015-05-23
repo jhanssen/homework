@@ -126,6 +126,8 @@ void CecController::set(const Value& value)
         } else if (cmd == "setActive") {
             if (!conn->adapter->SetActiveSource())
                 log(Module::Error, "unable to set active source");
+        } else {
+            log(Module::Error, String::format<64>("unknown method '%s'", cmd.constData()));
         }
     }
 }
