@@ -152,6 +152,17 @@ function send(obj)
     ws.send(JSON.stringify(obj));
 }
 
+function isEvent(msg)
+{
+    if (!msg.hasOwnProperty("type"))
+        return false;
+    switch (msg.type) {
+    case "sensor":
+        return true;
+    }
+    return false;
+}
+
 function handleMessage(msg)
 {
     if (typeof msg !== "object" || msg === null)
@@ -164,7 +175,7 @@ function handleMessage(msg)
         processCompletions(msg.data.completions, data.remaining, data.callback, data.used);
         return false;
     }
-    if (typeof msg.type === "string" && listeners.hasOwnProperty(msg.type)) {
+    if (isEvent(msg)) {
         callEventListeners(msg.type, msg.name, msg.data);
         return true;
     }
