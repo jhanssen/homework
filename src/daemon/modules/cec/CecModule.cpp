@@ -59,6 +59,12 @@ std::shared_ptr<CecModule::Connection> CecController::connection() const
 Value CecController::describe() const
 {
     const json j = {
+        { "completions", {
+            { "candidates", { "method " }},
+            { "method", {
+                { "candidates", { "powerOn", "powerOff", "message ", "setActive" }}
+            }}
+        }},
         { "methods", { "powerOn", "powerOff", "message", "setActive" }},
         { "events", { "keyPress", "keyRelease" } },
         { "arguments", {
@@ -106,7 +112,7 @@ Value CecController::get() const
 void CecController::set(const Value& value)
 {
     if (std::shared_ptr<CecModule::Connection> conn = mConnection.lock()) {
-        const String cmd = value.value<String>("command");
+        const String cmd = value.value<String>("method");
         if (cmd == "powerOn") {
             if (!conn->adapter->PowerOnDevices(CECDEVICE_TV))
                 log(Module::Error, "unable to turn tv on");
