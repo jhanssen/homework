@@ -13,6 +13,7 @@ void RuleJS::setScript(const String& script)
     ScriptEngine* engine = ScriptEngine::instance();
     mValue = engine->evaluate(script);
     mValid = engine->isFunction(mValue);
+    mArgs = script;
 }
 
 bool RuleJS::check()

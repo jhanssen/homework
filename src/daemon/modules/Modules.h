@@ -64,6 +64,18 @@ public:
 private:
     void initializeScene();
 
+    void loadRules();
+    void loadScenes();
+    void loadRuleConnections();
+
+    void flushRules();
+    void flushScenes();
+    void flushRuleConnections();
+
+    void createPendingRules();
+    void createPendingScenes();
+    void createPendingRuleConnections();
+
 private:
     List<Module::SharedPtr> mModules;
     ScriptEngine mScriptEngine;
@@ -72,6 +84,27 @@ private:
     Set<Sensor::SharedPtr> mSensors;
     Set<Rule::SharedPtr> mRules;
     Map<Rule::WeakPtr, Set<Scene::WeakPtr> > mRuleConnections;
+
+    struct PendingRule
+    {
+        String name;
+        Value arguments;
+        List<String> sensors;
+    };
+    List<PendingRule> mPendingRules;
+
+    struct PendingScene
+    {
+        String name;
+        List<String> controllers;
+    };
+    List<PendingScene> mPendingScenes;
+
+    struct PendingRuleConnection
+    {
+        String rule, scene;
+    };
+    List<PendingRuleConnection> mPendingRuleConnections;
 
     Signal<std::function<void(const Controller::SharedPtr&)> > mControllerAdded, mControllerRemoved;
     Signal<std::function<void(const Sensor::SharedPtr&)> > mSensorAdded, mSensorRemoved;
@@ -120,6 +153,7 @@ inline Set<Sensor::SharedPtr> Modules::sensors() const
 inline void Modules::registerScene(const Scene::SharedPtr& scene)
 {
     mScenes.insert(scene);
+    flushScenes();
     mSceneAdded(scene);
 }
 
@@ -127,6 +161,7 @@ inline void Modules::unregisterScene(const Scene::SharedPtr& scene)
 {
     assert(mScenes.contains(scene));
     mScenes.remove(scene);
+    flushScenes();
     mSceneRemoved(scene);
 }
 
@@ -151,6 +186,7 @@ inline void Modules::registerRule(const Rule::SharedPtr& rule)
             }
         });
     mRules.insert(rule);
+    flushRules();
     mRuleAdded(rule);
 }
 
@@ -160,6 +196,7 @@ inline void Modules::unregisterRule(const Rule::SharedPtr& rule)
     assert(mRuleConnections.contains(rule));
     mRules.remove(rule);
     mRuleConnections.remove(rule);
+    flushRules();
     mRuleRemoved(rule);
 }
 
@@ -172,6 +209,7 @@ inline void Modules::connectRule(const Rule::SharedPtr& rule, const Scene::Share
 {
     assert(mRuleConnections.contains(rule));
     mRuleConnections[rule].insert(scene);
+    flushRuleConnections();
     mRuleConnectionAdded(rule, scene);
 }
 
@@ -179,6 +217,7 @@ inline void Modules::disconnectRule(const Rule::SharedPtr& rule, const Scene::Sh
 {
     assert(mRuleConnections.contains(rule));
     mRuleConnections[rule].erase(scene);
+    flushRuleConnections();
     mRuleConnectionRemoved(rule, scene);
 }
 

@@ -15,16 +15,18 @@ public:
     typedef std::shared_ptr<Rule> SharedPtr;
     typedef std::weak_ptr<Rule> WeakPtr;
 
-    Rule(const String& name) : mValid(false), mName(name) { }
+    Rule(const String& name, const Value& args = Value()) : mValid(false), mName(name), mArgs(args) { }
     virtual ~Rule() { }
 
     void registerSensor(const Sensor::SharedPtr& sensor);
     void unregisterSensor(const Sensor::SharedPtr& sensor);
+    List<Sensor::SharedPtr> sensors() const;
 
     Signal<std::function<void(const Rule::SharedPtr&)> >& triggered() { return mTriggered; }
 
     bool isValid() const { return mValid; }
     String name() const { return mName; }
+    Value arguments() const { return mArgs; }
 
 protected:
     virtual bool check() = 0;
@@ -39,6 +41,7 @@ protected:
     Signal<std::function<void(const Rule::SharedPtr&)> > mTriggered;
     bool mValid;
     String mName;
+    Value mArgs;
 
 private:
     void sensorChanged(const Sensor::SharedPtr& sensor, const Value& value);
@@ -70,6 +73,17 @@ inline void Rule::checkTriggered()
 {
     if (check())
         mTriggered(shared_from_this());
+}
+
+inline List<Sensor::SharedPtr> Rule::sensors() const
+{
+    List<Sensor::SharedPtr> ret;
+    for (auto p : mSensors) {
+        if (Sensor::SharedPtr sensor = p.first.lock()) {
+            ret.append(sensor);
+        }
+    }
+    return ret;
 }
 
 inline bool operator<(const Rule::WeakPtr& a, const Rule::WeakPtr& b)

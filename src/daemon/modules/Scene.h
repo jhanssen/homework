@@ -20,6 +20,7 @@ public:
     void remove(const Controller::SharedPtr& controller);
 
     String name() const { return mName; }
+    List<Controller::SharedPtr> controllers() const;
 
     void enable();
 
@@ -52,6 +53,17 @@ inline void Scene::enable()
             ptr->set(it->second);
         ++it;
     }
+}
+
+inline List<Controller::SharedPtr> Scene::controllers() const
+{
+    List<Controller::SharedPtr> ret;
+    for (auto p : mData) {
+        if (Controller::SharedPtr controller = p.first.lock()) {
+            ret.append(controller);
+        }
+    }
+    return ret;
 }
 
 inline bool operator<(const Scene::WeakPtr& a, const Scene::WeakPtr& b)
