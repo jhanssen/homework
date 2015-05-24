@@ -15,8 +15,21 @@ var rl = readline.createInterface({
 function prompt(arg)
 {
     rl.setPrompt("> ", 2);
-    rl.prompt(arg);
+    rl.prompt(arg === undefined ? true : arg);
 }
+
+var oldconsole = {
+    log: console.log,
+    error: console.error
+};
+console.log = function()
+{
+    readline.clearLine(process.stdout, 0);
+    readline.moveCursor(process.stdout, -2, 0);
+    var args = Array.prototype.slice.call(arguments);
+    args.splice(0, 0, (new Date).toLocaleTimeString());
+    oldconsole.log.apply(this, args);
+};
 
 var pendingCompletions = {id: 0, pending: Object.create(null)};
 var state = {};
@@ -87,7 +100,7 @@ function processCompletions(completions, line, callback, extraused)
     if (typeof candidate.candidates === "function") {
         if (!candidate.candidates(extraused + used, last, remaining)) {
             callback(null, [null, line]);
-            prompt(true);
+            prompt();
         }
     } else {
         var hits = candidate.candidates.filter(function(c) { return c.indexOf(last) == 0; });
@@ -179,7 +192,14 @@ function handleMessage(msg)
         callEventListeners(msg.type, msg.name, msg.data);
         return true;
     }
-    console.log("got message", JSON.stringify(msg));
+    switch (msg.type) {
+    case "list":
+        console.log(msg.data.list + ":", msg.data[msg.data.list]);
+        break;
+    default:
+        console.log("unknown type", msg.type);
+        break;
+    }
     return true;
 }
 
@@ -256,7 +276,7 @@ function handleLine(line)
         line.splice(0, 1);
         handler(line);
     } else {
-        console.log("Unknown command:", line[0]);
+        // console.log("Unknown command:", line[0]);
     }
 }
 
@@ -267,8 +287,9 @@ ws.on("open", function() {
     prompt();
 }).on("message", function(data, flags) {
     var msg = JSON.parse(data);
-    if (handleMessage(msg))
+    if (handleMessage(msg)) {
         prompt();
+    }
 }).on("close", function() {
     console.log("ws closed");
     process.exit(0);
@@ -279,12 +300,12 @@ ws.on("open", function() {
 
 rl.on("line", function(line) {
     handleLine(line.split(' ').filter(function(el) { return el.length != 0; }));
-    prompt();
+    rl.pause();
 }).on("close", function() {
     process.stdout.write("\n");
     process.exit(0);
 });
 
 addEventListener("sensor", function(name, event) {
-    console.log("got sensor", name, event);
+    //console.log("got sensor", name, event);
 });

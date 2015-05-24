@@ -54,11 +54,15 @@ static inline Value handleMessage(const Value& msg)
                 ++ctrl;
             }
 
-            Value cand;
-            cand["candidates"] = list;
             Value comp;
-            comp["completions"] = cand;
-            ret["data"] = comp;
+            comp["candidates"] = list;
+            Value data;
+            data["completions"] = comp;
+
+            data["controllers"] = list;
+            data["list"] = "controllers";
+            ret["type"] = "list";
+            ret["data"] = data;
         } else if (get == "controller") {
             const String name = msg.value<String>("controller");
             error() << "finding controller" << name;
