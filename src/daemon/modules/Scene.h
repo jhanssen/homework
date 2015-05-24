@@ -3,6 +3,7 @@
 
 #include <Controller.h>
 #include <rct/Map.h>
+#include <rct/String.h>
 #include <memory>
 
 class Scene
@@ -11,17 +12,20 @@ public:
     typedef std::shared_ptr<Scene> SharedPtr;
     typedef std::weak_ptr<Scene> WeakPtr;
 
-    Scene() {}
+    Scene(const String& name) : mName(name) {}
     ~Scene() {}
 
     void set(const Controller::SharedPtr& controller, const Value& value);
     void add(const Controller::SharedPtr& controller);
     void remove(const Controller::SharedPtr& controller);
 
+    String name() const { return mName; }
+
     void enable();
 
 private:
     Map<Controller::WeakPtr, Value> mData;
+    String mName;
 };
 
 inline void Scene::set(const Controller::SharedPtr& controller, const Value& value)

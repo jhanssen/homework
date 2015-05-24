@@ -1,7 +1,14 @@
 #include "RuleJS.h"
 #include <rct/ScriptEngine.h>
 
-RuleJS::RuleJS(const String& script)
+RuleJS::RuleJS(const String& name, const String& script)
+    : Rule(name)
+{
+    if (!script.isEmpty())
+        setScript(script);
+}
+
+void RuleJS::setScript(const String& script)
 {
     ScriptEngine* engine = ScriptEngine::instance();
     mValue = engine->evaluate(script);

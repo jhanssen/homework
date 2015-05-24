@@ -1,6 +1,7 @@
 #include "WSModule.h"
 #include <Controller.h>
 #include <Daemon.h>
+#include <RuleJS.h>
 #include <rct/Log.h>
 
 static inline const char* guessMime(const Path& file)
@@ -32,11 +33,34 @@ WSModule::~WSModule()
 {
 }
 
+template<typename T>
+static inline void processGet(const T& container, const String& name, Value& ret)
+{
+    Value list;
+    auto item = container.cbegin();
+    const auto end = container.cend();
+    while (item != end) {
+        list.push_back((*item)->name());
+        ++item;
+    }
+
+    Value comp;
+    comp["candidates"] = list;
+    Value data;
+    data["completions"] = comp;
+
+    data[name] = list;
+    data["list"] = name;
+    ret["type"] = "list";
+    ret["data"] = data;
+}
+
 static inline Value handleMessage(const Value& msg)
 {
     Value ret;
     const String get = msg.value<String>("get");
     const String set = msg.value<String>("set");
+    const String create = msg.value<String>("create");
     const int id = msg.value<int>("id", -1);
     if (!get.isEmpty()) {
         printf("get %s\n", get.constData());
@@ -44,25 +68,13 @@ static inline Value handleMessage(const Value& msg)
         ret["id"] = id;
 
         if (get == "controllers") {
-            Value list;
-
-            const auto& ctrls = Modules::instance()->controllers();
-            auto ctrl = ctrls.cbegin();
-            const auto end = ctrls.cend();
-            while (ctrl != end) {
-                list.push_back((*ctrl)->name());
-                ++ctrl;
-            }
-
-            Value comp;
-            comp["candidates"] = list;
-            Value data;
-            data["completions"] = comp;
-
-            data["controllers"] = list;
-            data["list"] = "controllers";
-            ret["type"] = "list";
-            ret["data"] = data;
+            processGet(Modules::instance()->controllers(), "controllers", ret);
+        } else if (get == "sensors") {
+            processGet(Modules::instance()->sensors(), "sensors", ret);
+        } else if (get == "rules") {
+            processGet(Modules::instance()->rules(), "rules", ret);
+        } else if (get == "scenes") {
+            processGet(Modules::instance()->scenes(), "scenes", ret);
         } else if (get == "controller") {
             const String name = msg.value<String>("controller");
             error() << "finding controller" << name;
@@ -77,6 +89,15 @@ static inline Value handleMessage(const Value& msg)
 
             if (auto ctrl = Modules::instance()->controller(name))
                 ctrl->set(msg);
+        }
+    } else if (!create.isEmpty()) {
+        error() << "creating" << create;
+        if (create == "scene") {
+            Scene::SharedPtr scene = std::make_shared<Scene>(msg.value<String>("name"));
+            Modules::instance()->registerScene(scene);
+        } else if (create == "rule") {
+            Rule::SharedPtr rule = std::make_shared<RuleJS>(msg.value<String>("name"));
+            Modules::instance()->registerRule(rule);
         }
     }
     return ret;

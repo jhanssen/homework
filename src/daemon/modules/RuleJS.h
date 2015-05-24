@@ -2,13 +2,14 @@
 #define RULEJS_H
 
 #include "Rule.h"
-#include <rct/String.h>
 #include <rct/Value.h>
 
 class RuleJS : public Rule
 {
 public:
-    RuleJS(const String& script);
+    RuleJS(const String& name, const String& script = String());
+
+    void setScript(const String& script);
 
 protected:
     virtual bool check();

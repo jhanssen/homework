@@ -16,7 +16,7 @@ Modules::~Modules()
 
 void Modules::initializeScene()
 {
-    Scene::SharedPtr scene = std::make_shared<Scene>();
+    Scene::SharedPtr scene = std::make_shared<Scene>("default-scene");
 
     auto controller = mControllers.cbegin();
     const auto end = mControllers.cend();

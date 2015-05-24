@@ -4,6 +4,7 @@
 #include "Sensor.h"
 #include <rct/Map.h>
 #include <rct/SignalSlot.h>
+#include <rct/String.h>
 #include <rct/Value.h>
 #include <memory>
 #include <assert.h>
@@ -14,7 +15,7 @@ public:
     typedef std::shared_ptr<Rule> SharedPtr;
     typedef std::weak_ptr<Rule> WeakPtr;
 
-    Rule() : mValid(false) { }
+    Rule(const String& name) : mValid(false), mName(name) { }
     virtual ~Rule() { }
 
     void registerSensor(const Sensor::SharedPtr& sensor);
@@ -23,6 +24,7 @@ public:
     Signal<std::function<void(const Rule::SharedPtr&)> >& triggered() { return mTriggered; }
 
     bool isValid() const { return mValid; }
+    String name() const { return mName; }
 
 protected:
     virtual bool check() = 0;
@@ -36,6 +38,7 @@ protected:
     Map<Sensor::WeakPtr, Data> mSensors;
     Signal<std::function<void(const Rule::SharedPtr&)> > mTriggered;
     bool mValid;
+    String mName;
 
 private:
     void sensorChanged(const Sensor::SharedPtr& sensor, const Value& value);

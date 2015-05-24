@@ -111,7 +111,7 @@ function processCompletions(completions, line, callback, extraused)
 function completer(line, callback)
 {
     var completions = {
-        candidates: ["help ", "list ", "controller ", "sensor ", "rule ", "scene ", "quit ", "set "],
+        candidates: ["help ", "list ", "controller ", "sensor ", "rule ", "scene ", "quit ", "set ", "create "],
         set: {
             candidates: ["controller ", "sensor ", "rule ", "scene "],
             controller: {
@@ -141,6 +141,9 @@ function completer(line, callback)
         },
         list: {
             candidates: ["controllers", "sensors", "rules", "scenes"]
+        },
+        create: {
+            candidates: ["rule ", "scene "]
         },
         controller: {
             candidates: function(used, part, remaining) {
@@ -205,10 +208,16 @@ function handleMessage(msg)
 
 function sendSetRequest(object, name, args)
 {
-    var obj = { "set": object, name: name };
+    var obj = { set: object, name: name };
     obj[args[0]] = args[1];
     args.splice(0, 2);
     obj["arguments"] = args;
+    send(obj);
+}
+
+function sendCreateRequest(object, name)
+{
+    var obj = { create: object, name: name };
     send(obj);
 }
 
@@ -224,7 +233,7 @@ function handleLine(line)
                 send({get: "controllers"});
                 break;
             case "sensors":
-                send({get: "controllers"});
+                send({get: "sensors"});
                 break;
             case "rules":
                 send({get: "rules"});
@@ -252,6 +261,20 @@ function handleLine(line)
             default:
                 console.log("can't set", args[0]);
                 break;
+            }
+        },
+        create: function(args) {
+            if (args.length != 2) {
+                console.log("invalid number of args to set");
+                return;
+            }
+            switch (args[0]) {
+            case "rule":
+            case "scene":
+                sendCreateRequest(args[0], args[1]);
+                break;
+            default:
+                console.log("invalid create", args[0]);
             }
         },
         controller: function(args) {
