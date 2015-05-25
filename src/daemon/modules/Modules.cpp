@@ -87,25 +87,6 @@ void Modules::unregisterController(const Controller::SharedPtr& controller)
     mControllerRemoved(controller);
 }
 
-template<typename T>
-static inline T create(const String& name, const Set<T>& set)
-{
-    auto it = set.cbegin();
-    const auto end = set.cend();
-    while (it != end) {
-        if ((*it)->name() == name) {
-            return *it;
-        }
-        ++it;
-    }
-    return T();
-}
-
-Controller::SharedPtr Modules::controller(const String& name) const
-{
-    return create(name, mControllers);
-}
-
 void Modules::registerSensor(const Sensor::SharedPtr& sensor)
 {
     mSensors.insert(sensor);
@@ -120,19 +101,38 @@ void Modules::unregisterSensor(const Sensor::SharedPtr& sensor)
     mSensorRemoved(sensor);
 }
 
+template<typename T>
+static inline T find(const String& name, const Set<T>& set)
+{
+    auto it = set.cbegin();
+    const auto end = set.cend();
+    while (it != end) {
+        if ((*it)->name() == name) {
+            return *it;
+        }
+        ++it;
+    }
+    return T();
+}
+
+Controller::SharedPtr Modules::controller(const String& name) const
+{
+    return find(name, mControllers);
+}
+
 Sensor::SharedPtr Modules::sensor(const String& name) const
 {
-    return create(name, mSensors);
+    return find(name, mSensors);
 }
 
 Scene::SharedPtr Modules::scene(const String& name) const
 {
-    return create(name, mScenes);
+    return find(name, mScenes);
 }
 
 Rule::SharedPtr Modules::rule(const String& name) const
 {
-    return create(name, mRules);
+    return find(name, mRules);
 }
 
 void Modules::loadRules()
