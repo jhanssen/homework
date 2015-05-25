@@ -7,7 +7,7 @@
 class RuleJS : public Rule
 {
 public:
-    RuleJS(const String& name, const String& script = String());
+    RuleJS(const String& name);
 
     void setScript(const String& script);
 

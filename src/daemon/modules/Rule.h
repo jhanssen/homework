@@ -21,7 +21,7 @@ public:
     void registerSensor(const Sensor::SharedPtr& sensor);
     void unregisterSensor(const Sensor::SharedPtr& sensor);
     List<Sensor::SharedPtr> sensors() const;
-
+    Signal<std::function<void(const Rule::SharedPtr&)> >& modified() { return mModified; }
     Signal<std::function<void(const Rule::SharedPtr&)> >& triggered() { return mTriggered; }
 
     bool isValid() const { return mValid; }
@@ -38,7 +38,7 @@ protected:
         unsigned int connectKey;
     };
     Map<Sensor::WeakPtr, Data> mSensors;
-    Signal<std::function<void(const Rule::SharedPtr&)> > mTriggered;
+    Signal<std::function<void(const Rule::SharedPtr&)> > mTriggered, mModified;
     bool mValid;
     String mName;
     Value mArgs;
@@ -52,6 +52,7 @@ inline void Rule::registerSensor(const Sensor::SharedPtr& sensor)
 {
     const unsigned int key = sensor->stateChanged().connect(std::bind(&Rule::sensorChanged, this, std::placeholders::_1, std::placeholders::_2));
     mSensors[sensor] = { sensor->get(), key };
+    mModified(shared_from_this());
 }
 
 inline void Rule::unregisterSensor(const Sensor::SharedPtr& sensor)
@@ -60,6 +61,7 @@ inline void Rule::unregisterSensor(const Sensor::SharedPtr& sensor)
     const Data& d = mSensors[sensor];
     sensor->stateChanged().disconnect(d.connectKey);
     mSensors.remove(sensor);
+    mModified(shared_from_this());
 }
 
 inline void Rule::sensorChanged(const Sensor::SharedPtr& sensor, const Value& value)

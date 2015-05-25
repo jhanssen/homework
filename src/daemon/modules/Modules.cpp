@@ -333,17 +333,21 @@ void Modules::createPendingRules()
 {
     auto it = mPendingRules.cbegin();
     while (it != mPendingRules.end()) {
+        bool ok = true;
         List<Sensor::SharedPtr> sensors;
         for (const String& name : it->sensors) {
             sensors.append(sensor(name));
             if (!sensors.last()) {
-                // nope
-                ++it;
-                continue;
+                ok = false;
+                break;
             }
         }
-        assert(sensors.size() == it->sensors.size());
-        Rule::SharedPtr rule = std::make_shared<RuleJS>(it->name, it->arguments.toString());
+        if (!ok) {
+            ++it;
+            continue;
+        }
+        Rule::SharedPtr rule = std::make_shared<RuleJS>(it->name);
+        std::static_pointer_cast<RuleJS>(rule)->setScript(it->arguments.toString());
         for (const auto& ptr : sensors) {
             rule->registerSensor(ptr);
         }

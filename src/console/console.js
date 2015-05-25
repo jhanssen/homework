@@ -122,19 +122,19 @@ function completer(line, callback)
             },
             sensor: {
                 candidates: function(used, part, remaining) {
-                    requestCompletion({get: "sensor"}, used, part, callback, remaining);
+                    requestCompletion({get: "sensors"}, used, part, callback, remaining);
                     return true;
                 }
             },
             rule: {
                 candidates: function(used, part, remaining) {
-                    requestCompletion({get: "rule"}, used, part, callback, remaining);
+                    requestCompletion({get: "rules"}, used, part, callback, remaining);
                     return true;
                 }
             },
             scene: {
                 candidates: function(used, part, remaining) {
-                    requestCompletion({get: "scene"}, used, part, callback, remaining);
+                    requestCompletion({get: "scenes"}, used, part, callback, remaining);
                     return true;
                 }
             }
@@ -153,6 +153,19 @@ function completer(line, callback)
                 }
                 requestCompletion({get: "controller", controller: state.controller}, used, part, callback, remaining);
                 return true;
+            }
+        },
+        rule: {
+            candidates: ["add "],
+            add: {
+                candidates: function(used, part, remaining) {
+                    if (state.rule === undefined) {
+                        console.log("\nno rule set");
+                        return false;
+                    }
+                    requestCompletion({get: "sensors"}, used, part, callback, remaining);
+                    return true;
+                }
             }
         }
     };
@@ -292,6 +305,28 @@ function handleLine(line)
             }
             // send a request
             sendSetRequest("controller", state.controller, args);
+        },
+        rule: function(args) {
+            if (!state.rule) {
+                console.log("no rule set");
+                return;
+            }
+            if (args.length === 0) {
+                console.log("current rule", state.rule);
+                return;
+            }
+            if (args.length < 2) {
+                console.log("invalid rule command");
+                return;
+            }
+            switch (args[0]) {
+            case "add":
+                send({add: "ruleSensor", rule: state.rule, sensor: args[1]});
+                break;
+            default:
+                console.log("invalid rule argument", args[0]);
+                break;
+            }
         }
     };
     var handler = handlers[line[0]];

@@ -55,12 +55,23 @@ static inline void processGet(const T& container, const String& name, Value& ret
     ret["data"] = data;
 }
 
+template<typename T>
+static inline void processGet(const T& item, const String& type, const String& name, Value& ret)
+{
+    error() << "finding" << type << name;
+    if (item) {
+        error() << "found" << type << name;
+        ret["data"] = item->describe();
+    }
+}
+
 static inline Value handleMessage(const Value& msg)
 {
     Value ret;
     const String get = msg.value<String>("get");
     const String set = msg.value<String>("set");
     const String create = msg.value<String>("create");
+    const String add = msg.value<String>("add");
     const int id = msg.value<int>("id", -1);
     if (!get.isEmpty()) {
         printf("get %s\n", get.constData());
@@ -77,11 +88,10 @@ static inline Value handleMessage(const Value& msg)
             processGet(Modules::instance()->scenes(), "scenes", ret);
         } else if (get == "controller") {
             const String name = msg.value<String>("controller");
-            error() << "finding controller" << name;
-            if (auto ctrl = Modules::instance()->controller(name)) {
-                error() << "found controller" << name;
-                ret["data"] = ctrl->describe();
-            }
+            processGet(Modules::instance()->controller(name), "controller", name, ret);
+        } else if (get == "sensor") {
+            const String name = msg.value<String>("sensor");
+            processGet(Modules::instance()->sensor(name), "sensor", name, ret);
         }
     } else if (!set.isEmpty()) {
         if (set == "controller") {
@@ -98,6 +108,30 @@ static inline Value handleMessage(const Value& msg)
         } else if (create == "rule") {
             Rule::SharedPtr rule = std::make_shared<RuleJS>(msg.value<String>("name"));
             Modules::instance()->registerRule(rule);
+        }
+    } else if (!add.isEmpty()) {
+        if (add == "ruleSensor") {
+            const String sensorName = msg.value<String>("sensor");
+            const String ruleName = msg.value<String>("rule");
+            if (sensorName.isEmpty()) {
+                error() << "no sensor for rule add";
+                return Value();
+            }
+            if (ruleName.isEmpty()) {
+                error() << "no rule for rule add";
+                return Value();
+            }
+            Sensor::SharedPtr sensor = Modules::instance()->sensor(sensorName);
+            if (!sensor) {
+                error() << "no sensor" << sensorName << "for rule add";
+                return Value();
+            }
+            Rule::SharedPtr rule = Modules::instance()->rule(ruleName);
+            if (!rule) {
+                error() << "no rule" << ruleName << "for rule add";
+                return Value();
+            }
+            rule->registerSensor(sensor);
         }
     }
     return ret;

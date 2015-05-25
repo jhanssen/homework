@@ -190,6 +190,9 @@ inline void Modules::registerRule(const Rule::SharedPtr& rule)
         });
     mRules.insert(rule);
     flushRules();
+    rule->modified().connect([this](const Rule::SharedPtr&) {
+            flushRules();
+        });
     mRuleAdded(rule);
 }
 
