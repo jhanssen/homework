@@ -20,7 +20,7 @@ public:
     void remove(const Controller::SharedPtr& controller);
 
     String name() const { return mName; }
-    List<Controller::SharedPtr> controllers() const;
+    Map<Controller::SharedPtr, Value> controllers() const;
 
     void enable();
 
@@ -55,12 +55,12 @@ inline void Scene::enable()
     }
 }
 
-inline List<Controller::SharedPtr> Scene::controllers() const
+inline Map<Controller::SharedPtr, Value> Scene::controllers() const
 {
-    List<Controller::SharedPtr> ret;
+    Map<Controller::SharedPtr, Value> ret;
     for (auto p : mData) {
         if (Controller::SharedPtr controller = p.first.lock()) {
-            ret.append(controller);
+            ret[controller] = p.second;
         }
     }
     return ret;

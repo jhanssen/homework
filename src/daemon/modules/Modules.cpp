@@ -1,4 +1,5 @@
 #include "Modules.h"
+#include "RuleJS.h"
 #include <rct/Path.h>
 
 Modules* Modules::sInstance = 0;
@@ -113,6 +114,45 @@ void Modules::unregisterSensor(const Sensor::SharedPtr& sensor)
     mSensorRemoved(sensor);
 }
 
+Sensor::SharedPtr Modules::sensor(const String& name) const
+{
+    auto sensor = mSensors.cbegin();
+    const auto end = mSensors.cend();
+    while (sensor != end) {
+        if ((*sensor)->name() == name) {
+            return *sensor;
+        }
+        ++sensor;
+    }
+    return Sensor::SharedPtr();
+}
+
+Scene::SharedPtr Modules::scene(const String& name) const
+{
+    auto scene = mScenes.cbegin();
+    const auto end = mScenes.cend();
+    while (scene != end) {
+        if ((*scene)->name() == name) {
+            return *scene;
+        }
+        ++scene;
+    }
+    return Scene::SharedPtr();
+}
+
+Rule::SharedPtr Modules::rule(const String& name) const
+{
+    auto rule = mRules.cbegin();
+    const auto end = mRules.cend();
+    while (rule != end) {
+        if ((*rule)->name() == name) {
+            return *rule;
+        }
+        ++rule;
+    }
+    return Rule::SharedPtr();
+}
+
 void Modules::loadRules()
 {
     const Value rules = readConfiguration("rules");
@@ -177,18 +217,14 @@ void Modules::loadScenes()
             error() << "no name for entry in scenes.json";
             return;
         }
-        if (!controllers.isList()) {
-            error() << "controllers for" << pending.name << "in scenes.json is not an array";
+        if (!controllers.isMap()) {
+            error() << "controllers for" << pending.name << "in scenes.json is not an object";
             return;
         }
-        auto controller = controllers.listBegin();
-        const auto controllerend = controllers.listEnd();
+        auto controller = controllers.begin();
+        const auto controllerend = controllers.end();
         while (controller != controllerend) {
-            pending.controllers.append(controller->toString());
-            if (pending.controllers.last().isEmpty()) {
-                error() << "empty controller name for" << pending.name << "in scenes.json";
-                return;
-            }
+            pending.controllers[controller->first] = controller->second;
             ++controller;
         }
         mPendingScenes.append(pending);
@@ -266,8 +302,8 @@ void Modules::flushScenes()
         Value obj;
         obj["name"] = scene.name;
         Value controllers;
-        for (const String& controller : scene.controllers) {
-            controllers.push_back(controller);
+        for (const auto& controller : scene.controllers) {
+            controllers[controller.first] = controller.second;
         }
         obj["controllers"] = controllers;
         scenes.push_back(obj);
@@ -276,9 +312,9 @@ void Modules::flushScenes()
         Value obj;
         obj["name"] = scene->name();
         Value controllers;
-        auto list = scene->controllers();
-        for (const auto& controller : list) {
-            controllers.push_back(controller->name());
+        auto map = scene->controllers();
+        for (const auto& controller : map) {
+            controllers[controller.first->name()] = controller.second;
         }
         obj["controllers"] = controllers;
         scenes.push_back(obj);
@@ -313,12 +349,63 @@ void Modules::flushRuleConnections()
 
 void Modules::createPendingRules()
 {
+    auto it = mPendingRules.cbegin();
+    while (it != mPendingRules.end()) {
+        List<Sensor::SharedPtr> sensors;
+        for (const String& name : it->sensors) {
+            sensors.append(sensor(name));
+            if (!sensors.last()) {
+                // nope
+                ++it;
+                continue;
+            }
+        }
+        assert(sensors.size() == it->sensors.size());
+        Rule::SharedPtr rule = std::make_shared<RuleJS>(it->name, it->arguments.toString());
+        for (const auto& ptr : sensors) {
+            rule->registerSensor(ptr);
+        }
+        it = mPendingRules.erase(it);
+        mRules.insert(rule);
+    }
 }
 
 void Modules::createPendingScenes()
 {
+    auto it = mPendingScenes.cbegin();
+    while (it != mPendingScenes.end()) {
+        Map<Controller::SharedPtr, Value> controllers;
+        for (const auto& ctrl : it->controllers) {
+            const auto ptr = controller(ctrl.first);
+            if (!ptr) {
+                // nope
+                ++it;
+                continue;
+            }
+            controllers[ptr] = ctrl.second;
+        }
+        assert(controllers.size() == it->controllers.size());
+        Scene::SharedPtr scene = std::make_shared<Scene>(it->name);
+        for (const auto& ptr : controllers) {
+            scene->set(ptr.first, ptr.second);
+        }
+        it = mPendingScenes.erase(it);
+        mScenes.insert(scene);
+    }
 }
 
 void Modules::createPendingRuleConnections()
 {
+    auto it = mPendingRuleConnections.cbegin();
+    while (it != mPendingRuleConnections.end()) {
+        const Rule::SharedPtr r = rule(it->rule);
+        const Scene::SharedPtr s = scene(it->scene);
+        if (!r || !s) {
+            // nope
+            ++it;
+            continue;
+        }
+        it = mPendingRuleConnections.erase(it);
+        mRuleConnections[r].insert(s);
+    }
 }

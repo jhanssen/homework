@@ -40,18 +40,21 @@ public:
     void registerSensor(const Sensor::SharedPtr& sensor);
     void unregisterSensor(const Sensor::SharedPtr& sensor);
     Set<Sensor::SharedPtr> sensors() const;
+    Sensor::SharedPtr sensor(const String& name) const;
     Signal<std::function<void(const Sensor::SharedPtr&)> >& sensorAdded();
     Signal<std::function<void(const Sensor::SharedPtr&)> >& sensorRemoved();
 
     void registerScene(const Scene::SharedPtr& scene);
     void unregisterScene(const Scene::SharedPtr& scene);
     Set<Scene::SharedPtr> scenes() const;
+    Scene::SharedPtr scene(const String& name) const;
     Signal<std::function<void(const Scene::SharedPtr&)> >& sceneAdded();
     Signal<std::function<void(const Scene::SharedPtr&)> >& sceneRemoved();
 
     void registerRule(const Rule::SharedPtr& rule);
     void unregisterRule(const Rule::SharedPtr& rule);
     Set<Rule::SharedPtr> rules() const;
+    Rule::SharedPtr rule(const String& name) const;
     Signal<std::function<void(const Rule::SharedPtr&)> >& ruleAdded();
     Signal<std::function<void(const Rule::SharedPtr&)> >& ruleRemoved();
 
@@ -96,7 +99,7 @@ private:
     struct PendingScene
     {
         String name;
-        List<String> controllers;
+        Map<String, Value> controllers;
     };
     List<PendingScene> mPendingScenes;
 
