@@ -87,17 +87,23 @@ void Modules::unregisterController(const Controller::SharedPtr& controller)
     mControllerRemoved(controller);
 }
 
+template<typename T>
+static inline T create(const String& name, const Set<T>& set)
+{
+    auto it = set.cbegin();
+    const auto end = set.cend();
+    while (it != end) {
+        if ((*it)->name() == name) {
+            return *it;
+        }
+        ++it;
+    }
+    return T();
+}
+
 Controller::SharedPtr Modules::controller(const String& name) const
 {
-    auto ctrl = mControllers.cbegin();
-    const auto end = mControllers.cend();
-    while (ctrl != end) {
-        if ((*ctrl)->name() == name) {
-            return *ctrl;
-        }
-        ++ctrl;
-    }
-    return Controller::SharedPtr();
+    return create(name, mControllers);
 }
 
 void Modules::registerSensor(const Sensor::SharedPtr& sensor)
@@ -116,41 +122,17 @@ void Modules::unregisterSensor(const Sensor::SharedPtr& sensor)
 
 Sensor::SharedPtr Modules::sensor(const String& name) const
 {
-    auto sensor = mSensors.cbegin();
-    const auto end = mSensors.cend();
-    while (sensor != end) {
-        if ((*sensor)->name() == name) {
-            return *sensor;
-        }
-        ++sensor;
-    }
-    return Sensor::SharedPtr();
+    return create(name, mSensors);
 }
 
 Scene::SharedPtr Modules::scene(const String& name) const
 {
-    auto scene = mScenes.cbegin();
-    const auto end = mScenes.cend();
-    while (scene != end) {
-        if ((*scene)->name() == name) {
-            return *scene;
-        }
-        ++scene;
-    }
-    return Scene::SharedPtr();
+    return create(name, mScenes);
 }
 
 Rule::SharedPtr Modules::rule(const String& name) const
 {
-    auto rule = mRules.cbegin();
-    const auto end = mRules.cend();
-    while (rule != end) {
-        if ((*rule)->name() == name) {
-            return *rule;
-        }
-        ++rule;
-    }
-    return Rule::SharedPtr();
+    return create(name, mRules);
 }
 
 void Modules::loadRules()
