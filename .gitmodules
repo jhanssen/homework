@@ -7,3 +7,6 @@
 [submodule "src/json"]
 	path = src/json
 	url = https://github.com/nlohmann/json.git
+[submodule "src/echo-bridge"]
+	path = src/echo-bridge
+	url = https://github.com/armzilla/amazon-echo-ha-bridge.git
