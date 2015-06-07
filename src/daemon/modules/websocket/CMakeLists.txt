@@ -13,6 +13,5 @@ if (APPLE)
   target_link_libraries(ws_module ${SECURITY_LIBRARY} ${COREFOUNDATION_LIBRARY})
 endif()
 
-target_link_libraries(ws_module -L${WSLAY_INSTALL_DIR}/lib -lwslay -Wl,-rpath,${WSLAY_INSTALL_DIR}/lib)
-
-include_directories(${CMAKE_CURRENT_LIST_DIR} ${WSLAY_INSTALL_DIR}/include)
+target_link_libraries(ws_module wslay)
+include_directories(${CMAKE_CURRENT_LIST_DIR} ${WSLAY_INCLUDE_DIR})
