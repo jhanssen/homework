@@ -331,7 +331,7 @@ void Modules::flushRuleConnections()
 
 void Modules::createPendingRules()
 {
-    auto it = mPendingRules.cbegin();
+    auto it = mPendingRules.begin();
     while (it != mPendingRules.end()) {
         bool ok = true;
         List<Sensor::SharedPtr> sensors;
@@ -358,7 +358,7 @@ void Modules::createPendingRules()
 
 void Modules::createPendingScenes()
 {
-    auto it = mPendingScenes.cbegin();
+    auto it = mPendingScenes.begin();
     while (it != mPendingScenes.end()) {
         Map<Controller::SharedPtr, Value> controllers;
         for (const auto& ctrl : it->controllers) {
@@ -382,7 +382,7 @@ void Modules::createPendingScenes()
 
 void Modules::createPendingRuleConnections()
 {
-    auto it = mPendingRuleConnections.cbegin();
+    auto it = mPendingRuleConnections.begin();
     while (it != mPendingRuleConnections.end()) {
         const Rule::SharedPtr r = rule(it->rule);
         const Scene::SharedPtr s = scene(it->scene);
