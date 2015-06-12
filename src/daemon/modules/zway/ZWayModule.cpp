@@ -1,8 +1,10 @@
 #include "ZWayModule.h"
 #include <Modules.h>
 #include <rct/Timer.h>
+#define String DrittAPI
 #include <ZWayLib.h>
 #include <ZLogging.h>
+#undef String
 
 class ZWayController : public Controller
 {
