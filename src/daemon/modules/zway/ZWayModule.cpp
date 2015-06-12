@@ -1,6 +1,8 @@
 #include "ZWayModule.h"
 #include <Modules.h>
 #include <rct/Timer.h>
+#include <ZWayLib.h>
+#include <ZLogging.h>
 
 class ZWayController : public Controller
 {
