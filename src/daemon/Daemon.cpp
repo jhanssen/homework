@@ -4,6 +4,9 @@
 #include <cec/CecModule.h>
 #include <websocket/WSModule.h>
 #include <fake/FakeModule.h>
+#ifdef HAVE_ZWAY
+# include <zway/ZWayModule.h>
+#endif
 
 static Daemon::SharedPtr daemonInstance;
 
@@ -38,6 +41,9 @@ void Daemon::initializeModules()
     mModules.add<CecModule>();
     mModules.add<WSModule>();
     mModules.add<FakeModule>();
+#ifdef HAVE_ZWAY
+    mModules.add<ZWayModule>();
+#endif
 
     mModules.initialize();
 }

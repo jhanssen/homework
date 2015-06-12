@@ -7,12 +7,16 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
 
 add_subdirectory(modules)
 
+if (HAVE_ZWAY)
+    add_definitions(-DHAVE_ZWAY)
+endif()
+
 set(SOURCES
     Daemon.cpp
     main.cpp)
 
 add_executable(daemon ${SOURCES})
-target_link_libraries(daemon rct modules cec_module ws_module fake_module)
+target_link_libraries(daemon rct modules cec_module ws_module fake_module zway_module)
 
 #add_custom_command(TARGET daemon POST_BUILD
 #  COMMAND ln -sf ${CMAKE_CURRENT_LIST_DIR}/stats ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}

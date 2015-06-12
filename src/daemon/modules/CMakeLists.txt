@@ -3,6 +3,11 @@ cmake_minimum_required(VERSION 2.8)
 add_subdirectory(cec)
 add_subdirectory(websocket)
 add_subdirectory(fake)
+add_subdirectory(zway)
+
+if (HAVE_ZWAY)
+    set(HAVE_ZWAY 1 PARENT_SCOPE)
+endif()
 
 include_directories(..)
 

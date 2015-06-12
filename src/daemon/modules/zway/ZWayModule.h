@@ -1,5 +1,5 @@
-#ifndef FAKEMODULE_H
-#define FAKEMODULE_H
+#ifndef ZWAYMODULE_H
+#define ZWAYMODULE_H
 
 #include <Module.h>
 #include <Controller.h>
