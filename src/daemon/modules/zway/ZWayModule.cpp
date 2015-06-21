@@ -1,11 +1,27 @@
 #include "ZWayModule.h"
 #include <Modules.h>
 #include <rct/Timer.h>
-#define String DrittAPI
+#define String ZWayString
+#define Empty ZWayEmpty
+#define Boolean ZWayBoolean
+#define Integer ZWayInteger
+#define Float ZWayFloat
+#define Binary ZWayBinary
+#define ArrayOfInteger ZWayArrayOfInteger
+#define ArrayOfFloat ZWayArrayOfFloat
+#define ArrayOfString ZWayArrayOfString
 #include <ZWayLib.h>
 #include <ZData.h>
 #include <ZLogging.h>
 #undef String
+#undef Empty
+#undef Boolean
+#undef Integer
+#undef Float
+#undef Binary
+#undef ArrayOfInteger
+#undef ArrayOfFloat
+#undef ArrayOfString
 #include <unistd.h>
 
 class ZWayLock
@@ -24,6 +40,84 @@ public:
 private:
     ZWay mZway;
 };
+
+template<typename ZWayType, typename ZWayGetter>
+static inline Value get(ZDataHolder data, ZWayGetter getter)
+{
+    ZWayType type;
+    const ZWError ret = getter(data, &type);
+    if (ret == NoError)
+        return Value(type);
+    return Value();
+}
+
+template<typename ZWayType, typename ZWayGetter>
+static inline Value getarray(ZDataHolder data, ZWayGetter getter)
+{
+    ZWayType* type = 0;
+    size_t sz;
+    const ZWError ret = getter(data, &type, &sz);
+    if (ret == NoError && type) {
+        Value ret;
+        for (size_t i = 0; i < sz; ++i) {
+            ret.push_back(Value(type[i]));
+        }
+        return ret;
+    }
+    return Value();
+}
+
+template<typename ZWayGetter>
+static inline List<ZWBYTE> getbinary(ZDataHolder data, ZWayGetter getter)
+{
+    const ZWBYTE* type = 0;
+    size_t sz;
+    const ZWError ret = getter(data, &type, &sz);
+    if (ret == NoError && type) {
+        List<ZWBYTE> ret;
+        for (size_t i = 0; i < sz; ++i) {
+            ret.push_back(type[i]);
+        }
+        return ret;
+    }
+    return List<ZWBYTE>();
+}
+
+static Value get(ZWay zway, ZDataHolder data)
+{
+    if (!data)
+        return Value();
+    ZWayLock lock(zway);
+    ZWDataType type;
+    zdata_get_type(data, &type);
+    switch (type) {
+    case ZWayEmpty:
+        return Value();
+    case ZWayString:
+        return get<ZWCSTR>(data, zdata_get_string);
+    case ZWayBoolean:
+        return get<ZWBOOL>(data, zdata_get_boolean);
+    case ZWayInteger:
+        return get<int>(data, zdata_get_integer);
+    case ZWayFloat:
+        return get<float>(data, zdata_get_float);
+    case ZWayBinary:
+        return getbinary(data, zdata_get_binary);
+    case ZWayArrayOfInteger:
+        return getarray<const int>(data, zdata_get_integer_array);
+    case ZWayArrayOfFloat:
+        return getarray<const float>(data, zdata_get_float_array);
+    case ZWayArrayOfString:
+        return getarray<const ZWCSTR>(data, zdata_get_string_array);
+    }
+    return Value();
+}
+
+static inline Value get(ZWay zway, ZWBYTE device, const char* path)
+{
+    ZWayLock lock(zway);
+    return get(zway, zway_find_device_data(zway, device, path));
+}
 
 class ZWayController : public Controller
 {
@@ -226,15 +320,8 @@ void ZWayModule::initialize()
     if (devicesList) {
         ZWBYTE* deviceNodeId = devicesList;
         while (*deviceNodeId) {
-            ZWayLock lock(mZway);
-            ZDataHolder dh = zway_find_device_data(mZway, *deviceNodeId, "deviceTypeString");
-            if (dh) {
-                ZWCSTR str;
-                zdata_get_string(dh, &str);
-                log(Debug, "got device " + String(str));
-            } else {
-                log(Error, "no device string");
-            }
+            const Value typeString = get(mZway, *deviceNodeId, "deviceTypeString");
+            log(Error, typeString.toJSON());
             ++deviceNodeId;
         }
         zway_devices_list_free(devicesList);
