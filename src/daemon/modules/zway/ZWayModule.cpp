@@ -3,8 +3,27 @@
 #include <rct/Timer.h>
 #define String DrittAPI
 #include <ZWayLib.h>
+#include <ZData.h>
 #include <ZLogging.h>
 #undef String
+#include <unistd.h>
+
+class ZWayLock
+{
+public:
+    ZWayLock(ZWay zway)
+        : mZway(zway)
+    {
+        zdata_acquire_lock(ZDataRoot(mZway));
+    }
+    ~ZWayLock()
+    {
+        zdata_release_lock(ZDataRoot(mZway));
+    }
+
+private:
+    ZWay mZway;
+};
 
 class ZWayController : public Controller
 {
@@ -124,7 +143,7 @@ Value ZWaySensor::get() const
 }
 
 ZWayModule::ZWayModule()
-    : Module("zway")
+    : Module("zway"), mZway(0), mZwlog(0)
 {
 }
 
@@ -139,10 +158,88 @@ ZWayModule::~ZWayModule()
             ++it;
         }
     }
+    if (mZway) {
+        ZWError result = zway_stop(mZway);
+        if (result != NoError) {
+            log(Error, "zway_stop error");
+            return;
+        }
+        zway_terminate(&mZway);
+    }
+    if (mZwlog)
+        zlog_close(mZwlog);
 }
 
 void ZWayModule::initialize()
 {
+    const String defaultPath = "/opt/z-way-server/";
+    const Value cfg = configuration("zway");
+    const String port = cfg.value<String>("port", "/dev/ttyAMA0");
+    const String configPath = cfg.value<String>("config", defaultPath + "config");
+    const String translationsPath = cfg.value<String>("translations", defaultPath + "translations");
+    const String zddxPath = cfg.value<String>("ZDDX", defaultPath + "ZDDX");
+    memset(&mZway, 0, sizeof(mZway));
+    mZwlog = zlog_create_syslog(::Warning);
+    ZWError result = zway_init(&mZway, port.constData(), configPath.constData(),
+                               translationsPath.constData(), zddxPath.constData(),
+                               "homework", mZwlog);
+    if (result != NoError) {
+        log(Error, "zway_init error");
+        return;
+    }
+
+    auto callback = [](const ZWay zway, ZWDeviceChangeType type, ZWBYTE node_id, ZWBYTE instance_id, ZWBYTE command_id, void *ptr) {
+        ZWayModule* module = static_cast<ZWayModule*>(ptr);
+        module->log(Info, "zway callback");
+    };
+    zway_device_add_callback(mZway, DeviceAdded|DeviceRemoved|InstanceAdded|InstanceRemoved|CommandAdded|CommandRemoved, callback, this);
+
+    result = zway_start(mZway, [](ZWay zway, void* ptr) {
+            ZWayModule* module = static_cast<ZWayModule*>(ptr);
+            module->log(Info, "zway terminated");
+        }, this);
+    if (result != NoError) {
+        log(Error, "zway_start error");
+        zway_terminate(&mZway);
+        mZway = 0;
+        return;
+    }
+    result = zway_discover(mZway);
+    if (result != NoError) {
+        log(Error, "zway_discover error");
+        zway_stop(mZway);
+        zway_terminate(&mZway);
+        mZway = 0;
+        return;
+    }
+    // this is a really weird API
+    while (!zway_is_idle(mZway)) {
+        usleep(500000); // 500ms
+    }
+#if 0
+    zway_fc_add_node_to_network(mZway, TRUE, TRUE, nullptr, nullptr, nullptr);
+    while (!zway_is_idle(mZway)) {
+        usleep(500000); // 500ms
+    }
+#endif
+    ZWDevicesList devicesList = zway_devices_list(mZway);
+    if (devicesList) {
+        ZWBYTE* deviceNodeId = devicesList;
+        while (*deviceNodeId) {
+            ZWayLock lock(mZway);
+            ZDataHolder dh = zway_find_device_data(mZway, *deviceNodeId, "deviceTypeString");
+            if (dh) {
+                ZWCSTR str;
+                zdata_get_string(dh, &str);
+                log(Debug, "got device " + String(str));
+            } else {
+                log(Error, "no device string");
+            }
+            ++deviceNodeId;
+        }
+        zway_devices_list_free(devicesList);
+    }
+
     Controller::SharedPtr zwayController = std::make_shared<ZWayController>();
     Modules::instance()->registerController(zwayController);
     mControllers.append(zwayController);

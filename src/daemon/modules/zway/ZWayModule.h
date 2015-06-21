@@ -6,7 +6,9 @@
 #include <rct/List.h>
 
 struct _ZWay;
+struct _ZWLog;
 typedef struct _ZWay *ZWay;
+typedef struct _ZWLog *ZWLog;
 
 class ZWayModule : public Module
 {
@@ -21,6 +23,7 @@ private:
     List<Sensor::WeakPtr> mSensors;
 
     ZWay mZway;
+    ZWLog mZwlog;
 };
 
 #endif
