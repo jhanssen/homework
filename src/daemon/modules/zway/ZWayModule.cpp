@@ -127,7 +127,7 @@ class ZWayThread : public Thread
 {
 public:
     ZWayThread(ZWayModule* mod, const Value& cfg)
-        : module(mod), config(cfg), loop(EventLoop::eventLoop()), stopped(false)
+        : module(mod), config(cfg), loop(EventLoop::eventLoop()), stopped(false), waited(0)
     {
     }
 
@@ -162,6 +162,9 @@ private:
     std::condition_variable cond;
     bool stopped;
     List<Value> commands;
+
+    std::function<void(ZWay)> cancel;
+    unsigned int waited;
 };
 
 void ZWayThread::configure(const Value& value)
@@ -173,7 +176,15 @@ void ZWayThread::configure(const Value& value)
 
 void ZWayThread::processCommand(ZWay zway, ZWayThread* thread, const Value& value)
 {
-    if (value.toString() == "list") {
+    String cmd;
+    if (value.isString()) {
+        cmd = value.toString();
+    } else if (value.isMap()) {
+        cmd = value["cmd"].toString();
+    } else {
+        return;
+    }
+    if (cmd == "list") {
         ZWDevicesList devicesList = zway_devices_list(zway);
         if (devicesList) {
             ZWBYTE* deviceNodeId = devicesList;
@@ -184,6 +195,16 @@ void ZWayThread::processCommand(ZWay zway, ZWayThread* thread, const Value& valu
             }
             zway_devices_list_free(devicesList);
         }
+    } else if (cmd == "add_node") {
+        const bool highPower = value.value<bool>("highPower", true);
+        zway_fc_add_node_to_network(zway, TRUE, highPower, nullptr, nullptr, nullptr);
+        std::lock_guard<std::mutex> locker(mutex);
+        if (cancel)
+            cancel(zway);
+        cancel = [highPower](ZWay zway) {
+            zway_fc_add_node_to_network(zway, FALSE, highPower, nullptr, nullptr, nullptr);
+        };
+        waited = 0;
     }
 }
 
@@ -239,9 +260,17 @@ void ZWayThread::run()
         return;
     }
 
+    enum { WaitFor = 500, WaitMax = 10000 };
+
     for (;;) {
         while (!zway_is_idle(zway)) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+            if (cancel && waited >= WaitMax) {
+                cancel(zway);
+                cancel = nullptr;
+            } else {
+                std::this_thread::sleep_for(std::chrono::milliseconds(WaitFor));
+                waited += WaitFor;
+            }
         }
         List<Value> cmds;
         {
