@@ -1,6 +1,7 @@
 #include "ZWayModule.h"
 #include <Modules.h>
 #include <rct/Timer.h>
+#include <rct/Thread.h>
 #define String ZWayString
 #define Empty ZWayEmpty
 #define Boolean ZWayBoolean
@@ -23,6 +24,9 @@
 #undef ArrayOfFloat
 #undef ArrayOfString
 #include <unistd.h>
+#include <mutex>
+#include <condition_variable>
+#include <chrono>
 
 class ZWayLock
 {
@@ -117,6 +121,149 @@ static inline Value get(ZWay zway, ZWBYTE device, const char* path)
 {
     ZWayLock lock(zway);
     return get(zway, zway_find_device_data(zway, device, path));
+}
+
+class ZWayThread : public Thread
+{
+public:
+    ZWayThread(ZWayModule* mod, const Value& cfg)
+        : module(mod), config(cfg), loop(EventLoop::eventLoop()), stopped(false)
+    {
+    }
+
+    void log(Module::LogLevel level, const String& msg)
+    {
+        EventLoop::SharedPtr eventLoop = loop.lock();
+        if (!eventLoop)
+            return;
+        eventLoop->callLater(std::bind((void(ZWayThread::*)(Module::LogLevel, const String&))&ZWayThread::directLog, this, level, msg));
+    }
+    void directLog(Module::LogLevel level, const String& msg)
+    {
+        module->log(level, msg);
+    }
+
+    void configure(const Value& value);
+
+    void stop();
+
+protected:
+    virtual void run();
+
+private:
+    void processCommand(ZWay zway, ZWayThread* thread, const Value& value);
+
+private:
+    ZWayModule* module;
+    Value config;
+    EventLoop::WeakPtr loop;
+
+    std::mutex mutex;
+    std::condition_variable cond;
+    bool stopped;
+    List<Value> commands;
+};
+
+void ZWayThread::configure(const Value& value)
+{
+    std::lock_guard<std::mutex> locker(mutex);
+    commands.append(value);
+    cond.notify_one();
+}
+
+void ZWayThread::processCommand(ZWay zway, ZWayThread* thread, const Value& value)
+{
+    if (value.toString() == "list") {
+        ZWDevicesList devicesList = zway_devices_list(zway);
+        if (devicesList) {
+            ZWBYTE* deviceNodeId = devicesList;
+            while (*deviceNodeId) {
+                const Value typeString = get(zway, *deviceNodeId, "deviceTypeString");
+                thread->log(Module::Error, typeString.toJSON());
+                ++deviceNodeId;
+            }
+            zway_devices_list_free(devicesList);
+        }
+    }
+}
+
+void ZWayThread::stop()
+{
+    std::lock_guard<std::mutex> locker(mutex);
+    stopped = true;
+    cond.notify_one();
+}
+
+void ZWayThread::run()
+{
+    ZWay zway;
+    ZWLog zwlog;
+
+    const String defaultPath = "/opt/z-way-server/";
+    const String port = config.value<String>("port", "/dev/ttyAMA0");
+    const String configPath = config.value<String>("config", defaultPath + "config");
+    const String translationsPath = config.value<String>("translations", defaultPath + "translations");
+    const String zddxPath = config.value<String>("ZDDX", defaultPath + "ZDDX");
+    memset(&zway, 0, sizeof(zway));
+    zwlog = zlog_create_syslog(Warning);
+    ZWError result = zway_init(&zway, port.constData(), configPath.constData(),
+                               translationsPath.constData(), zddxPath.constData(),
+                               "homework", zwlog);
+    if (result != NoError) {
+        log(Module::Error, "zway_init error");
+        return;
+    }
+
+    auto callback = [](const ZWay zway, ZWDeviceChangeType type, ZWBYTE node_id, ZWBYTE instance_id, ZWBYTE command_id, void *ptr) {
+        ZWayThread* thread = static_cast<ZWayThread*>(ptr);
+        thread->log(Module::Info, "zway callback");
+    };
+    zway_device_add_callback(zway, DeviceAdded|DeviceRemoved|InstanceAdded|InstanceRemoved|CommandAdded|CommandRemoved, callback, this);
+
+    result = zway_start(zway, [](ZWay zway, void* ptr) {
+            // ZWayModule* module = static_cast<ZWayModule*>(ptr);
+            // log(Info, "zway terminated");
+        }, this);
+    if (result != NoError) {
+        log(Module::Error, "zway_start error");
+        zway_terminate(&zway);
+        zway = 0;
+        return;
+    }
+    result = zway_discover(zway);
+    if (result != NoError) {
+        log(Module::Error, "zway_discover error");
+        zway_stop(zway);
+        zway_terminate(&zway);
+        zway = 0;
+        return;
+    }
+
+    for (;;) {
+        while (!zway_is_idle(zway)) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        }
+        List<Value> cmds;
+        {
+            std::lock_guard<std::mutex> locker(mutex);
+            if (stopped)
+                break;
+            std::swap(commands, cmds);
+        }
+        for (const Value& cmd : cmds) {
+            processCommand(zway, this, cmd);
+        }
+        std::unique_lock<std::mutex> locker(mutex);
+        cond.wait(locker);
+    }
+
+    result = zway_stop(zway);
+    if (result != NoError) {
+        log(Module::Error, "zway_stop error");
+        return;
+    }
+    zway_terminate(&zway);
+    zlog_close(zwlog);
 }
 
 class ZWayController : public Controller
@@ -237,12 +384,17 @@ Value ZWaySensor::get() const
 }
 
 ZWayModule::ZWayModule()
-    : Module("zway"), mZway(0), mZwlog(0)
+    : Module("zway"), mThread(0)
 {
 }
 
 ZWayModule::~ZWayModule()
 {
+    if (mThread) {
+        mThread->stop();
+        mThread->join();
+        delete mThread;
+    }
     {
         auto it = mControllers.cbegin();
         const auto end = mControllers.cend();
@@ -252,60 +404,15 @@ ZWayModule::~ZWayModule()
             ++it;
         }
     }
-    if (mZway) {
-        ZWError result = zway_stop(mZway);
-        if (result != NoError) {
-            log(Error, "zway_stop error");
-            return;
-        }
-        zway_terminate(&mZway);
-    }
-    if (mZwlog)
-        zlog_close(mZwlog);
 }
 
 void ZWayModule::initialize()
 {
-    const String defaultPath = "/opt/z-way-server/";
     const Value cfg = configuration("zway");
-    const String port = cfg.value<String>("port", "/dev/ttyAMA0");
-    const String configPath = cfg.value<String>("config", defaultPath + "config");
-    const String translationsPath = cfg.value<String>("translations", defaultPath + "translations");
-    const String zddxPath = cfg.value<String>("ZDDX", defaultPath + "ZDDX");
-    memset(&mZway, 0, sizeof(mZway));
-    mZwlog = zlog_create_syslog(::Warning);
-    ZWError result = zway_init(&mZway, port.constData(), configPath.constData(),
-                               translationsPath.constData(), zddxPath.constData(),
-                               "homework", mZwlog);
-    if (result != NoError) {
-        log(Error, "zway_init error");
-        return;
-    }
-
-    auto callback = [](const ZWay zway, ZWDeviceChangeType type, ZWBYTE node_id, ZWBYTE instance_id, ZWBYTE command_id, void *ptr) {
-        ZWayModule* module = static_cast<ZWayModule*>(ptr);
-        module->log(Info, "zway callback");
-    };
-    zway_device_add_callback(mZway, DeviceAdded|DeviceRemoved|InstanceAdded|InstanceRemoved|CommandAdded|CommandRemoved, callback, this);
-
-    result = zway_start(mZway, [](ZWay zway, void* ptr) {
-            ZWayModule* module = static_cast<ZWayModule*>(ptr);
-            module->log(Info, "zway terminated");
-        }, this);
-    if (result != NoError) {
-        log(Error, "zway_start error");
-        zway_terminate(&mZway);
-        mZway = 0;
-        return;
-    }
-    result = zway_discover(mZway);
-    if (result != NoError) {
-        log(Error, "zway_discover error");
-        zway_stop(mZway);
-        zway_terminate(&mZway);
-        mZway = 0;
-        return;
-    }
+    mThread = new ZWayThread(this, cfg);
+    mThread->start();
+    mThread->configure("list");
+    /*
     // this is a really weird API
     while (!zway_is_idle(mZway)) {
         usleep(500000); // 500ms
@@ -325,7 +432,8 @@ void ZWayModule::initialize()
             ++deviceNodeId;
         }
         zway_devices_list_free(devicesList);
-    }
+        }
+    */
 
     Controller::SharedPtr zwayController = std::make_shared<ZWayController>();
     Modules::instance()->registerController(zwayController);

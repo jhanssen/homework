@@ -5,10 +5,7 @@
 #include <Controller.h>
 #include <rct/List.h>
 
-struct _ZWay;
-struct _ZWLog;
-typedef struct _ZWay *ZWay;
-typedef struct _ZWLog *ZWLog;
+class ZWayThread;
 
 class ZWayModule : public Module
 {
@@ -19,11 +16,11 @@ public:
     virtual void initialize();
 
 private:
+    ZWayThread* mThread;
     List<Controller::WeakPtr> mControllers;
     List<Sensor::WeakPtr> mSensors;
 
-    ZWay mZway;
-    ZWLog mZwlog;
+    friend class ZWayThread;
 };
 
 #endif
