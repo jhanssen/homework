@@ -15,6 +15,7 @@ public:
     ~Daemon();
 
     void init();
+    const Modules& modules() const { return mModules; }
 
     static Daemon::SharedPtr instance();
     static void reset();

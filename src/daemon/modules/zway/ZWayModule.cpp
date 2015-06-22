@@ -143,6 +143,18 @@ public:
         module->log(level, msg);
     }
 
+    void changeState(const Value& value)
+    {
+        EventLoop::SharedPtr eventLoop = loop.lock();
+        if (!eventLoop)
+            return;
+        eventLoop->callLater(std::bind(&ZWayThread::directChangeState, this, value));
+    }
+    void directChangeState(const Value& value)
+    {
+        module->changeState(value);
+    }
+
     void configure(const Value& value);
 
     void stop();
@@ -185,6 +197,7 @@ void ZWayThread::processCommand(ZWay zway, ZWayThread* thread, const Value& valu
         return;
     }
     if (cmd == "list") {
+        changeState("listing");
         ZWDevicesList devicesList = zway_devices_list(zway);
         if (devicesList) {
             ZWBYTE* deviceNodeId = devicesList;
@@ -196,6 +209,7 @@ void ZWayThread::processCommand(ZWay zway, ZWayThread* thread, const Value& valu
             zway_devices_list_free(devicesList);
         }
     } else if (cmd == "add_node") {
+        changeState("adding");
         const bool highPower = value.value<bool>("highPower", true);
         zway_fc_add_node_to_network(zway, TRUE, highPower, nullptr, nullptr, nullptr);
         std::lock_guard<std::mutex> locker(mutex);
@@ -203,6 +217,17 @@ void ZWayThread::processCommand(ZWay zway, ZWayThread* thread, const Value& valu
             cancel(zway);
         cancel = [highPower](ZWay zway) {
             zway_fc_add_node_to_network(zway, FALSE, highPower, nullptr, nullptr, nullptr);
+        };
+        waited = 0;
+    } else if (cmd == "remove_node") {
+        changeState("removing");
+        const bool highPower = value.value<bool>("highPower", true);
+        zway_fc_remove_node_from_network(zway, TRUE, highPower, nullptr, nullptr, nullptr);
+        std::lock_guard<std::mutex> locker(mutex);
+        if (cancel)
+            cancel(zway);
+        cancel = [highPower](ZWay zway) {
+            zway_fc_remove_node_from_network(zway, FALSE, highPower, nullptr, nullptr, nullptr);
         };
         waited = 0;
     }
@@ -217,6 +242,8 @@ void ZWayThread::stop()
 
 void ZWayThread::run()
 {
+    changeState("running");
+
     ZWay zway;
     ZWLog zwlog;
 
@@ -231,6 +258,7 @@ void ZWayThread::run()
                                translationsPath.constData(), zddxPath.constData(),
                                "homework", zwlog);
     if (result != NoError) {
+        changeState("error");
         log(Module::Error, "zway_init error");
         return;
     }
@@ -246,6 +274,7 @@ void ZWayThread::run()
             // log(Info, "zway terminated");
         }, this);
     if (result != NoError) {
+        changeState("error");
         log(Module::Error, "zway_start error");
         zway_terminate(&zway);
         zway = 0;
@@ -253,6 +282,7 @@ void ZWayThread::run()
     }
     result = zway_discover(zway);
     if (result != NoError) {
+        changeState("error");
         log(Module::Error, "zway_discover error");
         zway_stop(zway);
         zway_terminate(&zway);
@@ -263,15 +293,22 @@ void ZWayThread::run()
     enum { WaitFor = 500, WaitMax = 10000 };
 
     for (;;) {
+        bool idle = true;
         while (!zway_is_idle(zway)) {
+            if (idle) {
+                idle = false;
+                changeState("busy");
+            }
             if (cancel && waited >= WaitMax) {
                 cancel(zway);
                 cancel = nullptr;
+                changeState("canceling");
             } else {
                 std::this_thread::sleep_for(std::chrono::milliseconds(WaitFor));
                 waited += WaitFor;
             }
         }
+        changeState("idle");
         List<Value> cmds;
         {
             std::lock_guard<std::mutex> locker(mutex);
@@ -282,15 +319,24 @@ void ZWayThread::run()
         for (const Value& cmd : cmds) {
             processCommand(zway, this, cmd);
         }
+        if (!cmds.isEmpty())
+            changeState("idle");
         std::unique_lock<std::mutex> locker(mutex);
-        cond.wait(locker);
+        while (!stopped && commands.isEmpty()) {
+            cond.wait(locker);
+        }
+        if (stopped)
+            break;
     }
 
+    changeState("stopping");
     result = zway_stop(zway);
     if (result != NoError) {
+        changeState("error");
         log(Module::Error, "zway_stop error");
         return;
     }
+    changeState("stopped");
     zway_terminate(&zway);
     zlog_close(zwlog);
 }
@@ -435,12 +481,20 @@ ZWayModule::~ZWayModule()
     }
 }
 
+void ZWayModule::configure(const Value& value)
+{
+    if (!mThread)
+        return;
+    mThread->configure(value);
+}
+
 void ZWayModule::initialize()
 {
+    changeState("starting");
     const Value cfg = configuration("zway");
     mThread = new ZWayThread(this, cfg);
     mThread->start();
-    mThread->configure("list");
+    // mThread->configure("list");
     /*
     // this is a really weird API
     while (!zway_is_idle(mZway)) {

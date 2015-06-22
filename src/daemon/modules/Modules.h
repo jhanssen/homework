@@ -28,6 +28,8 @@ public:
     template<typename T>
     void add();
 
+    const List<Module::SharedPtr>& modules() const;
+
     void initialize();
 
     void registerController(const Controller::SharedPtr& controller);
@@ -127,6 +129,11 @@ template<typename T>
 inline void Modules::add()
 {
     mModules.append(std::make_shared<T>());
+}
+
+inline const List<Module::SharedPtr>& Modules::modules() const
+{
+    return mModules;
 }
 
 inline void Modules::initialize()

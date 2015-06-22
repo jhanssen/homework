@@ -14,6 +14,7 @@ public:
     ~ZWayModule();
 
     virtual void initialize();
+    virtual void configure(const Value& value);
 
 private:
     ZWayThread* mThread;
