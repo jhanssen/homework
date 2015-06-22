@@ -145,6 +145,7 @@ static inline Value handleMessage(const Value& msg)
                 if (name == module->name()) {
                     // go
                     module->configure(value);
+                    return Value();
                 }
             }
         }
