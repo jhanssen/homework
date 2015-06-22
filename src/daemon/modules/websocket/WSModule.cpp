@@ -72,6 +72,7 @@ static inline Value handleMessage(const Value& msg)
     const String set = msg.value<String>("set");
     const String create = msg.value<String>("create");
     const String add = msg.value<String>("add");
+    const String cfg = msg.value<String>("cfg");
     const int id = msg.value<int>("id", -1);
     if (!get.isEmpty()) {
         printf("get %s\n", get.constData());
@@ -86,6 +87,8 @@ static inline Value handleMessage(const Value& msg)
             processGet(Modules::instance()->rules(), "rules", ret);
         } else if (get == "scenes") {
             processGet(Modules::instance()->scenes(), "scenes", ret);
+        } else if (get == "modules") {
+            processGet(Modules::instance()->modules(), "modules", ret);
         } else if (get == "controller") {
             const String name = msg.value<String>("controller");
             processGet(Modules::instance()->controller(name), "controller", name, ret);
@@ -132,6 +135,18 @@ static inline Value handleMessage(const Value& msg)
                 return Value();
             }
             rule->registerSensor(sensor);
+        }
+    } else if (!cfg.isEmpty()) {
+        if (cfg == "modules") {
+            const String name = msg.value<String>("name");
+            const String value = msg.value<String>("value");
+            // find module
+            for (const auto& module : Modules::instance()->modules()) {
+                if (name == module->name()) {
+                    // go
+                    module->configure(value);
+                }
+            }
         }
     }
     return ret;

@@ -111,7 +111,7 @@ function processCompletions(completions, line, callback, extraused)
 function completer(line, callback)
 {
     var completions = {
-        candidates: ["help ", "list ", "controller ", "sensor ", "rule ", "scene ", "quit ", "set ", "create "],
+        candidates: ["help ", "list ", "controller ", "sensor ", "rule ", "scene ", "quit ", "set ", "create ", "configure "],
         set: {
             candidates: ["controller ", "sensor ", "rule ", "scene "],
             controller: {
@@ -139,8 +139,17 @@ function completer(line, callback)
                 }
             }
         },
+        configure: {
+            candidates: ["modules "],
+            modules: {
+                candidates: function(used, part, remaining) {
+                    requestCompletion({get: "modules"}, used, part, callback, remaining);
+                    return true;
+                }
+            }
+        },
         list: {
-            candidates: ["controllers", "sensors", "rules", "scenes"]
+            candidates: ["controllers", "sensors", "rules", "scenes", "modules"]
         },
         create: {
             candidates: ["rule ", "scene "]
@@ -254,6 +263,9 @@ function handleLine(line)
             case "scenes":
                 send({get: "scenes"});
                 break;
+            case "modules":
+                send({get: "modules"});
+                break;
             default:
                 console.log("can't list", args[0]);
                 break;
@@ -327,6 +339,13 @@ function handleLine(line)
                 console.log("invalid rule argument", args[0]);
                 break;
             }
+        },
+        configure: function(args) {
+            if (args.length < 3) {
+                console.log("invalid number of arguments to configure");
+                return;
+            }
+            send({cfg: args[0], name: args[1], value: args[2]});
         }
     };
     var handler = handlers[line[0]];
