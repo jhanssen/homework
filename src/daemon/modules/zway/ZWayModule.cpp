@@ -270,8 +270,8 @@ void ZWayThread::run()
     zway_device_add_callback(zway, DeviceAdded|DeviceRemoved|InstanceAdded|InstanceRemoved|CommandAdded|CommandRemoved, callback, this);
 
     result = zway_start(zway, [](ZWay zway, void* ptr) {
-            // ZWayModule* module = static_cast<ZWayModule*>(ptr);
-            // log(Info, "zway terminated");
+            ZWayThread* thread = static_cast<ZWayThread*>(ptr);
+            thread->log(Module::Info, "zway terminated");
         }, this);
     if (result != NoError) {
         changeState("error");
@@ -293,6 +293,13 @@ void ZWayThread::run()
     enum { WaitFor = 500, WaitMax = 10000 };
 
     for (;;) {
+        if (!zway_is_running(zway)) {
+            changeState("killed");
+            zway_stop(zway);
+            zway_terminate(&zway);
+            zlog_close(zwlog);
+            return;
+        }
         bool idle = true;
         while (!zway_is_idle(zway)) {
             if (idle) {
@@ -330,12 +337,7 @@ void ZWayThread::run()
     }
 
     changeState("stopping");
-    result = zway_stop(zway);
-    if (result != NoError) {
-        changeState("error");
-        log(Module::Error, "zway_stop error");
-        return;
-    }
+    zway_stop(zway);
     changeState("stopped");
     zway_terminate(&zway);
     zlog_close(zwlog);
