@@ -123,6 +123,87 @@ static inline Value get(ZWay zway, ZWBYTE device, const char* path)
     return get(zway, zway_find_device_data(zway, device, path));
 }
 
+static inline Value get(ZWay zway, ZWBYTE device, ZWBYTE instance, const char* path)
+{
+    ZWayLock lock(zway);
+    return get(zway, zway_find_device_instance_data(zway, device, instance, path));
+}
+
+static inline Value get(ZWay zway, ZWBYTE device, ZWBYTE instance, ZWBYTE command, const char* path)
+{
+    ZWayLock lock(zway);
+    return get(zway, zway_find_device_instance_cc_data(zway, device, instance, command, path));
+}
+
+class ZWayController : public Controller
+{
+public:
+    ZWayController(ZWay zway, ZWBYTE node, ZWBYTE instance);
+
+    virtual Value describe() const;
+    virtual Value get() const;
+    virtual void set(const Value& value);
+
+    template<typename ZWType, ZWBYTE ZWCommand, typename ZWGetter, typename ZWSetter>
+    void addMethod(const String& name, const ZWGetter& get, const ZWSetter& set);
+
+private:
+    struct Method
+    {
+        virtual Value get() const = 0;
+        virtual void set(const Value& value) = 0;
+
+        ZWay zway;
+        ZWBYTE node, instance;
+        String name;
+    };
+    template<typename ZWType, ZWBYTE ZWCommand, typename ZWGetter, typename ZWSetter>
+    struct TemplateMethod : public Method
+    {
+        TemplateMethod(const ZWGetter& get, const ZWSetter& set)
+            : getter(get), setter(set)
+        {
+        }
+
+        virtual Value get() const;
+        virtual void set(const Value& value);
+
+        const ZWGetter& getter;
+        const ZWSetter& setter;
+    };
+
+    ZWay mZway;
+    ZWBYTE mNode, mInstance;
+    Map<String, std::shared_ptr<Method> > mMethods;
+};
+
+template<typename ZWType, ZWBYTE ZWCommand, typename ZWGetter, typename ZWSetter>
+Value ZWayController::TemplateMethod<ZWType, ZWCommand, ZWGetter, ZWSetter>::get() const
+{
+    ZWayLock lock(zway);
+#warning pass callbacks here and wait
+    getter(zway, node, instance, nullptr, nullptr, nullptr);
+    return ::get(zway, node, instance, ZWCommand, name.constData());
+}
+
+template<typename ZWType, ZWBYTE ZWCommand, typename ZWGetter, typename ZWSetter>
+void ZWayController::TemplateMethod<ZWType, ZWCommand, ZWGetter, ZWSetter>::set(const Value& value)
+{
+    ZWayLock lock(zway);
+    setter(zway, node, instance, value.convert<ZWType>(), nullptr, nullptr, nullptr);
+}
+
+template<typename ZWType, ZWBYTE ZWCommand, typename ZWGetter, typename ZWSetter>
+void ZWayController::addMethod(const String& name, const ZWGetter& get, const ZWSetter& set)
+{
+    Method* method = new TemplateMethod<ZWType, ZWCommand, ZWGetter, ZWSetter>(get, set);
+    method->zway = mZway;
+    method->node = mNode;
+    method->instance = mInstance;
+    method->name = name;
+    mMethods[name].reset(method);
+}
+
 class ZWayThread : public Thread
 {
 public:
@@ -155,6 +236,15 @@ public:
         module->changeState(value);
     }
 
+    void callback(const ZWay zway, ZWDeviceChangeType type, ZWBYTE node_id, ZWBYTE instance_id, ZWBYTE command_id)
+    {
+        EventLoop::SharedPtr eventLoop = loop.lock();
+        if (!eventLoop)
+            return;
+        eventLoop->callLater(std::bind(&ZWayThread::directCallback, this, zway, type, node_id, instance_id, command_id));
+    }
+    void directCallback(const ZWay zway, ZWDeviceChangeType type, ZWBYTE node_id, ZWBYTE instance_id, ZWBYTE command_id);
+
     void configure(const Value& value);
 
     void stop();
@@ -184,6 +274,63 @@ void ZWayThread::configure(const Value& value)
     std::lock_guard<std::mutex> locker(mutex);
     commands.append(value);
     cond.notify_one();
+}
+
+void ZWayThread::directCallback(const ZWay zway, ZWDeviceChangeType type, ZWBYTE node_id, ZWBYTE instance_id, ZWBYTE command_id)
+{
+    switch (type) {
+    case DeviceAdded:
+        error() << "device added" << node_id;
+        break;
+    case DeviceRemoved:
+        error() << "device removed" << node_id;
+        break;
+    case InstanceAdded:
+        error() << "instance added" << node_id << instance_id;
+        break;
+    case InstanceRemoved:
+        error() << "instance removed" << node_id << instance_id;
+        break;
+    case CommandAdded:
+        error() << "command added" << node_id << instance_id << command_id;
+        switch (command_id) {
+        case 0x26: // SwitchMultiLevel
+            break;
+        case 0x25: { // SwitchBinary
+            std::shared_ptr<ZWayController> ctrl = std::make_shared<ZWayController>(zway, node_id, instance_id);
+            ctrl->addMethod<bool, 0x25>("level", zway_cc_switch_binary_get, zway_cc_switch_binary_set);
+            Modules::instance()->registerController(ctrl);
+            //mControllers.append(ctrl);
+            break; }
+        case 0x20: // Basic
+            break;
+        case 0x8a: // Time
+            break;
+        case 0x85: // Association
+            break;
+        case 0x81: // Clock
+            break;
+        case 0x77: // NodeNaming
+            break;
+        case 0x73: // PowerLevel
+            break;
+        case 0x5B: // CentralScene
+            break;
+        case 0x2B: // SceneActivation
+            break;
+        case 0x27: // Switch All
+            break;
+        case 0x75: // Protection
+            break;
+        }
+        break;
+    case CommandRemoved:
+        error() << "command removed" << node_id << instance_id << command_id;
+        break;
+    default:
+        error() << "unknown change type" << type;
+        break;
+    }
 }
 
 void ZWayThread::processCommand(ZWay zway, ZWayThread* thread, const Value& value)
@@ -265,7 +412,8 @@ void ZWayThread::run()
 
     auto callback = [](const ZWay zway, ZWDeviceChangeType type, ZWBYTE node_id, ZWBYTE instance_id, ZWBYTE command_id, void *ptr) {
         ZWayThread* thread = static_cast<ZWayThread*>(ptr);
-        thread->log(Module::Info, "zway callback");
+        thread->callback(zway, type, node_id, instance_id, command_id);
+        // thread->log(Module::Info, "zway callback");
     };
     zway_device_add_callback(zway, DeviceAdded|DeviceRemoved|InstanceAdded|InstanceRemoved|CommandAdded|CommandRemoved, callback, this);
 
@@ -343,16 +491,6 @@ void ZWayThread::run()
     zlog_close(zwlog);
 }
 
-class ZWayController : public Controller
-{
-public:
-    ZWayController();
-
-    virtual Value describe() const;
-    virtual Value get() const;
-    virtual void set(const Value& value);
-};
-
 class ZWaySensor : public Sensor
 {
 public:
@@ -373,8 +511,8 @@ private:
     } mState;
 };
 
-ZWayController::ZWayController()
-    : Controller("zway-controller")
+ZWayController::ZWayController(ZWay zway, ZWBYTE node, ZWBYTE instance)
+    : Controller("zway-controller"), mZway(zway), mNode(node), mInstance(instance)
 {
 }
 
@@ -520,9 +658,9 @@ void ZWayModule::initialize()
         }
     */
 
-    Controller::SharedPtr zwayController = std::make_shared<ZWayController>();
-    Modules::instance()->registerController(zwayController);
-    mControllers.append(zwayController);
+    // Controller::SharedPtr zwayController = std::make_shared<ZWayController>();
+    // Modules::instance()->registerController(zwayController);
+    // mControllers.append(zwayController);
 
     Sensor::SharedPtr zwaySensor = std::make_shared<ZWaySensor>();
     Modules::instance()->registerSensor(zwaySensor);

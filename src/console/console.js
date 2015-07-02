@@ -191,7 +191,7 @@ function send(obj)
     for (var idx in methods) {
         var method = methods[idx];
         if (method in obj) {
-            obj.type = method;
+            obj.method = method;
             break;
         }
     }
