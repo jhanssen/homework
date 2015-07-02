@@ -187,6 +187,14 @@ function showHelp()
 
 function send(obj)
 {
+    var methods = ["get", "set", "create", "add", "cfg"];
+    for (var idx in methods) {
+        var method = methods[idx];
+        if (method in obj) {
+            obj.type = method;
+            break;
+        }
+    }
     ws.send(JSON.stringify(obj));
 }
 

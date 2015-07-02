@@ -68,13 +68,10 @@ static inline void processGet(const T& item, const String& type, const String& n
 static inline Value handleMessage(const Value& msg)
 {
     Value ret;
-    const String get = msg.value<String>("get");
-    const String set = msg.value<String>("set");
-    const String create = msg.value<String>("create");
-    const String add = msg.value<String>("add");
-    const String cfg = msg.value<String>("cfg");
+    const String method = msg.value<String>("method");
     const int id = msg.value<int>("id", -1);
-    if (!get.isEmpty()) {
+    if (method == "get") {
+        const String get = msg.value<String>("get");
         printf("get %s\n", get.constData());
 
         ret["id"] = id;
@@ -96,14 +93,16 @@ static inline Value handleMessage(const Value& msg)
             const String name = msg.value<String>("sensor");
             processGet(Modules::instance()->sensor(name), "sensor", name, ret);
         }
-    } else if (!set.isEmpty()) {
+    } else if (method == "set") {
+        const String set = msg.value<String>("set");
         if (set == "controller") {
             const String name = msg.value<String>("name");
 
             if (auto ctrl = Modules::instance()->controller(name))
                 ctrl->set(msg);
         }
-    } else if (!create.isEmpty()) {
+    } else if (method == "create") {
+        const String create = msg.value<String>("create");
         error() << "creating" << create;
         if (create == "scene") {
             Scene::SharedPtr scene = std::make_shared<Scene>(msg.value<String>("name"));
@@ -112,7 +111,8 @@ static inline Value handleMessage(const Value& msg)
             Rule::SharedPtr rule = std::make_shared<RuleJS>(msg.value<String>("name"));
             Modules::instance()->registerRule(rule);
         }
-    } else if (!add.isEmpty()) {
+    } else if (method == "add") {
+        const String add = msg.value<String>("add");
         if (add == "ruleSensor") {
             const String sensorName = msg.value<String>("sensor");
             const String ruleName = msg.value<String>("rule");
@@ -136,7 +136,8 @@ static inline Value handleMessage(const Value& msg)
             }
             rule->registerSensor(sensor);
         }
-    } else if (!cfg.isEmpty()) {
+    } else if (method == "cfg") {
+        const String cfg = msg.value<String>("cfg");
         if (cfg == "modules") {
             const String name = msg.value<String>("name");
             const String value = msg.value<String>("value");
