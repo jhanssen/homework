@@ -105,11 +105,8 @@ static inline List<ZWBYTE> getbinary(ZDataHolder data, ZWayGetter getter)
     return List<ZWBYTE>();
 }
 
-static Value get(ZWay zway, ZDataHolder data)
+static Value get(ZDataHolder data)
 {
-    if (!data)
-        return Value();
-    ZWayLock lock(zway);
     ZWDataType type;
     zdata_get_type(data, &type);
     switch (type) {
@@ -133,6 +130,14 @@ static Value get(ZWay zway, ZDataHolder data)
         return getarray<const ZWCSTR>(data, zdata_get_string_array);
     }
     return Value();
+}
+
+static Value get(ZWay zway, ZDataHolder data)
+{
+    if (!data)
+        return Value();
+    ZWayLock lock(zway);
+    return get(data);
 }
 
 static inline Value get(ZWay zway, ZWBYTE device, const char* path)
@@ -168,9 +173,14 @@ public:
     void callback(const ZWay zway, ZWDeviceChangeType type, ZWBYTE node_id, ZWBYTE instance_id, ZWBYTE command_id);
     void directCallback(const ZWay zway, ZWDeviceChangeType type, ZWBYTE node_id, ZWBYTE instance_id, ZWBYTE command_id);
 
+    void dataCallback(const ZDataRootObject root, ZWDataChangeType type, ZDataHolder data, void *arg);
+    void directDataCallback(const ZDataRootObject root, ZWDataChangeType type, const Value& value, void *arg);
+
     void configure(const Value& value);
 
     void stop();
+
+    EventLoop::SharedPtr eventLoop() { return loop.lock(); }
 
     static ZWayThread* instance();
     static ZWayThread* prepareWait();
@@ -230,6 +240,7 @@ private:
         ZWay zway;
         ZWBYTE node, instance;
         String name;
+        Sensor::WeakPtr controller;
     };
     template<typename ZWType, ZWBYTE ZWCommand, typename ZWGetter, typename ZWSetter>
     struct TemplateMethod : public Method
@@ -262,6 +273,8 @@ private:
     ZWay mZway;
     ZWBYTE mNode, mInstance;
     Map<String, std::shared_ptr<Method> > mMethods;
+
+    friend class ZWayThread;
 };
 
 template<typename ZWType, ZWBYTE ZWCommand, typename ZWGetter, typename ZWSetter>
@@ -345,7 +358,35 @@ void ZWayController::addMethod(const String& name, const ZWGetter& get, const ZW
     method->node = mNode;
     method->instance = mInstance;
     method->name = name;
+    method->controller = shared_from_this();
     mMethods[name].reset(method);
+
+    Sensor::WeakPtr weak = shared_from_this();
+    auto zway = mZway;
+    auto node = mNode;
+    auto instance = mInstance;
+    auto cmd = ZWCommand;
+    auto callback = [zway, node, instance, cmd, name, method, weak]() {
+        ZWayLock lock(zway);
+        ZDataHolder holder = zway_find_device_instance_cc_data(zway, node, instance, cmd, name.constData());
+        if (holder) {
+            Sensor::SharedPtr sensor = weak.lock();
+            if (sensor) {
+                auto callback = [](const ZDataRootObject root, ZWDataChangeType type, ZDataHolder data, void *arg) {
+                    ZWayThread::instance()->dataCallback(root, type, data, arg);
+                };
+                ZWError err = zdata_add_callback(holder, callback, FALSE, method);
+                if (err != NoError) {
+                    error() << "error adding callback";
+                }
+            }
+        }
+    };
+    if (EventLoop::SharedPtr loop = ZWayThread::instance()->eventLoop()) {
+        loop->callLater(std::bind(callback));
+    } else {
+        error() << "no loop";
+    }
 }
 
 template<typename ZWToggle>
@@ -356,6 +397,7 @@ void ZWayController::addToggle(const String& name, const ZWToggle& toggle)
     method->node = mNode;
     method->instance = mInstance;
     method->name = name;
+    method->controller = shared_from_this();
     mMethods[name].reset(method);
 }
 
@@ -429,6 +471,29 @@ void ZWayThread::changeState(const Value& value)
 void ZWayThread::directChangeState(const Value& value)
 {
     module->changeState(value);
+}
+
+void ZWayThread::dataCallback(const ZDataRootObject root, ZWDataChangeType type, ZDataHolder data, void *arg)
+{
+    EventLoop::SharedPtr eventLoop = loop.lock();
+    if (!eventLoop)
+        return;
+    eventLoop->callLater(std::bind(&ZWayThread::directDataCallback, this, root, type, get(data), arg));
+}
+
+void ZWayThread::directDataCallback(const ZDataRootObject root, ZWDataChangeType type, const Value& value, void *arg)
+{
+    ZWayController::Method* method = static_cast<ZWayController::Method*>(arg);
+    log(Module::Debug, "direct data for %s 0x%x %s", method->name.constData(), type, value.toJSON().constData());
+
+    Value data;
+    data[method->name] = value;
+    if (Sensor::SharedPtr sensor = method->controller.lock()) {
+        std::shared_ptr<ZWayController> zway = std::static_pointer_cast<ZWayController>(sensor);
+        if (zway) {
+            zway->mStateChanged(sensor, data);
+        }
+    }
 }
 
 void ZWayThread::callback(const ZWay zway, ZWDeviceChangeType type, ZWBYTE node_id, ZWBYTE instance_id, ZWBYTE command_id)
