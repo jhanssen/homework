@@ -74,7 +74,11 @@ int64_t AlarmThread::alarmTime(const Alarm* alarm)
         timeinfo.tm_hour = alarm->time.hour;
         timeinfo.tm_min = alarm->time.minute;
         timeinfo.tm_sec = alarm->time.second;
-        when = static_cast<uint64_t>(mktime(&timeinfo)) * 1000LLU;
+        const time_t to = mktime(&timeinfo);
+        if (to < 0) { // can't represent this time?
+            return std::numeric_limits<int64_t>::max();
+        }
+        when = static_cast<uint64_t>(to) * 1000LLU;
     } while (Rct::currentTimeMs() - epoch >= Delta);
 
     return when - epoch;
