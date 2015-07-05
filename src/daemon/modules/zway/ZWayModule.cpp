@@ -261,6 +261,7 @@ Value ZWayController::TemplateMethod<ZWType, ZWCommand, ZWGetter, ZWSetter>::get
     }
     lock.unlock();
     if (thread->wait() == ZWayThread::State::Success) {
+        thread->log(Module::Debug, "Getter success");
         lock.relock();
         return ::get(zway, node, instance, ZWCommand, name.constData());
     } else {
@@ -282,6 +283,8 @@ void ZWayController::TemplateMethod<ZWType, ZWCommand, ZWGetter, ZWSetter>::set(
     lock.unlock();
     if (thread->wait() == ZWayThread::State::Failure) {
         thread->log(Module::Error, "Setter failure");
+    } else {
+        thread->log(Module::Debug, "Setter success");
     }
 }
 
@@ -415,6 +418,7 @@ void ZWayThread::directCallback(const ZWay zway, ZWDeviceChangeType type, ZWBYTE
         case 0x25: { // SwitchBinary
             std::shared_ptr<ZWayController> ctrl = std::make_shared<ZWayController>(zway, node_id, instance_id);
             ctrl->addMethod<bool, 0x25>("level", zway_cc_switch_binary_get, zway_cc_switch_binary_set);
+            ctrl->setName(String::format<64>("zway:switch:binary:%d:%d", node_id, instance_id));
             Modules::instance()->registerController(ctrl);
             module->mControllers.append(ctrl);
             break; }
@@ -437,6 +441,7 @@ void ZWayThread::directCallback(const ZWay zway, ZWDeviceChangeType type, ZWBYTE
         case 0x27: { // Switch All
             std::shared_ptr<ZWayController> ctrl = std::make_shared<ZWayController>(zway, node_id, instance_id);
             ctrl->addMethod<int, 0x27>("mode", zway_cc_switch_all_get, zway_cc_switch_all_set);
+            ctrl->setName(String::format<64>("zway:switch:all:%d:%d", node_id, instance_id));
             Modules::instance()->registerController(ctrl);
             module->mControllers.append(ctrl);
             break; }
@@ -641,7 +646,6 @@ private:
 ZWayController::ZWayController(ZWay zway, ZWBYTE node, ZWBYTE instance)
     : Controller(), mZway(zway), mNode(node), mInstance(instance)
 {
-    setName(String::format<64>("zway:%d:%d", mNode, mInstance));
 }
 
 Value ZWayController::describe() const
@@ -679,7 +683,7 @@ void ZWayController::set(const Value& value)
     if (method == mMethods.end())
         return;
     const Value arguments = value.value("arguments");
-    ZWayThread::instance()->log(Module::Debug, "%s", ("setting method " + name + " " + arguments.toJSON()).constData());
+    ZWayThread::instance()->log(Module::Debug, "setting method %s (%s)", name.constData(), arguments.toJSON().constData());
     method->second->set(arguments);
 }
 
