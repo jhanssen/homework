@@ -218,6 +218,8 @@ public:
 
     template<typename ZWType, ZWBYTE ZWCommand, typename ZWGetter, typename ZWSetter>
     void addMethod(const String& name, const ZWGetter& get, const ZWSetter& set);
+    template<typename ZWToggle>
+    void addToggle(const String& name, const ZWToggle& toggle);
 
 private:
     struct Method
@@ -242,6 +244,19 @@ private:
 
         const ZWGetter& getter;
         const ZWSetter& setter;
+    };
+    template<typename ZWToggle>
+    struct TemplateToggle : public Method
+    {
+        TemplateToggle(const ZWToggle& t)
+            : toggle(t)
+        {
+        }
+
+        virtual Value get() const { return Value(); }
+        virtual void set(const Value& value);
+
+        const ZWToggle& toggle;
     };
 
     ZWay mZway;
@@ -288,6 +303,24 @@ void ZWayController::TemplateMethod<ZWType, ZWCommand, ZWGetter, ZWSetter>::set(
     }
 }
 
+template<typename ZWToggle>
+void ZWayController::TemplateToggle<ZWToggle>::set(const Value& value)
+{
+    ZWayLock lock(zway);
+    ZWayThread* thread = ZWayThread::prepareWait();
+    ZWError result = toggle(zway, node, instance, ZWayThread::success, ZWayThread::failure, thread);
+    if (result != NoError) {
+        thread->log(Module::Error, "Toggle failure %d", result);
+        return;
+    }
+    lock.unlock();
+    if (thread->wait() == ZWayThread::State::Failure) {
+        thread->log(Module::Error, "Toggle failure");
+    } else {
+        thread->log(Module::Debug, "Toggle success");
+    }
+}
+
 void ZWayThread::success(const ZWay zway, ZWBYTE functionId, void* arg)
 {
     ZWayThread* t = reinterpret_cast<ZWayThread*>(arg);
@@ -308,6 +341,17 @@ template<typename ZWType, ZWBYTE ZWCommand, typename ZWGetter, typename ZWSetter
 void ZWayController::addMethod(const String& name, const ZWGetter& get, const ZWSetter& set)
 {
     Method* method = new TemplateMethod<ZWType, ZWCommand, ZWGetter, ZWSetter>(get, set);
+    method->zway = mZway;
+    method->node = mNode;
+    method->instance = mInstance;
+    method->name = name;
+    mMethods[name].reset(method);
+}
+
+template<typename ZWToggle>
+void ZWayController::addToggle(const String& name, const ZWToggle& toggle)
+{
+    Method* method = new TemplateToggle<ZWToggle>(toggle);
     method->zway = mZway;
     method->node = mNode;
     method->instance = mInstance;
@@ -411,7 +455,7 @@ void ZWayThread::directCallback(const ZWay zway, ZWDeviceChangeType type, ZWBYTE
         error() << "instance removed" << node_id << instance_id;
         break;
     case CommandAdded:
-        error() << "command added" << node_id << instance_id << command_id;
+        log(Module::Debug, "command added 0x%x 0x%x 0x%x", node_id, instance_id, command_id);
         switch (command_id) {
         case 0x26: // SwitchMultiLevel
             break;
@@ -422,8 +466,13 @@ void ZWayThread::directCallback(const ZWay zway, ZWDeviceChangeType type, ZWBYTE
             Modules::instance()->registerController(ctrl);
             module->mControllers.append(ctrl);
             break; }
-        case 0x20: // Basic
-            break;
+        case 0x20: { // Basic
+            std::shared_ptr<ZWayController> ctrl = std::make_shared<ZWayController>(zway, node_id, instance_id);
+            ctrl->addMethod<int, 0x20>("level", zway_cc_basic_get, zway_cc_basic_set);
+            ctrl->setName(String::format<64>("zway:basic:%d:%d", node_id, instance_id));
+            Modules::instance()->registerController(ctrl);
+            module->mControllers.append(ctrl);
+            break; }
         case 0x8a: // Time
             break;
         case 0x85: // Association
@@ -441,6 +490,8 @@ void ZWayThread::directCallback(const ZWay zway, ZWDeviceChangeType type, ZWBYTE
         case 0x27: { // Switch All
             std::shared_ptr<ZWayController> ctrl = std::make_shared<ZWayController>(zway, node_id, instance_id);
             ctrl->addMethod<int, 0x27>("mode", zway_cc_switch_all_get, zway_cc_switch_all_set);
+            ctrl->addToggle("on", zway_cc_switch_all_set_on);
+            ctrl->addToggle("off", zway_cc_switch_all_set_off);
             ctrl->setName(String::format<64>("zway:switch:all:%d:%d", node_id, instance_id));
             Modules::instance()->registerController(ctrl);
             module->mControllers.append(ctrl);
