@@ -172,6 +172,7 @@ public:
 
     void stop();
 
+    static ZWayThread* instance();
     static ZWayThread* prepareWait();
 
     enum class State { Clear, Success, Failure };
@@ -318,6 +319,11 @@ ZWayThread::~ZWayThread()
 {
     assert(thread == this);
     thread = 0;
+}
+
+ZWayThread* ZWayThread::instance()
+{
+    return thread;
 }
 
 ZWayThread* ZWayThread::prepareWait()
@@ -652,8 +658,13 @@ Value ZWayController::get() const
 
 void ZWayController::set(const Value& value)
 {
-    const String method = value.value<String>("method");
-    error() << "setting method" << method << value.toJSON();
+    const String name = value.value<String>("method");
+    auto method = mMethods.find(name);
+    if (method == mMethods.end())
+        return;
+    const Value arguments = value.value("arguments");
+    ZWayThread::instance()->log(Module::Debug, "setting method " + name + " " + arguments.toJSON());
+    method->second->set(arguments);
 }
 
 ZWaySensor::ZWaySensor()
