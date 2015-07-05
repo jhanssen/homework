@@ -486,6 +486,10 @@ void ZWayThread::directDataCallback(const ZDataRootObject root, ZWDataChangeType
     ZWayController::Method* method = static_cast<ZWayController::Method*>(arg);
     log(Module::Debug, "direct data for %s 0x%x %s", method->name.constData(), type, value.toJSON().constData());
 
+    if (type != Updated) {
+        return;
+    }
+
     Value data;
     data[method->name] = value;
     if (Sensor::SharedPtr sensor = method->controller.lock()) {
