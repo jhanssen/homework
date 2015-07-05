@@ -13,13 +13,14 @@ public:
     typedef std::shared_ptr<Sensor> SharedPtr;
     typedef std::weak_ptr<Sensor> WeakPtr;
 
-    Sensor(const String& name);
+    Sensor(const String& name = String());
     virtual ~Sensor() {}
 
     virtual Value describe() const = 0;
     virtual Value get() const = 0;
     virtual void configure(const Value&) { }
 
+    void setName(const String& name);
     String name() const;
 
     Signal<std::function<void(const Sensor::SharedPtr&, const Value&)> >& stateChanged() { return mStateChanged; }
@@ -34,6 +35,11 @@ private:
 inline Sensor::Sensor(const String& name)
     : mName(name)
 {
+}
+
+inline void Sensor::setName(const String& name)
+{
+    mName = name;
 }
 
 inline String Sensor::name() const

@@ -187,11 +187,11 @@ function showHelp()
 
 function send(obj)
 {
-    var methods = ["get", "set", "create", "add", "cfg"];
-    for (var idx in methods) {
-        var method = methods[idx];
-        if (method in obj) {
-            obj.method = method;
+    var types = ["get", "set", "create", "add", "cfg"];
+    for (var idx in types) {
+        var type = types[idx];
+        if (type in obj) {
+            obj.type = type;
             break;
         }
     }

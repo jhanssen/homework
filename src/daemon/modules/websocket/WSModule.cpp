@@ -68,9 +68,9 @@ static inline void processGet(const T& item, const String& type, const String& n
 static inline Value handleMessage(const Value& msg)
 {
     Value ret;
-    const String method = msg.value<String>("method");
+    const String type = msg.value<String>("type");
     const int id = msg.value<int>("id", -1);
-    if (method == "get") {
+    if (type == "get") {
         const String get = msg.value<String>("get");
         printf("get %s\n", get.constData());
 
@@ -93,7 +93,7 @@ static inline Value handleMessage(const Value& msg)
             const String name = msg.value<String>("sensor");
             processGet(Modules::instance()->sensor(name), "sensor", name, ret);
         }
-    } else if (method == "set") {
+    } else if (type == "set") {
         const String set = msg.value<String>("set");
         if (set == "controller") {
             const String name = msg.value<String>("name");
@@ -101,7 +101,7 @@ static inline Value handleMessage(const Value& msg)
             if (auto ctrl = Modules::instance()->controller(name))
                 ctrl->set(msg);
         }
-    } else if (method == "create") {
+    } else if (type == "create") {
         const String create = msg.value<String>("create");
         error() << "creating" << create;
         if (create == "scene") {
@@ -111,7 +111,7 @@ static inline Value handleMessage(const Value& msg)
             Rule::SharedPtr rule = std::make_shared<RuleJS>(msg.value<String>("name"));
             Modules::instance()->registerRule(rule);
         }
-    } else if (method == "add") {
+    } else if (type == "add") {
         const String add = msg.value<String>("add");
         if (add == "ruleSensor") {
             const String sensorName = msg.value<String>("sensor");
@@ -136,7 +136,7 @@ static inline Value handleMessage(const Value& msg)
             }
             rule->registerSensor(sensor);
         }
-    } else if (method == "cfg") {
+    } else if (type == "cfg") {
         const String cfg = msg.value<String>("cfg");
         if (cfg == "modules") {
             const String name = msg.value<String>("name");
