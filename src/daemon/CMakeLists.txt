@@ -13,6 +13,7 @@ if (HAVE_ZWAY)
 endif()
 
 set(SOURCES
+    Alarm.cpp
     Daemon.cpp
     main.cpp)
 
