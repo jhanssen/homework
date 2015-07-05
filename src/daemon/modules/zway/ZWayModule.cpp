@@ -159,7 +159,7 @@ public:
     ZWayThread(ZWayModule* mod, const Value& cfg);
     ~ZWayThread();
 
-    void log(Module::LogLevel level, const String& msg);
+    void log(Module::LogLevel level, const char* fmt, ...);
     void directLog(Module::LogLevel level, const String& msg);
 
     void changeState(const Value& value);
@@ -256,12 +256,15 @@ Value ZWayController::TemplateMethod<ZWType, ZWCommand, ZWGetter, ZWSetter>::get
     ZWayThread* thread = ZWayThread::prepareWait();
     ZWError result = getter(zway, node, instance, ZWayThread::success, ZWayThread::failure, thread);
     if (result != NoError) {
+        thread->log(Module::Error, "Getter failure %d", result);
         return Value();
     }
     lock.unlock();
     if (thread->wait() == ZWayThread::State::Success) {
         lock.relock();
         return ::get(zway, node, instance, ZWCommand, name.constData());
+    } else {
+        thread->log(Module::Error, "Getter failure");
     }
     return Value();
 }
@@ -271,12 +274,15 @@ void ZWayController::TemplateMethod<ZWType, ZWCommand, ZWGetter, ZWSetter>::set(
 {
     ZWayLock lock(zway);
     ZWayThread* thread = ZWayThread::prepareWait();
-    ZWError result = setter(zway, node, instance, value.convert<ZWType>(), ZWayThread::success, ZWayThread::failure, thread);
+    ZWError result = setter(zway, node, instance, value[0].convert<ZWType>(), ZWayThread::success, ZWayThread::failure, thread);
     if (result != NoError) {
+        thread->log(Module::Error, "Setter failure %d", result);
         return;
     }
     lock.unlock();
-    thread->wait();
+    if (thread->wait() == ZWayThread::State::Failure) {
+        thread->log(Module::Error, "Setter failure");
+    }
 }
 
 void ZWayThread::success(const ZWay zway, ZWBYTE functionId, void* arg)
@@ -342,8 +348,18 @@ ZWayThread::State ZWayThread::wait()
     return state;
 }
 
-void ZWayThread::log(Module::LogLevel level, const String& msg)
+void ZWayThread::log(Module::LogLevel level, const char* fmt, ...)
 {
+    va_list ap;
+    va_start(ap, fmt);
+    enum { StrSize = 1024 };
+    String msg(StrSize, '\0');
+    const int len = vsnprintf(msg.data(), StrSize + 1, fmt, ap);
+    va_end(ap);
+
+    if (len < StrSize)
+        msg.resize(len);
+
     EventLoop::SharedPtr eventLoop = loop.lock();
     if (!eventLoop)
         return;
@@ -461,7 +477,7 @@ void ZWayThread::processCommand(ZWay zway, ZWayThread* thread, const Value& valu
             ZWBYTE* deviceNodeId = devicesList;
             while (*deviceNodeId) {
                 const Value typeString = get(zway, *deviceNodeId, "deviceTypeString");
-                thread->log(Module::Error, typeString.toJSON());
+                thread->log(Module::Error, "%s", typeString.toJSON().constData());
                 ++deviceNodeId;
             }
             zway_devices_list_free(devicesList);
@@ -663,7 +679,7 @@ void ZWayController::set(const Value& value)
     if (method == mMethods.end())
         return;
     const Value arguments = value.value("arguments");
-    ZWayThread::instance()->log(Module::Debug, "setting method " + name + " " + arguments.toJSON());
+    ZWayThread::instance()->log(Module::Debug, "%s", ("setting method " + name + " " + arguments.toJSON()).constData());
     method->second->set(arguments);
 }
 
