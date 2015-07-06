@@ -20,6 +20,8 @@ protected:
 private:
     AlarmThread();
 
+    void resort();
+
     static int64_t alarmTime(const Alarm* alarm);
 
     static std::shared_ptr<AlarmThread> inst;
@@ -50,14 +52,18 @@ AlarmThread::AlarmThread()
 {
 }
 
+void AlarmThread::resort()
+{
+    auto cmp = [](const Data& a, const Data& b) {
+        return (AlarmThread::alarmTime(a.alarm) < AlarmThread::alarmTime(b.alarm));
+    };
+    std::sort(datas.begin(), datas.end(), cmp);
+}
+
 int64_t AlarmThread::alarmTime(const Alarm* alarm)
 {
     if (!alarm->time.year) { // just seconds
-        if (alarm->last > 0) {
-            return (Rct::monoMs() - alarm->last) + (alarm->time.second * 1000);
-        } else {
-            return alarm->time.second * 1000;
-        }
+        return (alarm->last - Rct::monoMs()) + (alarm->time.second * 1000);
     }
 
     enum { Delta = 1000 };
@@ -88,7 +94,7 @@ void AlarmThread::add(Alarm* alarm)
 {
     std::lock_guard<std::mutex> locker(mutex);
     datas.append({ alarm });
-#warning sort list
+    resort();
     cond.notify_one();
 }
 
@@ -128,7 +134,7 @@ void AlarmThread::run()
                 if (datas.first().alarm->mode == Alarm::Mode::Single) {
                     datas.removeFirst();
                 } else {
-#warning resort list
+                    resort();
                 }
             } else {
                 break;
@@ -166,6 +172,7 @@ Alarm::SharedPtr Alarm::create(const Time& time)
     alarm->time = time;
     alarm->mode = Mode::Single;
     alarm->last = 0;
+    alarm->loop = EventLoop::eventLoop();
     alarm->add();
     return alarm;
 }
@@ -175,15 +182,23 @@ Alarm::SharedPtr Alarm::create(size_t seconds, Mode mode)
     Alarm::SharedPtr alarm(new Alarm);
     alarm->time.second = seconds;
     alarm->mode = mode;
-    alarm->last = 0;
+    alarm->last = Rct::monoMs();
+    alarm->loop = EventLoop::eventLoop();
     alarm->add();
     return alarm;
 }
 
 void Alarm::fire()
 {
-    last = Rct::monoMs();
-    mFired(shared_from_this());
+    if (EventLoop::SharedPtr l = loop.lock()) {
+        Alarm::WeakPtr weak = shared_from_this();
+        l->callLater([weak]() {
+                if (Alarm::SharedPtr alarm = weak.lock()) {
+                    alarm->last = Rct::monoMs();
+                    alarm->mFired(alarm);
+                }
+            });
+    }
 }
 
 void Alarm::add()

@@ -2,6 +2,7 @@
 #define ALARM_H
 
 #include <memory>
+#include <rct/EventLoop.h>
 #include <rct/SignalSlot.h>
 
 class Alarm : public std::enable_shared_from_this<Alarm>
@@ -38,6 +39,7 @@ private:
     Time time;
     Mode mode;
     uint64_t last;
+    EventLoop::WeakPtr loop;
     Signal<std::function<void(const SharedPtr&)> > mFired;
 
     friend class AlarmThread;
