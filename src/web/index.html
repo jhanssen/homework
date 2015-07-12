@@ -6,36 +6,82 @@
     <link rel="stylesheet" href="bower_components/onsenui/build/css/onsen-css-components.css"/>
     <script src="bower_components/onsenui/build/js/angular/angular.js"></script>
     <script src="bower_components/onsenui/build/js/onsenui.js"></script>
+    <script src="web.js"></script>
     <script>
       var module = ons.bootstrap('my-app', ['onsen']);
-      module.controller('AppController', function($scope) { });
-      module.controller('PageController', function($scope) {
-        ons.ready(function() {
-          // Init code here
-        });
+      module.controller('AppController', function($scope) {
+	ons.ready(function() { web.init($scope); });
       });
+      module.controller('PageController', function($scope) {});
     </script>
   </head>
   <body ng-controller="AppController">
-    <ons-navigator var="nav">
-      <ons-page ng-controller="PageController">
-	<ons-button onclick="nav.pushPage('page2.html')">Next Page</ons-button>
-        <!-- Page content -->
-      </ons-page>
-    </ons-navigator>
+    <ons-sliding-menu
+       main-page="scenes.html"
+       menu-page="menu.html"
+       side="left"
+       max-slide-distance="250px"
+       var="menu">
+    </ons-sliding-menu>
 
-    <ons-template id="page2.html">
+    <ons-template id="scenes.html">
       <ons-page>
 	<ons-toolbar>
-	  <div class="left"><ons-back-button>Back</ons-back-button></div>
-	  <div class="center">Page 2</div>
+	  <div class="left">
+	    <ons-toolbar-button ng-click="menu.toggleMenu()"><ons-icon icon="ion-navicon" style="font-size: 32px; width: 1em;"></ons-icon></ons-toolbar-button>
+	  </div>
+	  <div class="center">Scenes</div>
+	  <div class="right">
+	    <ons-toolbar-button onclick="web.navigate(menu, 'scenes-add.html')">
+	      <span style="font-size: 1.5em">+</span>
+	    </ons-toolbar-button>
+	  </div>
 	</ons-toolbar>
-	<div style="text-align: center; margin-top: 100px;">
-	  <ons-button modifier="light" onclick="nav.popPage()">
-	    Pop Page
-	  </ons-button>
-	</div>
+
+	<p style="text-align: center; color: #999; padding-top: 100px;">Page1 Contents</p>
       </ons-page>
+    </ons-template>
+
+    <ons-template id="scenes-add.html">
+      <ons-page>
+	<ons-toolbar>
+	  <div class="left">
+	    <ons-toolbar-button onclick="menu.toggleMenu()"><ons-icon icon="ion-navicon" style="font-size: 32px; width: 1em;"></ons-icon></ons-toolbar-button>
+	  </div>
+	  <div class="center">Add Scene</div>
+	  <div class="right">
+	    <ons-toolbar-button ng-click="menu.setMainPage('scenes.html')">
+	      <ons-icon icon="ion-ios-arrow-back" style="font-size: 32px; width: 1em;"></ons-icon>
+	    </ons-toolbar-button>
+	  </div>
+	</ons-toolbar>
+
+	<p style="text-align: center; color: #999; padding-top: 100px;">Page3 Contents</p>
+      </ons-page>
+    </ons-template>
+
+    <ons-template id="controllers.html">
+      <ons-page>
+	<ons-toolbar>
+	  <div class="left">
+	    <ons-toolbar-button onclick="menu.toggleMenu()"><ons-icon icon="ion-navicon" style="font-size: 32px; width: 1em;"></ons-icon></ons-toolbar-button>
+	  </div>
+	  <div class="center">Controllers</div>
+	</ons-toolbar>
+
+	<p style="text-align: center; color: #999; padding-top: 100px;">Page2 Contents</p>
+      </ons-page>
+    </ons-template>
+
+    <ons-template id="menu.html">
+      <ons-list>
+	<ons-list-item modifier="chevron" onclick="menu.setMainPage('scenes.html', {closeMenu: true})">
+	  Scenes
+	</ons-list-item>
+	<ons-list-item modifier="chevron" onclick="menu.setMainPage('controllers.html', {closeMenu: true})">
+	  Controllers
+	</ons-list-item>
+      </ons-list>
     </ons-template>
   </body>
 </html>

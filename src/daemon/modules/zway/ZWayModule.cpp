@@ -930,7 +930,7 @@ void ZWayModule::initialize()
     // Modules::instance()->registerController(zwayController);
     // mControllers.append(zwayController);
 
-    Sensor::SharedPtr zwaySensor = std::make_shared<ZWaySensor>();
-    Modules::instance()->registerSensor(zwaySensor);
-    mSensors.append(zwaySensor);
+    // Sensor::SharedPtr zwaySensor = std::make_shared<ZWaySensor>();
+    // Modules::instance()->registerSensor(zwaySensor);
+    // mSensors.append(zwaySensor);
 }
