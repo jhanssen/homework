@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="bower_components/onsenui/build/css/onsenui.css"/>
+    <link rel="stylesheet" href="bower_components/onsenui/build/css/onsen-css-components.css"/>
+    <script src="bower_components/onsenui/build/js/angular/angular.js"></script>
+    <script src="bower_components/onsenui/build/js/onsenui.js"></script>
+    <script>
+      var module = ons.bootstrap('my-app', ['onsen']);
+      module.controller('AppController', function($scope) { });
+      module.controller('PageController', function($scope) {
+        ons.ready(function() {
+          // Init code here
+        });
+      });
+    </script>
+  </head>
+  <body ng-controller="AppController">
+    <ons-navigator var="nav">
+      <ons-page ng-controller="PageController">
+	<ons-button onclick="nav.pushPage('page2.html')">Next Page</ons-button>
+        <!-- Page content -->
+      </ons-page>
+    </ons-navigator>
+
+    <ons-template id="page2.html">
+      <ons-page>
+	<ons-toolbar>
+	  <div class="left"><ons-back-button>Back</ons-back-button></div>
+	  <div class="center">Page 2</div>
+	</ons-toolbar>
+	<div style="text-align: center; margin-top: 100px;">
+	  <ons-button modifier="light" onclick="nav.popPage()">
+	    Pop Page
+	  </ons-button>
+	</div>
+      </ons-page>
+    </ons-template>
+  </body>
+</html>

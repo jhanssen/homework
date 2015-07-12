@@ -10,6 +10,7 @@
 /bin/*.dylib
 /bin/*.so
 /src/console/node_modules
+/src/web/bower_components
 /build.ninja
 build.ninja
 /CMakeCache.txt
