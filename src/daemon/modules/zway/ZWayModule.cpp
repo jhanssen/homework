@@ -726,8 +726,24 @@ void ZWayThread::run()
         for (const Value& cmd : cmds) {
             processCommand(zway, this, cmd);
         }
-        if (!cmds.isEmpty())
+        if (!cmds.isEmpty()) {
+            idle = true;
+            while (!zway_is_idle(zway)) {
+                if (idle) {
+                    idle = false;
+                    changeState("busy");
+                }
+                if (cancel && waited >= WaitMax) {
+                    cancel(zway);
+                    cancel = nullptr;
+                    changeState("canceling");
+                } else {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(WaitFor));
+                    waited += WaitFor;
+                }
+            }
             changeState("idle");
+        }
         std::unique_lock<std::mutex> locker(mutex);
         while (!stopped && commands.isEmpty()) {
             cond.wait(locker);
