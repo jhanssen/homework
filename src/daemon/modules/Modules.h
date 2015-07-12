@@ -144,6 +144,11 @@ inline void Modules::initialize()
         (*module)->log().connect([](Module::LogLevel level, const String& name, const String& msg) {
                 printf("Log: %s: %s\n", name.constData(), msg.constData());
             });
+        const String name = (*module)->name();
+        (*module)->stateChanged().connect([name](const Value& nw, const Value& old) {
+                printf("State: %s: from %s to %s\n", name.constData(),
+                       old.toJSON().constData(), nw.toJSON().constData());
+            });
         (*module)->initialize();
         ++module;
     }
