@@ -116,7 +116,7 @@ void AlarmThread::run()
 {
     std::unique_lock<std::mutex> locker(mutex);
     int64_t timeout = -1;
-    enum { WaitFor = 1000, Delta = 1000 };
+    enum { WaitFor = 1000, Delta = 5000 };
     for (;;) {
         // 1. calculate next timeout, fire timers while next timeout < 0
         // 2. sleep for X seconds
@@ -166,26 +166,33 @@ Alarm::~Alarm()
     remove();
 }
 
-Alarm::SharedPtr Alarm::create(const Time& time)
+Alarm::SharedPtr Alarm::create()
 {
-    Alarm::SharedPtr alarm(new Alarm);
-    alarm->time = time;
-    alarm->mode = Mode::Single;
-    alarm->last = 0;
-    alarm->loop = EventLoop::eventLoop();
-    alarm->add();
-    return alarm;
+    return Alarm::SharedPtr(new Alarm);
 }
 
-Alarm::SharedPtr Alarm::create(size_t seconds, Mode mode)
+void Alarm::start(const Time& t)
 {
-    Alarm::SharedPtr alarm(new Alarm);
-    alarm->time.second = seconds;
-    alarm->mode = mode;
-    alarm->last = Rct::monoMs();
-    alarm->loop = EventLoop::eventLoop();
-    alarm->add();
-    return alarm;
+    time = t;
+    mode = Mode::Single;
+    last = 0;
+    loop = EventLoop::eventLoop();
+    add();
+}
+
+void Alarm::start(size_t seconds, Mode m)
+{
+    memset(&time, '\0', sizeof(time));
+    time.second = seconds;
+    mode = m;
+    last = Rct::monoMs();
+    loop = EventLoop::eventLoop();
+    add();
+}
+
+void Alarm::stop()
+{
+    remove();
 }
 
 void Alarm::fire()

@@ -19,12 +19,15 @@ public:
 
     enum class Mode { Single, Repeat };
 
-    static SharedPtr create(const Time& time);
-    static SharedPtr create(size_t seconds, Mode mode = Mode::Single);
+    ~Alarm();
+
+    static SharedPtr create();
+
+    void start(const Time& time);
+    void start(size_t seconds, Mode mode = Mode::Single);
+    void stop();
 
     Signal<std::function<void(const SharedPtr&)> >& fired() { return mFired; }
-
-    ~Alarm();
 
 private:
     Alarm();
