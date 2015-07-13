@@ -17,6 +17,8 @@ var web = {
         };
         web.connection.onclose = function() {
             console.log("websocket close");
+            var scope = angular.element(document.querySelector('[ng-controller=AppController]')).scope();
+            scope.menu.setMainPage('disabled.html');
         };
         web.connection.onerror = function(err) {
             console.error("websocket error:", err);
