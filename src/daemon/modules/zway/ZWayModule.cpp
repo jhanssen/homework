@@ -273,6 +273,7 @@ private:
     ZWay mZway;
     ZWBYTE mNode, mInstance;
     Map<String, std::shared_ptr<Method> > mMethods;
+    String mDefaultMethod;
 
     friend class ZWayThread;
 };
@@ -303,7 +304,8 @@ void ZWayController::TemplateMethod<ZWType, ZWCommand, ZWGetter, ZWSetter>::set(
 {
     ZWayLock lock(zway);
     ZWayThread* thread = ZWayThread::prepareWait();
-    ZWError result = setter(zway, node, instance, value[0].convert<ZWType>(), ZWayThread::success, ZWayThread::failure, thread);
+    const Value v = value.isList() ? value[0] : value;
+    ZWError result = setter(zway, node, instance, v.convert<ZWType>(), ZWayThread::success, ZWayThread::failure, thread);
     if (result != NoError) {
         thread->log(Module::Error, "Setter failure %d", result);
         return;
@@ -353,6 +355,8 @@ void ZWayThread::failure(const ZWay zway, ZWBYTE functionId, void* arg)
 template<typename ZWType, ZWBYTE ZWCommand, typename ZWGetter, typename ZWSetter>
 void ZWayController::addMethod(const String& name, const ZWGetter& get, const ZWSetter& set)
 {
+    if (mDefaultMethod.isEmpty() && !name.isEmpty())
+        mDefaultMethod = name;
     Method* method = new TemplateMethod<ZWType, ZWCommand, ZWGetter, ZWSetter>(get, set);
     method->zway = mZway;
     method->node = mNode;
@@ -814,11 +818,24 @@ Value ZWayController::get() const
 
 void ZWayController::set(const Value& value)
 {
-    const String name = value.value<String>("method");
+    String name;
+    Value arguments;
+    bool ok = false;
+    if (value.isMap()) {
+        if (value.contains("name")) {
+            name = value.value<String>("method", String(), &ok);
+            arguments = value.value("arguments");
+            ok = true;
+        }
+    }
+    if (!ok) {
+        name = mDefaultMethod;
+        arguments = value;
+    }
+
     auto method = mMethods.find(name);
     if (method == mMethods.end())
         return;
-    const Value arguments = value.value("arguments");
     ZWayThread::instance()->log(Module::Debug, "setting method %s (%s)", name.constData(), arguments.toJSON().constData());
     method->second->set(arguments);
 }

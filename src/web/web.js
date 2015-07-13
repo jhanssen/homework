@@ -1,15 +1,19 @@
-/*global WebSocket,location*/
+/*global WebSocket,location,angular*/
 
 var web = {
     _currentId: 0,
     _callbacks: Object.create(null),
-    $scope: undefined,
+    _state: Object.create(null),
+    _pendingSends: [],
     connection: undefined,
-    init: function($scope) {
-        web.$scope = $scope;
+    init: function() {
         web.connection = new WebSocket("ws://" + location.hostname + ":8087/");
         web.connection.onopen = function() {
             console.log("websocket onopen");
+            for (var i = 0; i < web._pendingSends.length; ++i) {
+                web.connection.send(web._pendingSends[i]);
+            }
+            web._pendingSends = [];
         };
         web.connection.onclose = function() {
             console.log("websocket close");
@@ -51,7 +55,11 @@ var web = {
             }
             req = JSON.stringify(req);
         }
-        web.connection.send(req);
+        if (web.connection.readyState !== 1) {
+            web._pendingSends.push(req);
+        } else {
+            web.connection.send(req);
+        }
     },
     transition: function(name, $scope) {
         switch (name) {
@@ -67,20 +75,48 @@ var web = {
                 $scope.$apply();
             });
             break;
+        case "AddSceneComplete":
+            $scope.controllers = web._state.controllers;
+            $scope.sceneName = web._state.sceneName;
+            break;
+        case "Scenes":
+            $scope.scenes = [];
+            web.load({get: "scenes"}, function(data) {
+                $scope.scenes = data.data.scenes;
+                console.log(data);
+                $scope.$apply();
+            });
+            break;
         }
     },
+    setScene: function(scene) {
+        web.load({set: "scene", name: scene});
+    },
     saveScene: function(menu, state) {
+        var input, ctrls, i;
         switch (state) {
         case "controllers":
             // store selected controllers, load controller setup screen
-            var input = document.querySelector("ons-list-item > input");
-            console.log(input.value);
-            var ctrls = document.querySelectorAll("ons-list-item > label > input[type=checkbox]:checked");
-            for (var i = 0; i < ctrls.length; ++i) {
-                console.log(ctrls[i].parentNode.textContent.trim());
+            input = document.querySelector("ons-list-item > input");
+            ctrls = document.querySelectorAll("ons-list-item > label > input[type=checkbox]:checked");
+            web._state.sceneName = input.value;
+            web._state.controllers = [];
+            for (i = 0; i < ctrls.length; ++i) {
+                web._state.controllers.push(ctrls[i].parentNode.textContent.trim());
             }
             menu.setMainPage('scenes-add-controllers.html');
             break;
+        case "complete":
+            // create save scene request
+            var scope = angular.element(document.querySelector('[ng-controller=AddSceneCompleteController]')).scope();
+            input = document.querySelectorAll("ons-list-item > input");
+            var values = {};
+            for (i = 0; i < input.length; ++i) {
+                values[scope.controllers[i]] = input[i].value;
+            }
+            //console.log(scope.sceneName, values);
+            web.load({create: "scene", name: scope.sceneName, controllers: values});
+            menu.setMainPage('scenes.html');
         }
     },
     _addCallback: function(cb) {

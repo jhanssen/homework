@@ -10,10 +10,18 @@
     <script>
       var module = ons.bootstrap('my-app', ['onsen']);
       module.controller('AppController', function($scope) {
-	ons.ready(function() { web.init($scope); });
+	  web.init();
+	  ons.ready(function() { });
+      });
+      module.controller('SceneController', function($scope) {
+	  $scope.setScene = web.setScene;
+	  web.transition('Scenes', $scope);
       });
       module.controller('AddSceneController', function($scope) {
 	  web.transition('AddScene', $scope);
+      });
+      module.controller('AddSceneCompleteController', function($scope) {
+	  web.transition('AddSceneComplete', $scope);
       });
     </script>
   </head>
@@ -27,7 +35,7 @@
     </ons-sliding-menu>
 
     <ons-template id="scenes.html">
-      <ons-page>
+      <ons-page ng-controller="SceneController">
 	<ons-toolbar>
 	  <div class="left">
 	    <ons-toolbar-button ng-click="menu.toggleMenu()"><ons-icon icon="ion-navicon" style="font-size: 32px; width: 1em;"></ons-icon></ons-toolbar-button>
@@ -40,7 +48,11 @@
 	  </div>
 	</ons-toolbar>
 
-	<p style="text-align: center; color: #999; padding-top: 100px;">Page1 Contents</p>
+	<ons-list id="content" ng-controller="SceneController">
+	  <ons-list-item modifier="tappable" ng-repeat="scene in scenes" ng-click="setScene(scene)">
+	    {{scene}}
+	  </ons-list-item>
+	</ons-list>
       </ons-page>
     </ons-template>
 
@@ -77,6 +89,31 @@
     </ons-template>
 
     <ons-template id="scenes-add-controllers.html">
+      <ons-page ng-controller="AddSceneCompleteController">
+	<ons-toolbar>
+	  <div class="left">
+	    <ons-toolbar-button onclick="menu.toggleMenu()"><ons-icon icon="ion-navicon" style="font-size: 32px; width: 1em;"></ons-icon></ons-toolbar-button>
+	    <ons-toolbar-button ng-click="menu.setMainPage('scenes-add.html')">
+	      <ons-icon icon="ion-ios-arrow-back" style="font-size: 32px; width: 1em;"></ons-icon>
+	    </ons-toolbar-button>
+	  </div>
+	  <div class="center">Add Scene: {{sceneName}}</div>
+	  <div class="right">
+	    <ons-toolbar-button onclick="web.saveScene(menu, 'complete')">
+	      Save
+	    </ons-toolbar-button>
+	  </div>
+	</ons-toolbar>
+
+	<ons-list id="content">
+	  <ons-list-item ng-repeat="controller in controllers" style="display: flex; flex-wrap: wrap">
+	    <label>
+	      {{controller}}
+	    </label>
+	    <input type="text" placeholder="Value" class="text-input text-input--transparent" style="margin-top:5px; margin-left: 10px; flex-grow: 1"></input>
+	  </ons-list-item>
+	</ons-list>
+      </ons-page>
     </ons-template>
 
     <ons-template id="controllers.html">

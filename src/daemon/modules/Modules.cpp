@@ -57,12 +57,10 @@ void Modules::registerController(const Controller::SharedPtr& controller)
 {
     mControllers.insert(controller);
 
-    // add to all scenes
-    auto scene = mScenes.cbegin();
-    const auto end = mScenes.cend();
-    while (scene != end) {
-        (*scene)->add(controller);
-        ++scene;
+    // add to default-scene
+    auto defaultScene = scene("default-scene");
+    if (defaultScene) {
+        defaultScene->add(controller);
     }
 
     createPendingRules();
@@ -291,6 +289,8 @@ void Modules::flushScenes()
         scenes.push_back(obj);
     }
     for (const auto& scene : mScenes) {
+        if (scene->name() == "default-scene")
+            continue;
         Value obj;
         obj["name"] = scene->name();
         Value controllers;
@@ -361,16 +361,21 @@ void Modules::createPendingScenes()
     auto it = mPendingScenes.begin();
     while (it != mPendingScenes.end()) {
         Map<Controller::SharedPtr, Value> controllers;
+        bool ok = true;
         for (const auto& ctrl : it->controllers) {
             const auto ptr = controller(ctrl.first);
             if (!ptr) {
                 // nope
-                ++it;
-                continue;
+                ok = false;
+                break;
             }
             controllers[ptr] = ctrl.second;
         }
-        assert(controllers.size() == it->controllers.size());
+        if (!ok) {
+            ++it;
+            continue;
+        }
+        //assert(controllers.size() == it->controllers.size());
         Scene::SharedPtr scene = std::make_shared<Scene>(it->name);
         for (const auto& ptr : controllers) {
             scene->set(ptr.first, ptr.second);

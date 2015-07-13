@@ -100,12 +100,28 @@ static inline Value handleMessage(const Value& msg)
 
             if (auto ctrl = Modules::instance()->controller(name))
                 ctrl->set(msg);
+        } else if (set == "scene") {
+            const String name = msg.value<String>("name");
+            if (auto scene = Modules::instance()->scene(name)) {
+                scene->enable();
+            }
         }
     } else if (type == "create") {
         const String create = msg.value<String>("create");
-        error() << "creating" << create;
         if (create == "scene") {
             Scene::SharedPtr scene = std::make_shared<Scene>(msg.value<String>("name"));
+            const Value controllers = msg.value("controllers");
+            if (controllers.isMap()) {
+                auto ctrl = controllers.begin();
+                const auto end = controllers.end();
+                while (ctrl != end) {
+                    const auto ctrlptr = Modules::instance()->controller(ctrl->first);
+                    if (ctrlptr) {
+                        scene->set(ctrlptr, ctrl->second);
+                    }
+                    ++ctrl;
+                }
+            }
             Modules::instance()->registerScene(scene);
         } else if (create == "rule") {
             Rule::SharedPtr rule = std::make_shared<RuleJS>(msg.value<String>("name"));
