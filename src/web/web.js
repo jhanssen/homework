@@ -14,6 +14,9 @@ var web = {
                 web.connection.send(web._pendingSends[i]);
             }
             web._pendingSends = [];
+
+            var scope = angular.element(document.querySelector('[ng-controller=AppController]')).scope();
+            scope.menu.setMainPage('scenes.html');
         };
         web.connection.onclose = function() {
             console.log("websocket close");

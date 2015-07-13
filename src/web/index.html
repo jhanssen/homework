@@ -27,12 +27,18 @@
   </head>
   <body ng-controller="AppController">
     <ons-sliding-menu
-       main-page="scenes.html"
+       main-page="connecting.html"
        menu-page="menu.html"
        side="left"
        max-slide-distance="250px"
        var="menu">
     </ons-sliding-menu>
+
+    <ons-template id="connecting.html">
+      <ons-page>
+	<p style="text-align: center; color: #999; padding-top: 100px;">Connecting</p>
+      </ons-page>
+    </ons-template>
 
     <ons-template id="disabled.html">
       <ons-page>
