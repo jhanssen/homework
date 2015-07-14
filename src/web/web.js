@@ -1,12 +1,33 @@
-/*global WebSocket,location,angular*/
+/*global WebSocket,location,angular,setTimeout,ons*/
 
 var web = {
     _currentId: 0,
     _callbacks: Object.create(null),
     _state: Object.create(null),
     _pendingSends: [],
+    _disableSetScene: false,
     connection: undefined,
     init: function() {
+        var module = ons.bootstrap('my-app', ['onsen']);
+        module.controller('AppController', function($scope) {
+            web.initController();
+            ons.ready(function() { });
+        });
+        module.controller('SceneController', function($scope) {
+            $scope.setScene = function(scene) { web.setScene($scope, scene); };
+            $scope.editScene = function(scene) { web.editScene($scope, scene); };
+            $scope.deleteScene = function(scene) { web.deleteScene($scope, scene); };
+            web.transition('Scenes', $scope);
+        });
+        module.controller('AddSceneController', function($scope) {
+            web.transition('AddScene', $scope);
+        });
+        module.controller('AddSceneCompleteController', function($scope) {
+            web.transition('AddSceneComplete', $scope);
+        });
+    },
+
+    initController: function() {
         web.connection = new WebSocket("ws://" + location.hostname + ":8087/");
         web.connection.onopen = function() {
             console.log("websocket onopen");
@@ -47,7 +68,7 @@ var web = {
     },
     load: function(req, callback) {
         if (typeof req === "object") {
-            var types = ["get", "set", "create", "add", "cfg"];
+            var types = ["get", "set", "create", "add", "cfg", "delete"];
             for (var idx in types) {
                 var type = types[idx];
                 if (type in req) {
@@ -94,9 +115,27 @@ var web = {
             break;
         }
     },
-    setScene: function(scene) {
+    setScene: function($scope, scene) {
+        if (web._disableSetScene) {
+            web._disableSetScene = false;
+            return;
+        }
+        console.log("setScene");
         web.load({set: "scene", name: scene});
     },
+    deleteScene: function($scope, scene) {
+        web._disableSetScene = true;
+        $scope.scenes = $scope.scenes.filter(function(s) { return scene !== s; });
+        web.load({delete: "scene", name: scene});
+        // ### confirm or undo?
+        setTimeout(function() { web._disableSetScene = false; }, 0);
+    },
+    editScene: function($scope, scene) {
+        web._disableSetScene = true;
+        setTimeout(function() { web._disableSetScene = false; }, 0);
+        // web.load({set: "scene", name: scene});
+    },
+
     saveScene: function(menu, state) {
         var input, ctrls, i;
         switch (state) {
