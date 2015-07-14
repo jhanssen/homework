@@ -118,6 +118,8 @@ static inline Value handleMessage(const Value& msg)
                     const auto ctrlptr = Modules::instance()->controller(ctrl->first);
                     if (ctrlptr) {
                         scene->set(ctrlptr, ctrl->second);
+                    } else {
+#warning should report error
                     }
                     ++ctrl;
                 }
@@ -164,6 +166,16 @@ static inline Value handleMessage(const Value& msg)
                     module->configure(value);
                     return Value();
                 }
+            }
+        }
+    } else if (type == "delete") {
+        const String del = msg.value<String>("delete");
+        if (del == "scene") {
+            Scene::SharedPtr scene = Modules::instance()->scene(msg.value<String>("name"));
+            if (scene) {
+                Modules::instance()->unregisterScene(scene);
+            } else {
+#warning report error
             }
         }
     }
