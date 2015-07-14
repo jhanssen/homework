@@ -78,6 +78,18 @@ static inline Value handleMessage(const Value& msg)
 
         if (get == "controllers") {
             processGet(Modules::instance()->controllers(), "controllers", ret);
+        } else if (get == "sceneControllers") {
+            const String scene = msg.value<String>("scene");
+            error() << "GOT SCENE" << scene;
+            auto s = Modules::instance()->scene(scene);
+            if (s) {
+                Value &data = ret["data"];
+                for (const auto &controller : s->controllers()) {
+                    data[controller.first->name()] = controller.second;
+                }
+            } else {
+#warning error
+            }
         } else if (get == "sensors") {
             processGet(Modules::instance()->sensors(), "sensors", ret);
         } else if (get == "rules") {

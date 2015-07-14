@@ -25,6 +25,9 @@ var web = {
         module.controller('AddSceneCompleteController', function($scope) {
             web.transition('AddSceneComplete', $scope);
         });
+        module.controller('EditSceneController', function($scope) {
+            web.transition('EditScene', $scope);
+        });
     },
 
     initController: function() {
@@ -88,16 +91,22 @@ var web = {
         }
     },
     transition: function(name, $scope) {
-        switch (name) {
-        case "AddScene":
-            $scope.controllers = [];
+        var loadControllers = function(cb) {
+            var controllers = [];
             web.load({get: "controllers"}, function(data) {
-                $scope.controllers = data.data.controllers.filter(function() {
+                controllers = data.data.controllers.filter(function() {
                     var seen = {};
                     return function(element, index, array) {
                         return !(element in seen) && (seen[element] = 1);
                     };
                 }()).sort();
+                cb(controllers);
+            });
+        };
+        switch (name) {
+        case "AddScene":
+            loadControllers(function(controllers) {
+                $scope.controllers = controllers;
                 $scope.$apply();
             });
             break;
@@ -112,6 +121,32 @@ var web = {
                 console.log(data);
                 $scope.$apply();
             });
+            break;
+        case 'EditScene':
+            $scope.sceneName = web._state.editingScene;
+            console.log("name " + $scope.sceneName);
+
+            $scope.controllers = [];
+            var controllers;
+            var sceneControllers;
+            loadControllers(function(c) { controllers = c; go(); });
+            web.load({get: "sceneControllers", scene: web._state.editingScene}, function(data) {
+                sceneControllers = data.data; go();
+            });
+
+            function go()
+            {
+                if (!controllers || !sceneControllers)
+                    return;
+                for (var i=0; i<controllers.length; ++i) {
+                    $scope.controllers.push({name: controllers[i],
+                                             checked: sceneControllers.hasOwnProperty(controllers[i]),
+                                             value: sceneControllers[controllers[i]]
+                                            });
+                }
+                $scope.$apply();
+            }
+
             break;
         }
     },
@@ -133,7 +168,9 @@ var web = {
     editScene: function($scope, scene) {
         web._disableSetScene = true;
         setTimeout(function() { web._disableSetScene = false; }, 0);
-        // web.load({set: "scene", name: scene});
+        var appScope = angular.element(document.querySelector('[ng-controller=AppController]')).scope();
+        web._state.editingScene = scene;
+        appScope.menu.setMainPage('scenes-edit.html');
     },
 
     saveScene: function(menu, state) {
