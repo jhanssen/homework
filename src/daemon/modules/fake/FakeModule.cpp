@@ -5,7 +5,7 @@
 class FakeController : public Controller
 {
 public:
-    FakeController();
+    FakeController(const String &name);
 
     virtual Value describe() const;
     virtual Value get() const;
@@ -32,8 +32,8 @@ private:
     } mState;
 };
 
-FakeController::FakeController()
-    : Controller("fake-controller")
+FakeController::FakeController(const String &name)
+    : Controller(name)
 {
 }
 
@@ -139,9 +139,15 @@ FakeModule::~FakeModule()
 
 void FakeModule::initialize()
 {
-    Controller::SharedPtr fakeController = std::make_shared<FakeController>();
-    Modules::instance()->registerController(fakeController);
-    mControllers.append(fakeController);
+    auto add = [this](const String &name) {
+        Controller::SharedPtr fakeController = std::make_shared<FakeController>(name);
+        Modules::instance()->registerController(fakeController);
+        mControllers.append(fakeController);
+    };
+
+    for (int i=0; i<5; ++i) {
+        add(String::format<64>("fake controller %d", i + 1));
+    }
 
     // Sensor::SharedPtr fakeSensor = std::make_shared<FakeSensor>();
     // Modules::instance()->registerSensor(fakeSensor);

@@ -103,7 +103,12 @@ var web = {
                 cb(controllers);
             });
         };
-        switch (name) {
+
+        var addControllers = function(controllers, switch) {
+
+
+        };
+        sceneControllers (name) {
         case "AddScene":
             loadControllers(function(controllers) {
                 $scope.controllers = controllers;
@@ -138,13 +143,7 @@ var web = {
             {
                 if (!controllers || !sceneControllers)
                     return;
-                for (var i=0; i<controllers.length; ++i) {
-                    $scope.controllers.push({name: controllers[i],
-                                             checked: sceneControllers.hasOwnProperty(controllers[i]),
-                                             value: sceneControllers[controllers[i]]
-                                            });
-                }
-                $scope.$apply();
+                addControllers(controllers, sceneControllers);
             }
 
             break;
