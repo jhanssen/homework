@@ -4,8 +4,18 @@
     <meta charset="utf-8">
     <link rel="stylesheet" href="bower_components/onsenui/build/css/onsenui.css"/>
     <link rel="stylesheet" href="bower_components/onsenui/build/css/onsen-css-components.css"/>
-    <script src="bower_components/onsenui/build/js/angular/angular.js"></script>
-    <script src="bower_components/onsenui/build/js/onsenui.js"></script>
+    <link rel="stylesheet" href="bower_components/codemirror/lib/codemirror.css"/>
+    <link rel="stylesheet" href="bower_components/codemirror/theme/3024-day.css"/>
+    <link rel="stylesheet" href="web.css"/>
+    <script src="bower_components/angular/angular.js"></script>
+    <script src="bower_components/OnsenUI/build/js/onsenui.js"></script>
+    <script src="bower_components/codemirror/lib/codemirror.js"></script>
+    <script src="bower_components/angular-ui-codemirror/ui-codemirror.js"></script>
+    <script src="bower_components/codemirror/mode/javascript/javascript.js"></script>
+    <script src="bower_components/codemirror/addon/edit/matchbrackets.js"></script>
+    <script src="bower_components/codemirror/addon/selection/active-line.js"></script>
+    <script src="bower_components/codemirror/addon/selection/mark-selection.js"></script>
+    <script src="bower_components/codemirror/keymap/emacs.js"></script>
     <script src="web.js"></script>
     <script>
       web.init();
@@ -22,29 +32,29 @@
 
     <ons-template id="connecting.html">
       <ons-page>
-	    <p style="text-align: center; color: #999; padding-top: 100px;">Connecting</p>
+	<p style="text-align: center; color: #999; padding-top: 100px;">Connecting</p>
       </ons-page>
     </ons-template>
 
     <ons-template id="disabled.html">
       <ons-page>
-	    <p style="text-align: center; color: #999; padding-top: 100px;">Connection lost</p>
+	<p style="text-align: center; color: #999; padding-top: 100px;">Connection lost</p>
       </ons-page>
     </ons-template>
 
     <ons-template id="scenes.html">
       <ons-page ng-controller="SceneController">
         <ons-toolbar>
-	      <div class="left">
-	        <ons-toolbar-button ng-click="menu.toggleMenu()"><ons-icon icon="ion-navicon" style="font-size: 32px; width: 1em;"></ons-icon></ons-toolbar-button>
-	      </div>
-	      <div class="center">Scenes</div>
-	      <div class="right">
-	        <ons-toolbar-button ng-click="menu.setMainPage('scenes-add.html')">
-	          <span style="font-size: 1.5em">+</span>
-	        </ons-toolbar-button>
-	      </div>
-	    </ons-toolbar>
+	  <div class="left">
+	    <ons-toolbar-button ng-click="menu.toggleMenu()"><ons-icon icon="ion-navicon" style="font-size: 32px; width: 1em;"></ons-icon></ons-toolbar-button>
+	  </div>
+	  <div class="center">Scenes</div>
+	  <div class="right">
+	    <ons-toolbar-button ng-click="menu.setMainPage('scenes-add.html')">
+	      <span style="font-size: 1.5em">+</span>
+	    </ons-toolbar-button>
+	  </div>
+	</ons-toolbar>
 
         <ons-list id="content" ng-controller="SceneController">
           <ons-list-item ng-repeat="scene in scenes" modifier="tappable" ng-click="setScene(scene)" style="display: flex; flex-wrap: wrap">
@@ -62,85 +72,85 @@
 
     <ons-template id="scenes-add.html">
       <ons-page>
-	    <ons-toolbar>
-	      <div class="left">
-	        <ons-toolbar-button onclick="menu.toggleMenu()"><ons-icon icon="ion-navicon" style="font-size: 32px; width: 1em;"></ons-icon></ons-toolbar-button>
-	        <ons-toolbar-button ng-click="menu.setMainPage('scenes.html')">
-	          <ons-icon icon="ion-ios-arrow-back" style="font-size: 32px; width: 1em;"></ons-icon>
-	        </ons-toolbar-button>
-	      </div>
-	      <div class="center">Add Scene</div>
-	      <div class="right">
-	        <ons-toolbar-button onclick="web.saveScene(menu, 'controllers')">
-	          <ons-icon icon="ion-ios-arrow-forward" style="font-size: 32px; width: 1em;"></ons-icon>
-	        </ons-toolbar-button>
-	      </div>
-	    </ons-toolbar>
+	<ons-toolbar>
+	  <div class="left">
+	    <ons-toolbar-button onclick="menu.toggleMenu()"><ons-icon icon="ion-navicon" style="font-size: 32px; width: 1em;"></ons-icon></ons-toolbar-button>
+	    <ons-toolbar-button ng-click="menu.setMainPage('scenes.html')">
+	      <ons-icon icon="ion-ios-arrow-back" style="font-size: 32px; width: 1em;"></ons-icon>
+	    </ons-toolbar-button>
+	  </div>
+	  <div class="center">Add Scene</div>
+	  <div class="right">
+	    <ons-toolbar-button onclick="web.saveScene(menu, 'controllers')">
+	      <ons-icon icon="ion-ios-arrow-forward" style="font-size: 32px; width: 1em;"></ons-icon>
+	    </ons-toolbar-button>
+	  </div>
+	</ons-toolbar>
 
         <ons-list id="content" ng-controller="AddSceneController">
           <ons-list-item>
-	        <input type="text" placeholder="Name" class="text-input text-input--transparent" style="margin-top:8px; width: 100%;">
-	      </ons-list-item>
-	      <ons-list-item modifier="tappable" ng-repeat="controller in controllers">
-	        <label class="checkbox checkbox--noborder checkbox--list-item">
-	          <input type="checkbox">
-	          <div class="checkbox__checkmark checkbox--noborder__checkmark checkbox--list-item__checkmark"></div>
-	          {{controller}}
-	        </label>
-	      </ons-list-item>
-	    </ons-list>
+	    <input type="text" placeholder="Name" class="text-input text-input--transparent" style="margin-top:8px; width: 100%;">
+	  </ons-list-item>
+	  <ons-list-item modifier="tappable" ng-repeat="controller in controllers">
+	    <label class="checkbox checkbox--noborder checkbox--list-item">
+	      <input type="checkbox">
+	      <div class="checkbox__checkmark checkbox--noborder__checkmark checkbox--list-item__checkmark"></div>
+	      {{controller}}
+	    </label>
+	  </ons-list-item>
+	</ons-list>
       </ons-page>
     </ons-template>
 
     <ons-template id="scenes-add-controllers.html">
       <ons-page ng-controller="AddSceneCompleteController">
-	    <ons-toolbar>
-	      <div class="left">
-	        <ons-toolbar-button onclick="menu.toggleMenu()"><ons-icon icon="ion-navicon" style="font-size: 32px; width: 1em;"></ons-icon></ons-toolbar-button>
-	        <ons-toolbar-button ng-click="menu.setMainPage('scenes-add.html')">
-	          <ons-icon icon="ion-ios-arrow-back" style="font-size: 32px; width: 1em;"></ons-icon>
-	        </ons-toolbar-button>
-	      </div>
-	      <div class="center">Add Scene: {{sceneName}}</div>
-	      <div class="right">
-	        <ons-toolbar-button onclick="web.saveScene(menu, 'complete')">
-	          Save
-	        </ons-toolbar-button>
-	      </div>
-	    </ons-toolbar>
+	<ons-toolbar>
+	  <div class="left">
+	    <ons-toolbar-button onclick="menu.toggleMenu()"><ons-icon icon="ion-navicon" style="font-size: 32px; width: 1em;"></ons-icon></ons-toolbar-button>
+	    <ons-toolbar-button ng-click="menu.setMainPage('scenes-add.html')">
+	      <ons-icon icon="ion-ios-arrow-back" style="font-size: 32px; width: 1em;"></ons-icon>
+	    </ons-toolbar-button>
+	  </div>
+	  <div class="center">Add Scene: {{sceneName}}</div>
+	  <div class="right">
+	    <ons-toolbar-button onclick="web.saveScene(menu, 'complete')">
+	      Save
+	    </ons-toolbar-button>
+	  </div>
+	</ons-toolbar>
 
-	    <ons-list id="content">
-	      <ons-list-item ng-repeat="controller in controllers" style="display: flex; flex-wrap: wrap">
-	        <label>
-	          {{controller}}
-	        </label>
-	        <input type="text" placeholder="Value" class="text-input text-input--transparent" style="margin-top:5px; margin-left: 10px; flex-grow: 1"></input>
-	      </ons-list-item>
-	    </ons-list>
+	<ons-list id="content">
+	  <ons-list-item ng-repeat="controller in controllers" style="display: flex; flex-wrap: wrap">
+	    <label>
+	      {{controller}}
+	    </label>
+	    <input type="text" placeholder="Value" class="text-input text-input--transparent" style="margin-top:5px; margin-left: 10px; flex-grow: 1"></input>
+	  </ons-list-item>
+	</ons-list>
       </ons-page>
     </ons-template>
 
     <ons-template id="scenes-edit.html">
       <ons-page ng-controller="EditSceneController">
-	    <ons-toolbar>
-	      <div class="left">
-	        <ons-toolbar-button onclick="menu.toggleMenu()"><ons-icon icon="ion-navicon" style="font-size: 32px; width: 1em;"></ons-icon></ons-toolbar-button>
-	        <ons-toolbar-button ng-click="menu.setMainPage('scenes.html')">
-	          <ons-icon icon="ion-ios-arrow-back" style="font-size: 32px; width: 1em;"></ons-icon>
-	        </ons-toolbar-button>
-	      </div>
+	<ons-toolbar>
+	  <div class="left">
+	    <ons-toolbar-button onclick="menu.toggleMenu()"><ons-icon icon="ion-navicon" style="font-size: 32px; width: 1em;"></ons-icon></ons-toolbar-button>
+	    <ons-toolbar-button ng-click="menu.setMainPage('scenes.html')">
+	      <ons-icon icon="ion-ios-arrow-back" style="font-size: 32px; width: 1em;"></ons-icon>
+	    </ons-toolbar-button>
+	  </div>
           <div class="center">Edit Scene: {{sceneName}}</div>
-	      <div class="right">
+	  <div class="right">
             <ons-toolbar-button onclick="web.editScene(menu)">
               Save
             </ons-toolbar-button>
-	      </div>
-	    </ons-toolbar>
+	  </div>
+	</ons-toolbar>
 
         <ons-list id="content">
           <ons-list-item>
             <input type="text" placeholder="Name" ng-value="sceneName" ng-model="sceneName" class="text-input text-input--transparent" style="margin-top:8px; width: 100%;">
-	      </ons-list-item>
+	  </ons-list-item>
           <ons-list-item modifier="tappable" ng-repeat="controller in controllers" style="display: flex; flex-wrap: wrap">
             <!-- <label class="checkbox checkbox--noborder checkbox--list-item"> -->
             <label class="checkbox checkbox--noborder">
@@ -156,25 +166,91 @@
 
     <ons-template id="controllers.html">
       <ons-page>
-	    <ons-toolbar>
-	      <div class="left">
-	        <ons-toolbar-button onclick="menu.toggleMenu()"><ons-icon icon="ion-navicon" style="font-size: 32px; width: 1em;"></ons-icon></ons-toolbar-button>
-	      </div>
-	      <div class="center">Controllers</div>
-	    </ons-toolbar>
+	<ons-toolbar>
+	  <div class="left">
+	    <ons-toolbar-button onclick="menu.toggleMenu()"><ons-icon icon="ion-navicon" style="font-size: 32px; width: 1em;"></ons-icon></ons-toolbar-button>
+	  </div>
+	  <div class="center">Controllers</div>
+	</ons-toolbar>
 
-	    <p style="text-align: center; color: #999; padding-top: 100px;">Page2 Contents</p>
+	<p style="text-align: center; color: #999; padding-top: 100px;">Page2 Contents</p>
+      </ons-page>
+    </ons-template>
+
+    <ons-template id="rules.html">
+      <ons-page ng-controller="RuleController">
+	<ons-toolbar>
+	  <div class="left">
+	    <ons-toolbar-button onclick="menu.toggleMenu()"><ons-icon icon="ion-navicon" style="font-size: 32px; width: 1em;"></ons-icon></ons-toolbar-button>
+	  </div>
+	  <div class="center">Rules</div>
+	  <div class="right">
+	    <ons-toolbar-button ng-click="menu.setMainPage('rules-add.html')">
+	      <span style="font-size: 1.5em">+</span>
+	    </ons-toolbar-button>
+	  </div>
+	</ons-toolbar>
+
+	<ons-list id="content" ng-controller="RuleController">
+	  <ons-list-item ng-repeat="rule in rules" modifier="tappable" ng-click="triggerRule(rule)" style="display: flex; flex-wrap: wrap">
+	    <div style="flex-grow: 1">
+	      {{rule}}
+	    </div>
+	    <div>
+	      <ons-button ng-click="editRule(rule)" modifier="outline">Edit</ons-button>
+	      <ons-button ng-click="deleteRule(rule)" modifier="outline">Delete</ons-button>
+	    </div>
+	  </ons-list-item>
+	</ons-list>
+      </ons-page>
+    </ons-template>
+
+    <ons-template id="rules-add.html">
+      <ons-page>
+	<ons-toolbar>
+	  <div class="left">
+	    <ons-toolbar-button onclick="menu.toggleMenu()"><ons-icon icon="ion-navicon" style="font-size: 32px; width: 1em;"></ons-icon></ons-toolbar-button>
+	    <ons-toolbar-button ng-click="menu.setMainPage('rules.html')">
+	      <ons-icon icon="ion-ios-arrow-back" style="font-size: 32px; width: 1em;"></ons-icon>
+	    </ons-toolbar-button>
+	  </div>
+	  <div class="center">Add Rule</div>
+	  <div class="right">
+	    <ons-toolbar-button onclick="web.saveRule(menu, 'sensors')">
+	      <ons-icon icon="ion-ios-arrow-forward" style="font-size: 32px; width: 1em;"></ons-icon>
+	    </ons-toolbar-button>
+	  </div>
+	</ons-toolbar>
+
+	<ons-list id="content" ng-controller="AddRuleController">
+	  <ons-list-item>
+	    <input type="text" placeholder="Name" class="text-input text-input--transparent" style="margin-top:8px; width: 100%;">
+	  </ons-list-item>
+	  <ons-list-item style="padding: 0 8px 8px">
+	    <textarea id="cm-field" ui-codemirror="editorOptions"></textarea>
+	  </ons-list-item>
+	  <ons-list-item modifier="tappable" ng-repeat="sensor in sensors">
+	    <label class="checkbox checkbox--noborder checkbox--list-item">
+	      <input type="checkbox">
+	      <div class="checkbox__checkmark checkbox--noborder__checkmark checkbox--list-item__checkmark"></div>
+	      {{sensor}}
+	    </label>
+	  </ons-list-item>
+	</ons-list>
       </ons-page>
     </ons-template>
 
     <ons-template id="menu.html">
       <ons-list>
-	    <ons-list-item modifier="chevron" onclick="menu.setMainPage('scenes.html', {closeMenu: true})">
-	      Scenes
-	    </ons-list-item>
-	    <ons-list-item modifier="chevron" onclick="menu.setMainPage('controllers.html', {closeMenu: true})">
-	      Controllers
-	    </ons-list-item>
+	<ons-list-item modifier="chevron" onclick="menu.setMainPage('scenes.html', {closeMenu: true})">
+	  Scenes
+	</ons-list-item>
+	<ons-list-item modifier="chevron" onclick="menu.setMainPage('controllers.html', {closeMenu: true})">
+	  Controllers
+	</ons-list-item>
+	<ons-list-item modifier="chevron" onclick="menu.setMainPage('rules.html', {closeMenu: true})">
+	  Rules
+	</ons-list-item>
       </ons-list>
     </ons-template>
   </body>

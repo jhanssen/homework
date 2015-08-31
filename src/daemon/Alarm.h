@@ -13,8 +13,8 @@ public:
 
     struct Time
     {
-        size_t year, month, day;
-        size_t hour, minute, second;
+        int year, month, day;
+        int hour, minute, second;
     };
 
     enum class Mode { Single, Repeat };

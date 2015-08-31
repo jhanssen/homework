@@ -139,6 +139,22 @@ static inline Value handleMessage(const Value& msg)
             Modules::instance()->registerScene(scene);
         } else if (create == "rule") {
             Rule::SharedPtr rule = std::make_shared<RuleJS>(msg.value<String>("name"));
+            std::static_pointer_cast<RuleJS>(rule)->setScript(msg.value<String>("rule"));
+            const Value sensors = msg.value("sensors");
+            if (sensors.isList()) {
+                auto sensor = sensors.listBegin();
+                const auto end = sensors.listEnd();
+                while (sensor != end) {
+                    const auto sensorptr = Modules::instance()->sensor(sensor->toString());
+                    if (sensorptr) {
+                        rule->registerSensor(sensorptr);
+                    } else {
+#warning should report error
+                    }
+                    ++sensor;
+                }
+            }
+
             Modules::instance()->registerRule(rule);
         }
     } else if (type == "add") {

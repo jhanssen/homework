@@ -1,5 +1,6 @@
 #include "RuleJS.h"
 #include <rct/ScriptEngine.h>
+#include <rct/Log.h>
 
 RuleJS::RuleJS(const String& name)
     : Rule(name)
@@ -9,10 +10,15 @@ RuleJS::RuleJS(const String& name)
 void RuleJS::setScript(const String& script)
 {
     ScriptEngine* engine = ScriptEngine::instance();
-    mValue = engine->evaluate(script);
+    String err;
+    mValue = engine->evaluate(script, Path(), &err);
     mValid = engine->isFunction(mValue);
     mArgs = script;
     mModified(shared_from_this());
+
+    if (!mValid) {
+        error() << "Rule not valid" << script << err;
+    }
 }
 
 bool RuleJS::check()

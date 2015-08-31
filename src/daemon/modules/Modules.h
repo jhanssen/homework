@@ -67,6 +67,7 @@ public:
     Signal<std::function<void(const Rule::SharedPtr& rule, const Scene::SharedPtr& scene)> >& ruleConnectionRemoved();
 
 private:
+    void registerAPIs();
     void initializeScene();
 
     void loadRules();
@@ -84,6 +85,8 @@ private:
 private:
     List<Module::SharedPtr> mModules;
     ScriptEngine mScriptEngine;
+    ScriptEngine::Class::SharedPtr mAlarmClass;
+    Map<ScriptEngine::Object::SharedPtr, Value> mAlarmInstances;
     Set<Scene::SharedPtr> mScenes;
     Set<Controller::SharedPtr> mControllers;
     Set<Sensor::SharedPtr> mSensors;

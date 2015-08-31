@@ -149,7 +149,7 @@ void FakeModule::initialize()
         add(String::format<64>("fake controller %d", i + 1));
     }
 
-    // Sensor::SharedPtr fakeSensor = std::make_shared<FakeSensor>();
-    // Modules::instance()->registerSensor(fakeSensor);
-    // mSensors.append(fakeSensor);
+    Sensor::SharedPtr fakeSensor = std::make_shared<FakeSensor>();
+    Modules::instance()->registerSensor(fakeSensor);
+    mSensors.append(fakeSensor);
 }

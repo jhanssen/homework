@@ -8,7 +8,7 @@ var web = {
     _disableSetScene: false,
     connection: undefined,
     init: function() {
-        var module = ons.bootstrap('my-app', ['onsen']);
+        var module = ons.bootstrap('my-app', ['onsen', 'ui.codemirror']);
         module.controller('AppController', function($scope) {
             web.initController();
             ons.ready(function() { });
@@ -21,6 +21,21 @@ var web = {
         });
         module.controller('AddSceneController', function($scope) {
             web.transition('AddScene', $scope);
+        });
+        module.controller('RuleController', function($scope) {
+            web.transition('Rules', $scope);
+        });
+        module.controller('AddRuleController', function($scope) {
+            $scope.editorOptions = {
+                lineWrapping: true,
+                lineNumbers: true,
+                matchBrackets: true,
+                styleActiveLine: true,
+                styleSelectedText: true,
+                theme: "3024-day",
+                mode: "text/javascript"
+            };
+            web.transition('AddRule', $scope);
         });
         module.controller('AddSceneCompleteController', function($scope) {
             web.transition('AddSceneComplete', $scope);
@@ -91,22 +106,26 @@ var web = {
         }
     },
     transition: function(name, $scope) {
-        var loadControllers = function(cb) {
-            var controllers = [];
-            web.load({get: "controllers"}, function(data) {
-                controllers = data.data.controllers.filter(function() {
+        var loadItems = function(name, cb) {
+            var items = [];
+            web.load({get: name}, function(data) {
+                if (!(name in data.data) || !(data.data[name] instanceof Array)) {
+                    cb([]);
+                    return;
+                }
+                items = data.data[name].filter(function() {
                     var seen = {};
                     return function(element, index, array) {
                         return !(element in seen) && (seen[element] = 1);
                     };
                 }()).sort();
-                cb(controllers);
+                cb(items);
             });
         };
 
         switch (name) {
         case "AddScene":
-            loadControllers(function(controllers) {
+            loadItems("controllers", function(controllers) {
                 $scope.controllers = controllers;
                 $scope.$apply();
             });
@@ -123,14 +142,14 @@ var web = {
                 $scope.$apply();
             });
             break;
-        case 'EditScene':
+        case "EditScene":
             $scope.sceneName = web._state.editingScene;
             console.log("name " + $scope.sceneName);
 
             $scope.controllers = [];
             var controllers;
             var sceneControllers;
-            loadControllers(function(c) { controllers = c; go(); });
+            loadItems("controllers", function(c) { controllers = c; go(); });
             web.load({get: "sceneControllers", scene: web._state.editingScene}, function(data) {
                 sceneControllers = data.data; go();
             });
@@ -148,6 +167,19 @@ var web = {
                 $scope.$apply();
             }
 
+            break;
+        case "Rules":
+            $scope.rules = [];
+            web.load({get: "rules"}, function(data) {
+                $scope.rules = data.data.rules;
+                $scope.$apply();
+            });
+            break;
+        case "AddRule":
+            loadItems("sensors", function(sensors) {
+                $scope.sensors = sensors;
+                $scope.$apply();
+            });
             break;
         }
     },
@@ -172,6 +204,20 @@ var web = {
         var appScope = angular.element(document.querySelector('[ng-controller=AppController]')).scope();
         web._state.editingScene = scene;
         appScope.menu.setMainPage('scenes-edit.html');
+    },
+
+    saveRule: function(menu, state) {
+        var name = document.querySelector("ons-list-item > input");
+        var rule = document.querySelector("ons-list-item > textarea");
+        var sensors = document.querySelectorAll("ons-list-item > label > input[type=checkbox]:checked");
+        var sensorList = [];
+        for (var i = 0; i < sensors.length; ++i) {
+            sensorList.push(sensors[i].parentNode.textContent.trim());
+        }
+
+        web.load({create: "rule", name: name.value, rule: rule.value, sensors: sensorList});
+
+        menu.setMainPage('scenes.html');
     },
 
     saveScene: function(menu, state) {
