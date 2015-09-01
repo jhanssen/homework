@@ -11,11 +11,18 @@ public:
 
     void setScript(const String& script);
 
+    static RuleJS* current() { return sCurrent; }
+
+    Value jsValue() { return mJSValue; }
+
 protected:
     virtual bool check();
 
 private:
     Value mValue;
+    Value mJSValue;
+
+    static RuleJS* sCurrent;
 };
 
 #endif

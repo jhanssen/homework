@@ -85,8 +85,6 @@ private:
 private:
     List<Module::SharedPtr> mModules;
     ScriptEngine mScriptEngine;
-    ScriptEngine::Class::SharedPtr mAlarmClass;
-    Map<ScriptEngine::Object::SharedPtr, Value> mAlarmInstances;
     Set<Scene::SharedPtr> mScenes;
     Set<Controller::SharedPtr> mControllers;
     Set<Sensor::SharedPtr> mSensors;
@@ -192,15 +190,21 @@ inline void Modules::registerRule(const Rule::SharedPtr& rule)
 {
     rule->triggered().connect([this](const Rule::SharedPtr& rule) {
             assert(mRules.contains(rule));
-            assert(mRuleConnections.contains(rule));
             const Set<Scene::WeakPtr>& scenes = mRuleConnections[rule];
 
+            bool triggered = false;
             auto scene = scenes.cbegin();
             const auto end = scenes.cend();
             while (scene != end) {
-                if (Scene::SharedPtr ptr = scene->lock())
+                if (Scene::SharedPtr ptr = scene->lock()) {
+                    triggered = true;
                     ptr->enable();
+                }
                 ++scene;
+            }
+
+            if (!triggered) {
+                error() << "rule" << rule->name() << "triggered but no scene attached";
             }
         });
     mRules.insert(rule);

@@ -227,7 +227,7 @@
 	    <input type="text" placeholder="Name" class="text-input text-input--transparent" style="margin-top:8px; width: 100%;">
 	  </ons-list-item>
 	  <ons-list-item style="padding: 0 8px 8px">
-	    <textarea id="cm-field" ui-codemirror="editorOptions"></textarea>
+	    <textarea id="cm-field" ui-codemirror="editorOptions" ng-model="code"></textarea>
 	  </ons-list-item>
 	  <ons-list-item modifier="tappable" ng-repeat="sensor in sensors">
 	    <label class="checkbox checkbox--noborder checkbox--list-item">

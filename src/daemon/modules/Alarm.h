@@ -21,10 +21,10 @@ public:
 
     ~Alarm();
 
-    static SharedPtr create();
+    static SharedPtr create(const Time& time);
+    static SharedPtr create(size_t seconds, Mode mode = Mode::Single);
 
-    void start(const Time& time);
-    void start(size_t seconds, Mode mode = Mode::Single);
+    void start();
     void stop();
 
     Signal<std::function<void(const SharedPtr&)> >& fired() { return mFired; }

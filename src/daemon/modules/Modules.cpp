@@ -44,69 +44,9 @@ Modules::~Modules()
 
 void Modules::registerAPIs()
 {
-    mAlarmClass = ScriptEngine::Class::create("Alarm");
-    mAlarmClass->registerConstructor([this](const List<Value>& args) -> Value {
-            if (args.size() < 2) {
-                mScriptEngine.throwException<void>("Alarm needs at least two arguments");
-                return Value();
-            }
-            // arg 1: callback
-            // arg 2: timeout
-            // arg 3: optional repeat
-
-            if (!mScriptEngine.isFunction(args[0])) {
-                mScriptEngine.throwException<void>("First argument is not a callback");
-                return Value();
-            }
-            Alarm::SharedPtr alarm = Alarm::create();
-            alarm->fired().connect([this](const Alarm::SharedPtr& alarm) {
-                    // find the pending alarm
-                    for (const auto inst : mAlarmInstances) {
-                        if (inst.first->extraData<Alarm::SharedPtr>() == alarm) {
-                            // got it, fire the callback
-                            ScriptEngine::Object::SharedPtr cb = mScriptEngine.toObject(inst.second);
-                            assert(cb->isFunction());
-                            cb->call();
-                            break;
-                        }
-                    }
-                });
-            if (args[1].isInteger()) {
-                // seconds
-                Alarm::Mode mode = Alarm::Mode::Single;
-                if (args.size() > 2 && args[2].toString() == "repeat")
-                    mode = Alarm::Mode::Repeat;
-                alarm->start(args[1].toInteger(), mode);
-            } else {
-                struct tm result;
-                const time_t t = time(nullptr);
-                localtime_r(&t, &result);
-                Alarm::Time time = { result.tm_year, result.tm_mon + 1, result.tm_wday,
-                                     result.tm_hour, result.tm_min, result.tm_sec };
-                ScriptEngine::Object::SharedPtr obj = mScriptEngine.toObject(args[1]);
-                if (obj->property("year").isInteger())
-                    time.year = obj->property("year").toInteger();
-                if (obj->property("month").isInteger())
-                    time.month = obj->property("month").toInteger();
-                if (obj->property("day").isInteger())
-                    time.day = obj->property("day").toInteger();
-                if (obj->property("hour").isInteger())
-                    time.hour = obj->property("hour").toInteger();
-                if (obj->property("minute").isInteger())
-                    time.minute = obj->property("minute").toInteger();
-                if (obj->property("second").isInteger())
-                    time.second = obj->property("second").toInteger();
-                alarm->start(time);
-            }
-
-            ScriptEngine::Object::SharedPtr alarmInstance = mAlarmClass->create();
-            alarmInstance->setExtraData(alarm);
-            alarmInstance->onDestroyed().connect([this](const ScriptEngine::Object::SharedPtr& obj) {
-                    mAlarmInstances.remove(obj);
-                });
-            mAlarmInstances[alarmInstance] = args[0];
-
-            return mScriptEngine.fromObject(alarmInstance);
+    ScriptEngine::Object::SharedPtr homework = mScriptEngine.globalObject()->child("homework");
+    homework->registerProperty("rule", [](const ScriptEngine::Object::SharedPtr&) -> Value {
+            return RuleJS::current()->jsValue();
         });
 
     ScriptEngine::Object::SharedPtr console = mScriptEngine.globalObject()->child("console");
@@ -114,6 +54,7 @@ void Modules::registerAPIs()
             for (const auto& arg : args) {
                 error() << arg.toJSON();
             }
+            return Value();
         });
 }
 

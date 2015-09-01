@@ -35,6 +35,7 @@ var web = {
                 theme: "3024-day",
                 mode: "text/javascript"
             };
+            $scope.code = "";
             web.transition('AddRule', $scope);
         });
         module.controller('AddSceneCompleteController', function($scope) {
@@ -207,15 +208,17 @@ var web = {
     },
 
     saveRule: function(menu, state) {
+        var scope = angular.element(document.querySelector('[ng-controller=AddRuleController]')).scope();
+
         var name = document.querySelector("ons-list-item > input");
-        var rule = document.querySelector("ons-list-item > textarea");
         var sensors = document.querySelectorAll("ons-list-item > label > input[type=checkbox]:checked");
         var sensorList = [];
         for (var i = 0; i < sensors.length; ++i) {
             sensorList.push(sensors[i].parentNode.textContent.trim());
         }
 
-        web.load({create: "rule", name: name.value, rule: rule.value, sensors: sensorList});
+        //console.log(scope.code);
+        web.load({create: "rule", name: name.value, rule: scope.code, sensors: sensorList});
 
         menu.setMainPage('scenes.html');
     },

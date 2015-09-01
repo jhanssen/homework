@@ -6,7 +6,7 @@
 #include <mutex>
 #include <condition_variable>
 
-struct AlarmThread : public Thread
+class AlarmThread : public Thread
 {
 public:
     static std::shared_ptr<AlarmThread> instance();
@@ -166,26 +166,27 @@ Alarm::~Alarm()
     remove();
 }
 
-Alarm::SharedPtr Alarm::create()
+Alarm::SharedPtr Alarm::create(const Time& time)
 {
-    return Alarm::SharedPtr(new Alarm);
+    Alarm::SharedPtr alarm(new Alarm);
+    alarm->time = time;
+    alarm->mode = Mode::Single;
+    alarm->last = 0;
+    return alarm;
 }
 
-void Alarm::start(const Time& t)
+Alarm::SharedPtr Alarm::create(size_t seconds, Mode mode)
 {
-    time = t;
-    mode = Mode::Single;
-    last = 0;
-    loop = EventLoop::eventLoop();
-    add();
+    Alarm::SharedPtr alarm(new Alarm);
+    memset(&alarm->time, '\0', sizeof(time));
+    alarm->time.second = seconds;
+    alarm->mode = mode;
+    alarm->last = Rct::monoMs();
+    return alarm;
 }
 
-void Alarm::start(size_t seconds, Mode m)
+void Alarm::start()
 {
-    memset(&time, '\0', sizeof(time));
-    time.second = seconds;
-    mode = m;
-    last = Rct::monoMs();
     loop = EventLoop::eventLoop();
     add();
 }
