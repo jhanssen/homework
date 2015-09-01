@@ -371,7 +371,7 @@ void Modules::createPendingRules()
             rule->registerSensor(ptr);
         }
         it = mPendingRules.erase(it);
-        mRules.insert(rule);
+        registerRule(rule);
     }
 }
 
@@ -400,7 +400,7 @@ void Modules::createPendingScenes()
             scene->set(ptr.first, ptr.second);
         }
         it = mPendingScenes.erase(it);
-        mScenes.insert(scene);
+        registerScene(scene);
     }
 }
 
