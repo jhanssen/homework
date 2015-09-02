@@ -3,6 +3,7 @@
 #include <rct/Thread.h>
 #include <rct/List.h>
 #include <rct/Rct.h>
+#include <rct/Log.h>
 #include <mutex>
 #include <condition_variable>
 
@@ -28,6 +29,7 @@ private:
 
     std::mutex mutex;
     std::condition_variable cond;
+    bool needRecalc;
 
     struct Data
     {
@@ -49,6 +51,7 @@ std::shared_ptr<AlarmThread> AlarmThread::instance()
 }
 
 AlarmThread::AlarmThread()
+    : needRecalc(false)
 {
 }
 
@@ -75,7 +78,7 @@ int64_t AlarmThread::alarmTime(const Alarm* alarm)
         struct tm timeinfo;
         memset(&timeinfo, '\0', sizeof(timeinfo));
         timeinfo.tm_year = alarm->time.year;
-        timeinfo.tm_mon = alarm->time.month;
+        timeinfo.tm_mon = alarm->time.month - 1;
         timeinfo.tm_mday = alarm->time.day;
         timeinfo.tm_hour = alarm->time.hour;
         timeinfo.tm_min = alarm->time.minute;
@@ -95,6 +98,7 @@ void AlarmThread::add(Alarm* alarm)
     std::lock_guard<std::mutex> locker(mutex);
     datas.append({ alarm });
     resort();
+    needRecalc = true;
     cond.notify_one();
 }
 
@@ -123,6 +127,7 @@ void AlarmThread::run()
         // 3. if time change is detected we need to assume we're past our time
         // 4. if we're past our time goto 1
         // 5. if we're not past our time, goto 2
+        needRecalc = false;
         for (;;) {
             if (datas.empty()) {
                 timeout = -1;
@@ -132,6 +137,7 @@ void AlarmThread::run()
             if (timeout <= 0) { // time to fire
                 datas.first().alarm->fire();
                 if (datas.first().alarm->mode == Alarm::Mode::Single) {
+                    datas.first().alarm->expire();
                     datas.removeFirst();
                 } else {
                     resort();
@@ -147,11 +153,11 @@ void AlarmThread::run()
             do {
                 const uint64_t timeNow = Rct::currentTimeMs();
                 cond.wait_for(locker, std::chrono::milliseconds(WaitFor));
-                if (Rct::currentTimeMs() - timeNow > Delta) {
+                if (needRecalc || Rct::currentTimeMs() - timeNow > Delta) {
                     // time change?
                     break;
                 }
-            } while (Rct::monoMs() - monoNow >= timeout);
+            } while (Rct::monoMs() - monoNow < timeout);
         }
     }
 }
@@ -199,11 +205,24 @@ void Alarm::stop()
 void Alarm::fire()
 {
     if (EventLoop::SharedPtr l = loop.lock()) {
+        last = Rct::monoMs();
         Alarm::WeakPtr weak = shared_from_this();
         l->callLater([weak]() {
                 if (Alarm::SharedPtr alarm = weak.lock()) {
-                    alarm->last = Rct::monoMs();
                     alarm->mFired(alarm);
+                }
+            });
+    }
+}
+
+void Alarm::expire()
+{
+    if (EventLoop::SharedPtr l = loop.lock()) {
+        last = Rct::monoMs();
+        Alarm::WeakPtr weak = shared_from_this();
+        l->callLater([weak]() {
+                if (Alarm::SharedPtr alarm = weak.lock()) {
+                    alarm->mExpired(alarm);
                 }
             });
     }
@@ -217,4 +236,5 @@ void Alarm::add()
 void Alarm::remove()
 {
     AlarmThread::instance()->remove(this);
+    mExpired(shared_from_this());
 }

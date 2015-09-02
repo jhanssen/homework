@@ -21,6 +21,9 @@ public:
 
     virtual Value describe() const;
     virtual Value get() const;
+    virtual bool isPersistent() const { return false; }
+
+    Signal<std::function<void(const SharedPtr&)> >& expired() { return mExpired; }
 
 private:
     AlarmSensor(const String& name, const Alarm::SharedPtr& alarm);
@@ -28,6 +31,7 @@ private:
 private:
     Alarm::SharedPtr mAlarm;
     uint64_t mStarted;
+    Signal<std::function<void(const SharedPtr&)> > mExpired;
 
     static Set<SharedPtr> sAlarms;
 };
@@ -43,6 +47,12 @@ inline AlarmSensor::AlarmSensor(const String& name, const Alarm::SharedPtr& alar
 inline AlarmSensor::SharedPtr AlarmSensor::create(const String& name, const Alarm::SharedPtr& alarm)
 {
     const SharedPtr ptr(new AlarmSensor(name, alarm));
+    const std::weak_ptr<AlarmSensor> weak = ptr;
+    alarm->expired().connect([weak](const Alarm::SharedPtr&) {
+            if (SharedPtr ptr = weak.lock()) {
+                ptr->mExpired(ptr);
+            }
+        });
     sAlarms.insert(ptr);
     return ptr;
 }
@@ -61,7 +71,7 @@ inline Value AlarmSensor::get() const
     Value ret;
     ret["year"] = result.tm_year;
     ret["month"] = result.tm_mon + 1;
-    ret["day"] = result.tm_wday;
+    ret["day"] = result.tm_mday;
     ret["hour"] = result.tm_hour;
     ret["minute"] = result.tm_min;
     ret["second"] = result.tm_sec;

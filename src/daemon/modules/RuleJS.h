@@ -2,7 +2,11 @@
 #define RULEJS_H
 
 #include "Rule.h"
+#include <rct/Hash.h>
 #include <rct/Value.h>
+#include <memory>
+
+class AlarmSensor;
 
 class RuleJS : public Rule
 {
@@ -21,6 +25,9 @@ protected:
 private:
     Value mValue;
     Value mJSValue;
+
+    int mAlarmId;
+    Hash<int, std::weak_ptr<AlarmSensor> > mAlarms;
 
     static RuleJS* sCurrent;
 };

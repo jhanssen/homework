@@ -28,6 +28,7 @@ public:
     void stop();
 
     Signal<std::function<void(const SharedPtr&)> >& fired() { return mFired; }
+    Signal<std::function<void(const SharedPtr&)> >& expired() { return mExpired; }
 
 private:
     Alarm();
@@ -37,13 +38,14 @@ private:
     void add();
     void remove();
     void fire();
+    void expire();
 
 private:
     Time time;
     Mode mode;
     uint64_t last;
     EventLoop::WeakPtr loop;
-    Signal<std::function<void(const SharedPtr&)> > mFired;
+    Signal<std::function<void(const SharedPtr&)> > mFired, mExpired;
 
     friend class AlarmThread;
 };

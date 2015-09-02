@@ -19,6 +19,7 @@ public:
     virtual Value describe() const = 0;
     virtual Value get() const = 0;
     virtual void configure(const Value&) { }
+    virtual bool isPersistent() const { return true; }
 
     void setName(const String& name);
     String name() const;

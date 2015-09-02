@@ -175,19 +175,21 @@ void Modules::loadRules()
             error() << "no name for entry in rules.json";
             return;
         }
-        if (!sensors.isList()) {
+        if (!sensors.isList() && !sensors.isInvalid() && !sensors.isUndefined()) {
             error() << "sensors for" << pending.name << "in rules.json is not an array";
             return;
         }
-        auto sensor = sensors.listBegin();
-        const auto sensorend = sensors.listEnd();
-        while (sensor != sensorend) {
-            pending.sensors.append(sensor->toString());
-            if (pending.sensors.last().isEmpty()) {
-                error() << "empty sensor name for" << pending.name << "in rules.json";
-                return;
+        if (sensors.isList()) {
+            auto sensor = sensors.listBegin();
+            const auto sensorend = sensors.listEnd();
+            while (sensor != sensorend) {
+                pending.sensors.append(sensor->toString());
+                if (pending.sensors.last().isEmpty()) {
+                    error() << "empty sensor name for" << pending.name << "in rules.json";
+                    return;
+                }
+                ++sensor;
             }
-            ++sensor;
         }
         mPendingRules.append(pending);
         ++it;
@@ -285,7 +287,8 @@ void Modules::flushRules()
         Value sensors;
         auto list = rule->sensors();
         for (const auto& sensor : list) {
-            sensors.push_back(sensor->name());
+            if (sensor->isPersistent())
+                sensors.push_back(sensor->name());
         }
         obj["sensors"] = sensors;
         rules.push_back(obj);
