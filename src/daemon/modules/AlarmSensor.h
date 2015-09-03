@@ -64,20 +64,7 @@ inline void AlarmSensor::remove(const SharedPtr& sensor)
 
 inline Value AlarmSensor::get() const
 {
-    struct tm result;
-    const time_t t = time(nullptr);
-    localtime_r(&t, &result);
-
-    Value ret;
-    ret["year"] = result.tm_year;
-    ret["month"] = result.tm_mon + 1;
-    ret["day"] = result.tm_mday;
-    ret["hour"] = result.tm_hour;
-    ret["minute"] = result.tm_min;
-    ret["second"] = result.tm_sec;
-    ret["relapsed"] = Rct::monoMs() - mStarted;
-
-    return ret;
+    return Date(::time(0));
 }
 
 #endif
