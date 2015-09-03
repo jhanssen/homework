@@ -37,26 +37,8 @@ RuleJS::RuleJS(const String& name)
                 if (args.size() > modeIdx && args[modeIdx].isInteger() && args[modeIdx].toInteger() == Repeat)
                     mode = Alarm::Mode::Repeat;
                 alarm = Alarm::create(args[0].toInteger(), mode);
-            } else if (args[0].isMap()) {
-                struct tm result;
-                const time_t t = time(nullptr);
-                localtime_r(&t, &result);
-                Alarm::Time time = { result.tm_year, result.tm_mon + 1, result.tm_mday,
-                                     result.tm_hour, result.tm_min, result.tm_sec };
-                const Value& obj = args[0];
-                if (obj.contains("year") && obj["year"].isInteger())
-                    time.year = obj["year"].toInteger();
-                if (obj.contains("month") && obj["month"].isInteger())
-                    time.month = obj["month"].toInteger();
-                if (obj.contains("day") && obj["day"].isInteger())
-                    time.day = obj["day"].toInteger();
-                if (obj.contains("hour") && obj["hour"].isInteger())
-                    time.hour = obj["hour"].toInteger();
-                if (obj.contains("minute") && obj["minute"].isInteger())
-                    time.minute = obj["minute"].toInteger();
-                if (obj.contains("second") && obj["second"].isInteger())
-                    time.second = obj["second"].toInteger();
-                alarm = Alarm::create(time);
+            } else if (args[0].isDate()) {
+                alarm = Alarm::create(args[0].toDate());
             }
             if (alarm) {
                 AlarmSensor::SharedPtr sensor = AlarmSensor::create(name, alarm);

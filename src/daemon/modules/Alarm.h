@@ -2,6 +2,7 @@
 #define ALARM_H
 
 #include <memory>
+#include <rct/Date.h>
 #include <rct/EventLoop.h>
 #include <rct/SignalSlot.h>
 
@@ -11,18 +12,12 @@ public:
     typedef std::shared_ptr<Alarm> SharedPtr;
     typedef std::weak_ptr<Alarm> WeakPtr;
 
-    struct Time
-    {
-        int year, month, day;
-        int hour, minute, second;
-    };
-
     enum class Mode { Single, Repeat };
 
     ~Alarm();
 
-    static SharedPtr create(const Time& time);
-    static SharedPtr create(size_t seconds, Mode mode = Mode::Single);
+    static SharedPtr create(const Date& time);
+    static SharedPtr create(int seconds, Mode mode = Mode::Single);
 
     void start();
     void stop();
@@ -41,7 +36,8 @@ private:
     void expire();
 
 private:
-    Time time;
+    Date date;
+    int sec;
     Mode mode;
     uint64_t last;
     EventLoop::WeakPtr loop;

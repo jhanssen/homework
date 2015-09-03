@@ -65,32 +65,19 @@ void AlarmThread::resort()
 
 int64_t AlarmThread::alarmTime(const Alarm* alarm)
 {
-    if (!alarm->time.year) { // just seconds
-        return (alarm->last - Rct::monoMs()) + (alarm->time.second * 1000);
+    if (alarm->sec != 0) { // just seconds
+        return (alarm->last - Rct::monoMs()) + (alarm->sec * 1000);
     }
 
-    enum { Delta = 1000 };
+    enum { Delta = 1 };
 
-    uint64_t epoch, when;
+    time_t epoch, when;
     do {
-        epoch = Rct::currentTimeMs();
+        epoch = ::time(0);
+        when = alarm->date.time();
+    } while (::time(0) - epoch >= Delta);
 
-        struct tm timeinfo;
-        memset(&timeinfo, '\0', sizeof(timeinfo));
-        timeinfo.tm_year = alarm->time.year;
-        timeinfo.tm_mon = alarm->time.month - 1;
-        timeinfo.tm_mday = alarm->time.day;
-        timeinfo.tm_hour = alarm->time.hour;
-        timeinfo.tm_min = alarm->time.minute;
-        timeinfo.tm_sec = alarm->time.second;
-        const time_t to = mktime(&timeinfo);
-        if (to < 0) { // can't represent this time?
-            return std::numeric_limits<int64_t>::max();
-        }
-        when = static_cast<uint64_t>(to) * 1000LLU;
-    } while (Rct::currentTimeMs() - epoch >= Delta);
-
-    return when - epoch;
+    return (when - epoch) * 1000;
 }
 
 void AlarmThread::add(Alarm* alarm)
@@ -163,8 +150,8 @@ void AlarmThread::run()
 }
 
 Alarm::Alarm()
+    : sec(0)
 {
-    memset(&time, '\0', sizeof(time));
 }
 
 Alarm::~Alarm()
@@ -172,20 +159,19 @@ Alarm::~Alarm()
     remove();
 }
 
-Alarm::SharedPtr Alarm::create(const Time& time)
+Alarm::SharedPtr Alarm::create(const Date& date)
 {
     Alarm::SharedPtr alarm(new Alarm);
-    alarm->time = time;
+    alarm->date = date;
     alarm->mode = Mode::Single;
     alarm->last = 0;
     return alarm;
 }
 
-Alarm::SharedPtr Alarm::create(size_t seconds, Mode mode)
+Alarm::SharedPtr Alarm::create(int seconds, Mode mode)
 {
     Alarm::SharedPtr alarm(new Alarm);
-    memset(&alarm->time, '\0', sizeof(time));
-    alarm->time.second = seconds;
+    alarm->sec = seconds;
     alarm->mode = mode;
     alarm->last = Rct::monoMs();
     return alarm;

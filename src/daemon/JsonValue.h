@@ -24,6 +24,8 @@ inline json fromValue(const Value& value)
         return json(value.toBool());
     case Value::Type_Integer:
         return json(value.toInteger());
+    case Value::Type_Date:
+        return json(value.toInt64());
     case Value::Type_Double:
         return json(value.toDouble());
     case Value::Type_String:
