@@ -10,3 +10,6 @@
 [submodule "src/echo-bridge"]
 	path = src/echo-bridge
 	url = https://github.com/armzilla/amazon-echo-ha-bridge.git
+[submodule "src/daemon/components/cron-parser"]
+	path = src/daemon/components/cron-parser
+	url = https://github.com/harrisiirak/cron-parser.git

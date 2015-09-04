@@ -10,12 +10,21 @@ Component::Component(const String& name, const Path& pwd)
 {
     sCurrent.append(this);
 
-    mPath = Path::resolved(name, Path::MakeAbsolute, pwd);
-    if (mPath.isDir()) {
-        // do we have a component.js file here?
-        const Path cjs = mPath.ensureTrailingSlash() + "component.js";
-        if (cjs.isFile()) {
-            const String& data= cjs.readAll();
+    bool ok;
+    mPath = Path::resolved(name, Path::MakeAbsolute, pwd, &ok);
+    if (!ok) {
+        // try .js
+        mPath = Path::resolved(name + ".js", Path::MakeAbsolute, pwd, &ok);
+        if (!ok) {
+            mPath.clear();
+            return;
+        }
+    }
+    if (mPath.resolved().isDir()) {
+        // do we have a component.json file here?
+        const Path cjs = mPath.ensureTrailingSlash() + "component.json";
+        if (cjs.resolved().isFile()) {
+            const String& data = cjs.readAll();
             const json j = json::parse(data);
             if (j.is_object()) {
                 json::const_iterator main = j.find("main");
@@ -27,10 +36,10 @@ Component::Component(const String& name, const Path& pwd)
             }
         }
     }
-    if (!mPath.isFile()) {
+    if (!mPath.resolved().isFile()) {
         // try .js
         mPath += ".js";
-        if (!mPath.isFile()) {
+        if (!mPath.resolved().isFile()) {
             mPath.clear();
         }
     }
