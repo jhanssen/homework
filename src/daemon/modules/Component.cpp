@@ -10,7 +10,7 @@ Component::Component(const String& name, const Path& pwd)
 {
     sCurrent.append(this);
 
-    mPath = Path::resolved(name, Path::RealPath, pwd);
+    mPath = Path::resolved(name, Path::MakeAbsolute, pwd);
     if (mPath.isDir()) {
         // do we have a component.js file here?
         const Path cjs = mPath.ensureTrailingSlash() + "component.js";
@@ -24,12 +24,16 @@ Component::Component(const String& name, const Path& pwd)
                 } else {
                     mPath = mPath.ensureTrailingSlash() + "index.js";
                 }
-                mPath.resolve();
             }
         }
     }
-    if (!mPath.isFile())
-        mPath.clear();
+    if (!mPath.isFile()) {
+        // try .js
+        mPath += ".js";
+        if (!mPath.isFile()) {
+            mPath.clear();
+        }
+    }
 }
 
 Component::~Component()

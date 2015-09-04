@@ -73,7 +73,7 @@ void Modules::registerAPIs()
                 if (active)
                     currentPath = active->currentPath();
                 else
-                    currentPath = Path::pwd();
+                    currentPath = Rct::executablePath().ensureTrailingSlash() + "components";
             }
             Component component(args[0].toString(), currentPath);
             if (!component.isValid()) {
