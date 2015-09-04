@@ -19,6 +19,6 @@ set(SOURCES
 add_executable(daemon ${SOURCES})
 target_link_libraries(daemon rct modules cec_module ws_module fake_module ${ZWAY_MODULE})
 
-#add_custom_command(TARGET daemon POST_BUILD
-#  COMMAND ln -sf ${CMAKE_CURRENT_LIST_DIR}/stats ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
-#)
+add_custom_command(TARGET daemon POST_BUILD
+  COMMAND ln -sf ${CMAKE_CURRENT_LIST_DIR}/components ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
+)
