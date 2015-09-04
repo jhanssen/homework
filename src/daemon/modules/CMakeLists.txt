@@ -15,5 +15,5 @@ if (POLICY CMP0042)
   cmake_policy(SET CMP0042 NEW)
 endif()
 
-add_library(modules SHARED Modules.cpp Module.cpp RuleJS.cpp Alarm.cpp AlarmSensor.cpp)
+add_library(modules SHARED Modules.cpp Module.cpp RuleJS.cpp Component.cpp Alarm.cpp AlarmSensor.cpp)
 target_link_libraries(modules rct)

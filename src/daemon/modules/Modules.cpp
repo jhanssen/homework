@@ -1,5 +1,6 @@
 #include "Modules.h"
 #include "RuleJS.h"
+#include "Component.h"
 #include <Alarm.h>
 #include <rct/Path.h>
 
@@ -44,17 +45,42 @@ Modules::~Modules()
 
 void Modules::registerAPIs()
 {
-    ScriptEngine::Object::SharedPtr homework = mScriptEngine.globalObject()->child("homework");
+    ScriptEngine::Object::SharedPtr global = mScriptEngine.globalObject();
+    ScriptEngine::Object::SharedPtr homework = global->child("homework");
     homework->registerProperty("rule", [](const ScriptEngine::Object::SharedPtr&) -> Value {
             return RuleJS::current()->jsValue();
         });
 
-    ScriptEngine::Object::SharedPtr console = mScriptEngine.globalObject()->child("console");
+    ScriptEngine::Object::SharedPtr console = global->child("console");
     console->registerFunction("log", [](const ScriptEngine::Object::SharedPtr&, const List<Value> &args) -> Value {
             for (const auto& arg : args) {
                 error() << arg.toJSON();
             }
             return Value();
+        });
+    global->registerFunction("require", [this](const ScriptEngine::Object::SharedPtr&, const List<Value> &args) -> Value {
+            if (args.size() != 1) {
+                mScriptEngine.throwException<void>("require takes exactly one argument");
+                return Value();
+            }
+            if (!args[0].isString()) {
+                mScriptEngine.throwException<void>("require takes a string argument");
+                return Value();
+            }
+            Path currentPath;
+            {
+                Component* active = Component::current();
+                if (active)
+                    currentPath = active->currentPath();
+                else
+                    currentPath = Path::pwd();
+            }
+            Component component(args[0].toString(), currentPath);
+            if (!component.isValid()) {
+                mScriptEngine.throwException<void>("component not valid");
+                return Value();
+            }
+            return component.eval();
         });
 }
 
