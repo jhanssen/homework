@@ -51,8 +51,10 @@ Component::~Component()
     sCurrent.removeLast();
 }
 
-Value Component::eval() const
+Value Component::eval()
 {
+    if (mPath.isEmpty() || !mPath.resolved().isFile())
+        return Value();
     const String& js = mPath.readAll();
     if (js.isEmpty())
         return Value();
@@ -64,7 +66,11 @@ Value Component::eval() const
     // invoke the JS with modules as an argument
     const String call = "(function(module) {" + js + "})";
     ScriptEngine::Object::SharedPtr func = engine->toObject(engine->evaluate(call));
-    assert(func->isFunction());
+    if (!func->isFunction()) {
+        // bad, invalidate the component
+        mPath.clear();
+        return Value();
+    }
     func->call({ engine->fromObject(module) });
     return module->property("exports");
 }

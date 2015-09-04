@@ -14,7 +14,7 @@ public:
     Path currentPath() { return mPath.parentDir(); }
 
     bool isValid() const { return !mPath.isEmpty(); };
-    Value eval() const;
+    Value eval();
 
     static Component* current() { return sCurrent.isEmpty() ? 0 : sCurrent.last(); }
 
