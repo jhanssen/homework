@@ -216,7 +216,7 @@
 	  </div>
 	  <div class="center">Add Rule</div>
 	  <div class="right">
-	    <ons-toolbar-button onclick="web.saveRule(menu, 'sensors')">
+	    <ons-toolbar-button onclick="web.saveRule(menu, 'scenes')">
 	      <ons-icon icon="ion-ios-arrow-forward" style="font-size: 32px; width: 1em;"></ons-icon>
 	    </ons-toolbar-button>
 	  </div>
@@ -234,6 +234,35 @@
 	      <input type="checkbox">
 	      <div class="checkbox__checkmark checkbox--noborder__checkmark checkbox--list-item__checkmark"></div>
 	      {{sensor}}
+	    </label>
+	  </ons-list-item>
+	</ons-list>
+      </ons-page>
+    </ons-template>
+
+    <ons-template id="rules-add-scenes.html">
+      <ons-page ng-controller="AddRuleCompleteController">
+	<ons-toolbar>
+	  <div class="left">
+	    <ons-toolbar-button onclick="menu.toggleMenu()"><ons-icon icon="ion-navicon" style="font-size: 32px; width: 1em;"></ons-icon></ons-toolbar-button>
+	    <ons-toolbar-button ng-click="menu.setMainPage('rules-add.html')">
+	      <ons-icon icon="ion-ios-arrow-back" style="font-size: 32px; width: 1em;"></ons-icon>
+	    </ons-toolbar-button>
+	  </div>
+	  <div class="center">Add Rule: {{ruleName}}</div>
+	  <div class="right">
+	    <ons-toolbar-button onclick="web.saveRule(menu, 'complete')">
+	      Save
+	    </ons-toolbar-button>
+	  </div>
+	</ons-toolbar>
+
+	<ons-list id="content">
+	  <ons-list-item modifier="tappable" ng-repeat="scene in scenes">
+	    <label class="checkbox checkbox--noborder checkbox--list-item">
+	      <input type="checkbox">
+	      <div class="checkbox__checkmark checkbox--noborder__checkmark checkbox--list-item__checkmark"></div>
+	      {{scene}}
 	    </label>
 	  </ons-list-item>
 	</ons-list>

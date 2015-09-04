@@ -22,6 +22,9 @@ var web = {
         module.controller('AddSceneController', function($scope) {
             web.transition('AddScene', $scope);
         });
+        module.controller('AddSceneCompleteController', function($scope) {
+            web.transition('AddSceneComplete', $scope);
+        });
         module.controller('RuleController', function($scope) {
             web.transition('Rules', $scope);
         });
@@ -38,8 +41,8 @@ var web = {
             $scope.code = "";
             web.transition('AddRule', $scope);
         });
-        module.controller('AddSceneCompleteController', function($scope) {
-            web.transition('AddSceneComplete', $scope);
+        module.controller('AddRuleCompleteController', function($scope) {
+            web.transition('AddRuleComplete', $scope);
         });
         module.controller('EditSceneController', function($scope) {
             web.transition('EditScene', $scope);
@@ -177,8 +180,17 @@ var web = {
             });
             break;
         case "AddRule":
+            $scope.sensors = [];
             loadItems("sensors", function(sensors) {
                 $scope.sensors = sensors;
+                $scope.$apply();
+            });
+            break;
+        case "AddRuleComplete":
+            $scope.scenes = [];
+            $scope.ruleName = web._state.name;
+            loadItems("scenes", function(scenes) {
+                $scope.scenes = scenes;
                 $scope.$apply();
             });
             break;
@@ -208,19 +220,33 @@ var web = {
     },
 
     saveRule: function(menu, state) {
-        var scope = angular.element(document.querySelector('[ng-controller=AddRuleController]')).scope();
+        var i;
+        switch (state) {
+        case "scenes":
+            var scope = angular.element(document.querySelector('[ng-controller=AddRuleController]')).scope();
+            web._state.name = document.querySelector("ons-list-item > input").value;
+            web._state.code = scope.code;
 
-        var name = document.querySelector("ons-list-item > input");
-        var sensors = document.querySelectorAll("ons-list-item > label > input[type=checkbox]:checked");
-        var sensorList = [];
-        for (var i = 0; i < sensors.length; ++i) {
-            sensorList.push(sensors[i].parentNode.textContent.trim());
+            var sensors = document.querySelectorAll("ons-list-item > label > input[type=checkbox]:checked");
+            web._state.sensors = [];
+            for (i = 0; i < sensors.length; ++i) {
+                web._state.sensors.push(sensors[i].parentNode.textContent.trim());
+            }
+            menu.setMainPage('rules-add-scenes.html');
+            break;
+        case "complete":
+            var input = document.querySelectorAll("ons-list-item > label > input[type=checkbox]:checked");
+            var scenes = [];
+            for (i = 0; i < input.length; ++i) {
+                scenes.push(input[i].parentNode.textContent.trim());
+            }
+            web.load({create: "rule", name: web._state.name, rule: web._state.code, sensors: web._state.sensors});
+            web.load({create: "ruleconnection", name: web._state.name, scenes: scenes});
+            menu.setMainPage('scenes.html');
+            break;
         }
 
         //console.log(scope.code);
-        web.load({create: "rule", name: name.value, rule: scope.code, sensors: sensorList});
-
-        menu.setMainPage('scenes.html');
     },
 
     saveScene: function(menu, state) {

@@ -62,6 +62,7 @@ public:
 
     void connectRule(const Rule::SharedPtr& rule, const Scene::SharedPtr& scene);
     void disconnectRule(const Rule::SharedPtr& rule, const Scene::SharedPtr& scene);
+    void disconnectRule(const Rule::SharedPtr& rule);
     Map<Rule::WeakPtr, Set<Scene::WeakPtr> > ruleConnections() const;
     Signal<std::function<void(const Rule::SharedPtr& rule, const Scene::SharedPtr& scene)> >& ruleConnectionAdded();
     Signal<std::function<void(const Rule::SharedPtr& rule, const Scene::SharedPtr& scene)> >& ruleConnectionRemoved();
@@ -218,9 +219,8 @@ inline void Modules::registerRule(const Rule::SharedPtr& rule)
 inline void Modules::unregisterRule(const Rule::SharedPtr& rule)
 {
     assert(mRules.contains(rule));
-    assert(mRuleConnections.contains(rule));
+    disconnectRule(rule);
     mRules.remove(rule);
-    mRuleConnections.remove(rule);
     flushRules();
     mRuleRemoved(rule);
 }
@@ -232,7 +232,6 @@ inline Set<Rule::SharedPtr> Modules::rules() const
 
 inline void Modules::connectRule(const Rule::SharedPtr& rule, const Scene::SharedPtr& scene)
 {
-    assert(mRuleConnections.contains(rule));
     mRuleConnections[rule].insert(scene);
     flushRuleConnections();
     mRuleConnectionAdded(rule, scene);
@@ -244,6 +243,21 @@ inline void Modules::disconnectRule(const Rule::SharedPtr& rule, const Scene::Sh
     mRuleConnections[rule].erase(scene);
     flushRuleConnections();
     mRuleConnectionRemoved(rule, scene);
+}
+
+inline void Modules::disconnectRule(const Rule::SharedPtr& rule)
+{
+    auto it = mRuleConnections.find(rule);
+    if (it != mRuleConnections.end()) {
+        auto scenes = it->second;
+        mRuleConnections.erase(it);
+        flushRuleConnections();
+        for (const auto& conn : scenes) {
+            if (Scene::SharedPtr scene = conn.lock()) {
+                mRuleConnectionRemoved(rule, scene);
+            }
+        }
+    }
 }
 
 inline Map<Rule::WeakPtr, Set<Scene::WeakPtr> > Modules::ruleConnections() const

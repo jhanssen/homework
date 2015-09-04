@@ -156,6 +156,27 @@ static inline Value handleMessage(const Value& msg)
             }
 
             Modules::instance()->registerRule(rule);
+        } else if (create == "ruleconnection") {
+            const String& ruleName = msg.value<String>("name");
+            Modules* modules = Modules::instance();
+            Rule::SharedPtr rule = modules->rule(ruleName);
+            if (!rule) {
+                error() << "no rule named" << ruleName;
+                return Value();
+            }
+            modules->disconnectRule(rule);
+            const Value scenes = msg.value("scenes");
+            if (scenes.isList()) {
+                auto scene = scenes.listBegin();
+                const auto end = scenes.listEnd();
+                while (scene != end) {
+                    const auto sceneptr = modules->scene(scene->toString());
+                    if (sceneptr) {
+                        modules->connectRule(rule, sceneptr);
+                    }
+                    ++scene;
+                }
+            }
         }
     } else if (type == "add") {
         const String add = msg.value<String>("add");
