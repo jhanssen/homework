@@ -546,6 +546,13 @@ void ZWayThread::directCallback(const ZWay zway, ZWDeviceChangeType type, ZWBYTE
             Modules::instance()->registerController(ctrl);
             module->mControllers.append(ctrl);
             break; }
+        case 0x40: { // Thermostat Mode
+            std::shared_ptr<ZWayController> ctrl = std::make_shared<ZWayController>(zway, node_id, instance_id);
+            ctrl->addMethod<int, 0x40>("mode", zway_cc_thermostat_mode_get, zway_cc_thermostat_mode_set);
+            ctrl->setName(String::format<64>("zway:thermostat_mode:%d:%d", node_id, instance_id));
+            Modules::instance()->registerController(ctrl);
+            module->mControllers.append(ctrl);
+            break; }
         case 0x8a: // Time
             break;
         case 0x85: // Association
