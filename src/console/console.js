@@ -256,6 +256,7 @@ function handleLine(line)
     var handlers = {
         help: function(args) {
             showHelp();
+            return true;
         },
         list: function(args) {
             switch (args[0]) {
@@ -276,13 +277,14 @@ function handleLine(line)
                 break;
             default:
                 console.log("can't list", args[0]);
-                break;
+                return true;
             }
+            return false;
         },
         set: function(args) {
             if (args.length != 2) {
                 console.log("invalid number of args to set");
-                return;
+                return true;
             }
             switch (args[0]) {
             case "controller":
@@ -295,74 +297,79 @@ function handleLine(line)
                 console.log("can't set", args[0]);
                 break;
             }
+            return true;
         },
         create: function(args) {
             if (args.length != 2) {
                 console.log("invalid number of args to set");
-                return;
+                return true;
             }
             switch (args[0]) {
             case "rule":
             case "scene":
                 sendCreateRequest(args[0], args[1]);
-                break;
+                return false;
             default:
                 console.log("invalid create", args[0]);
             }
+            return true;
         },
         controller: function(args) {
             if (!state.controller) {
                 console.log("no controller set");
-                return;
+                return true;
             }
             if (args.length === 0) {
                 console.log("current controller", state.controller);
-                return;
+                return true;
             }
             if (args.length < 2) {
                 console.log("invalid controller command");
-                return;
+                return true;
             }
             // send a request
             sendSetRequest("controller", state.controller, args);
+            return false;
         },
         rule: function(args) {
             if (!state.rule) {
                 console.log("no rule set");
-                return;
+                return true;
             }
             if (args.length === 0) {
                 console.log("current rule", state.rule);
-                return;
+                return true;
             }
             if (args.length < 2) {
                 console.log("invalid rule command");
-                return;
+                return true;
             }
             switch (args[0]) {
             case "add":
                 send({add: "ruleSensor", rule: state.rule, sensor: args[1]});
-                break;
+                return false;
             default:
                 console.log("invalid rule argument", args[0]);
-                break;
             }
+            return true;
         },
         configure: function(args) {
             if (args.length < 3) {
                 console.log("invalid number of arguments to configure");
-                return;
+                return true;
             }
             send({cfg: args[0], name: args[1], value: args[2]});
+            return false;
         }
     };
     var handler = handlers[line[0]];
     if (handler) {
         line.splice(0, 1);
-        handler(line);
+        return handler(line);
     } else {
         // console.log("Unknown command:", line[0]);
     }
+    return true;
 }
 
 prompt();
@@ -384,8 +391,11 @@ ws.on("open", function() {
 });
 
 rl.on("line", function(line) {
-    handleLine(line.split(' ').filter(function(el) { return el.length != 0; }));
-    rl.pause();
+    if (!handleLine(line.split(' ').filter(function(el) { return el.length != 0; }))) {
+        rl.pause();
+    } else {
+        prompt();
+    }
 }).on("close", function() {
     process.stdout.write("\n");
     process.exit(0);
