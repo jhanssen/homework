@@ -226,7 +226,7 @@ public:
     virtual Value get() const;
     virtual void set(const Value& value);
 
-    template<typename ZWType, ZWBYTE ZWCommand, typename ZWGetter, typename ZWSetter>
+    template<ZWBYTE ZWCommand, typename ZWGetter, typename ZWSetter, typename... ZWType>
     void addMethod(const String& name, const ZWGetter& get, const ZWSetter& set);
     template<typename ZWToggle>
     void addToggle(const String& name, const ZWToggle& toggle);
@@ -242,7 +242,7 @@ private:
         String name;
         Sensor::WeakPtr controller;
     };
-    template<typename ZWType, ZWBYTE ZWCommand, typename ZWGetter, typename ZWSetter>
+    template<ZWBYTE ZWCommand, typename ZWGetter, typename ZWSetter, typename... ZWType>
     struct TemplateMethod : public Method
     {
         TemplateMethod(const ZWGetter& get, const ZWSetter& set)
@@ -278,8 +278,8 @@ private:
     friend class ZWayThread;
 };
 
-template<typename ZWType, ZWBYTE ZWCommand, typename ZWGetter, typename ZWSetter>
-Value ZWayController::TemplateMethod<ZWType, ZWCommand, ZWGetter, ZWSetter>::get() const
+template<ZWBYTE ZWCommand, typename ZWGetter, typename ZWSetter, typename... ZWType>
+Value ZWayController::TemplateMethod<ZWCommand, ZWGetter, ZWSetter, ZWType...>::get() const
 {
     ZWayLock lock(zway);
     ZWayThread* thread = ZWayThread::prepareWait();
@@ -299,13 +299,29 @@ Value ZWayController::TemplateMethod<ZWType, ZWCommand, ZWGetter, ZWSetter>::get
     return Value();
 }
 
-template<typename ZWType, ZWBYTE ZWCommand, typename ZWGetter, typename ZWSetter>
-void ZWayController::TemplateMethod<ZWType, ZWCommand, ZWGetter, ZWSetter>::set(const Value& value)
+template<ZWBYTE ZWCommand, typename ZWGetter, typename ZWSetter, typename ZWType1>
+static inline ZWError set_helper(ZWay zway, ZWBYTE node, ZWBYTE instance, const ZWSetter& setter, const Value& value, ZWayThread* thread)
+{
+    const Value v = value.isList() ? value[0] : value;
+    return setter(zway, node, instance, v.convert<ZWType1>(), ZWayThread::success, ZWayThread::failure, thread);
+}
+
+template<ZWBYTE ZWCommand, typename ZWGetter, typename ZWSetter, typename ZWType1, typename ZWType2>
+static inline ZWError set_helper(ZWay zway, ZWBYTE node, ZWBYTE instance, const ZWSetter& setter, const Value& value, ZWayThread* thread)
+{
+    assert(value.isList());
+    assert(value.count() >= 2);
+    const Value& v1 = value[0];
+    const Value& v2 = value[1];
+    return setter(zway, node, instance, v1.convert<ZWType1>(), v2.convert<ZWType2>(), ZWayThread::success, ZWayThread::failure, thread);
+}
+
+template<ZWBYTE ZWCommand, typename ZWGetter, typename ZWSetter, typename... ZWType>
+void ZWayController::TemplateMethod<ZWCommand, ZWGetter, ZWSetter, ZWType...>::set(const Value& value)
 {
     ZWayLock lock(zway);
     ZWayThread* thread = ZWayThread::prepareWait();
-    const Value v = value.isList() ? value[0] : value;
-    ZWError result = setter(zway, node, instance, v.convert<ZWType>(), ZWayThread::success, ZWayThread::failure, thread);
+    ZWError result = set_helper<ZWCommand, ZWGetter, ZWSetter, ZWType...>(zway, node, instance, setter, value, thread);
     if (result != NoError) {
         thread->log(Module::Error, "Setter failure %d", result);
         return;
@@ -352,12 +368,12 @@ void ZWayThread::failure(const ZWay zway, ZWBYTE functionId, void* arg)
     t->stateCond.notify_one();
 }
 
-template<typename ZWType, ZWBYTE ZWCommand, typename ZWGetter, typename ZWSetter>
+template<ZWBYTE ZWCommand, typename ZWGetter, typename ZWSetter, typename... ZWType>
 void ZWayController::addMethod(const String& name, const ZWGetter& get, const ZWSetter& set)
 {
     if (mDefaultMethod.isEmpty() && !name.isEmpty())
         mDefaultMethod = name;
-    Method* method = new TemplateMethod<ZWType, ZWCommand, ZWGetter, ZWSetter>(get, set);
+    Method* method = new TemplateMethod<ZWCommand, ZWGetter, ZWSetter, ZWType...>(get, set);
     method->zway = mZway;
     method->node = mNode;
     method->instance = mInstance;
@@ -534,22 +550,33 @@ void ZWayThread::directCallback(const ZWay zway, ZWDeviceChangeType type, ZWBYTE
             break;
         case 0x25: { // SwitchBinary
             std::shared_ptr<ZWayController> ctrl = std::make_shared<ZWayController>(zway, node_id, instance_id);
-            ctrl->addMethod<bool, 0x25>("level", zway_cc_switch_binary_get, zway_cc_switch_binary_set);
+            ctrl->addMethod<0x25, decltype(zway_cc_switch_binary_get), decltype(zway_cc_switch_binary_set), bool>
+                ("level", zway_cc_switch_binary_get, zway_cc_switch_binary_set);
             ctrl->setName(String::format<64>("zway:switch:binary:%d:%d", node_id, instance_id));
             Modules::instance()->registerController(ctrl);
             module->mControllers.append(ctrl);
             break; }
         case 0x20: { // Basic
             std::shared_ptr<ZWayController> ctrl = std::make_shared<ZWayController>(zway, node_id, instance_id);
-            ctrl->addMethod<int, 0x20>("level", zway_cc_basic_get, zway_cc_basic_set);
+            ctrl->addMethod<0x20, decltype(zway_cc_basic_get), decltype(zway_cc_basic_set), int>
+                ("level", zway_cc_basic_get, zway_cc_basic_set);
             ctrl->setName(String::format<64>("zway:basic:%d:%d", node_id, instance_id));
             Modules::instance()->registerController(ctrl);
             module->mControllers.append(ctrl);
             break; }
         case 0x40: { // Thermostat Mode
             std::shared_ptr<ZWayController> ctrl = std::make_shared<ZWayController>(zway, node_id, instance_id);
-            ctrl->addMethod<int, 0x40>("mode", zway_cc_thermostat_mode_get, zway_cc_thermostat_mode_set);
+            ctrl->addMethod<0x40, decltype(zway_cc_thermostat_mode_get), decltype(zway_cc_thermostat_mode_set), int>
+                ("mode", zway_cc_thermostat_mode_get, zway_cc_thermostat_mode_set);
             ctrl->setName(String::format<64>("zway:thermostat_mode:%d:%d", node_id, instance_id));
+            Modules::instance()->registerController(ctrl);
+            module->mControllers.append(ctrl);
+            break; }
+        case 0x44: { // Thermostat Fan Mode
+            std::shared_ptr<ZWayController> ctrl = std::make_shared<ZWayController>(zway, node_id, instance_id);
+            ctrl->addMethod<0x44, decltype(zway_cc_thermostat_fan_mode_get), decltype(zway_cc_thermostat_fan_mode_set), bool, int>
+                ("mode", zway_cc_thermostat_fan_mode_get, zway_cc_thermostat_fan_mode_set);
+            ctrl->setName(String::format<64>("zway:thermostat_fan_mode:%d:%d", node_id, instance_id));
             Modules::instance()->registerController(ctrl);
             module->mControllers.append(ctrl);
             break; }
@@ -569,7 +596,8 @@ void ZWayThread::directCallback(const ZWay zway, ZWDeviceChangeType type, ZWBYTE
             break;
         case 0x27: { // Switch All
             std::shared_ptr<ZWayController> ctrl = std::make_shared<ZWayController>(zway, node_id, instance_id);
-            ctrl->addMethod<int, 0x27>("mode", zway_cc_switch_all_get, zway_cc_switch_all_set);
+            ctrl->addMethod<0x27, decltype(zway_cc_switch_all_get), decltype(zway_cc_switch_all_set), int>
+                ("mode", zway_cc_switch_all_get, zway_cc_switch_all_set);
             ctrl->addToggle("on", zway_cc_switch_all_set_on);
             ctrl->addToggle("off", zway_cc_switch_all_set_off);
             ctrl->setName(String::format<64>("zway:switch:all:%d:%d", node_id, instance_id));
