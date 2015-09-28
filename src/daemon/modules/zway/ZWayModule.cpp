@@ -202,6 +202,13 @@ private:
     Value config;
     EventLoop::WeakPtr loop;
 
+    struct Interview
+    {
+        ZWay zway;
+        ZWBYTE device, instance, commandclass;
+    };
+    List<Interview> interviews;
+
     std::mutex mutex;
     std::condition_variable cond;
     bool stopped;
@@ -281,6 +288,7 @@ private:
 template<ZWBYTE ZWCommand, typename ZWGetter, typename ZWSetter, typename... ZWType>
 Value ZWayController::TemplateMethod<ZWCommand, ZWGetter, ZWSetter, ZWType...>::get() const
 {
+    return Value();
     ZWayLock lock(zway);
     ZWayThread* thread = ZWayThread::prepareWait();
     ZWError result = getter(zway, node, instance, ZWayThread::success, ZWayThread::failure, thread);
@@ -520,8 +528,33 @@ void ZWayThread::directDataCallback(const ZDataRootObject root, ZWDataChangeType
     }
 }
 
+static inline bool shouldInterview(ZWBYTE command_id)
+{
+    switch (command_id) {
+    case 0x20: // Basic
+    case 0x31: // Sensor Multilevel
+    case 0x40: // Thermostat Mode
+    case 0x42: // Thermostat Operating State
+    case 0x43: // Thermostat Set Point
+    case 0x44: // Thermostat Fan Mode
+    case 0x45: // Thermostat Fan State
+    case 0x62: // Door Lock
+    case 0x70: // Configuration
+    case 0x72: // ???
+    case 0x81: // Clock
+    case 0x85: // Association
+    case 0x86: // ???
+        return true;
+    }
+    return false;
+}
+
 void ZWayThread::callback(const ZWay zway, ZWDeviceChangeType type, ZWBYTE node_id, ZWBYTE instance_id, ZWBYTE command_id)
 {
+    if (type == CommandAdded && shouldInterview(command_id)) {
+        interviews.push_back({ zway, node_id, instance_id, command_id });
+    }
+
     EventLoop::SharedPtr eventLoop = loop.lock();
     if (!eventLoop)
         return;
@@ -708,6 +741,7 @@ void ZWayThread::run()
     };
     zway_device_add_callback(zway, DeviceAdded|DeviceRemoved|InstanceAdded|InstanceRemoved|CommandAdded|CommandRemoved, callback, this);
 
+    changeState("starting");
     result = zway_start(zway, [](ZWay zway, void* ptr) {
             ZWayThread* thread = static_cast<ZWayThread*>(ptr);
             thread->log(Module::Info, "zway terminated");
@@ -719,6 +753,7 @@ void ZWayThread::run()
         zway = 0;
         return;
     }
+    changeState("discovering");
     result = zway_discover(zway);
     if (result != NoError) {
         changeState("error");
@@ -731,15 +766,8 @@ void ZWayThread::run()
 
     enum { WaitFor = 500, WaitMax = 10000 };
 
-    for (;;) {
-        if (!zway_is_running(zway)) {
-            changeState("killed");
-            zway_stop(zway);
-            zway_terminate(&zway);
-            zlog_close(zwlog);
-            return;
-        }
-        bool idle = true;
+    bool idle = true;
+    auto waitForIdle = [this, zway](bool& idle) {
         while (!zway_is_idle(zway)) {
             if (idle) {
                 idle = false;
@@ -754,7 +782,29 @@ void ZWayThread::run()
                 waited += WaitFor;
             }
         }
+    };
+
+    for (;;) {
+        if (!zway_is_running(zway)) {
+            changeState("killed");
+            zway_stop(zway);
+            zway_terminate(&zway);
+            zlog_close(zwlog);
+            return;
+        }
+        waitForIdle(idle);
+        if (!interviews.isEmpty()) {
+            List<Interview> inters;
+            std::swap(interviews, inters);
+            int num = 0;
+            for (const auto& item : inters) {
+                changeState(String::format<64>("interviewing %d:%d:%x %d/%d", item.device, item.instance, item.commandclass, ++num, inters.size()));
+                zway_command_interview(item.zway, item.device, item.instance, item.commandclass);
+                waitForIdle(idle);
+            }
+        }
         changeState("idle");
+        idle = true;
         List<Value> cmds;
         {
             std::lock_guard<std::mutex> locker(mutex);
@@ -766,22 +816,9 @@ void ZWayThread::run()
             processCommand(zway, this, cmd);
         }
         if (!cmds.isEmpty()) {
-            idle = true;
-            while (!zway_is_idle(zway)) {
-                if (idle) {
-                    idle = false;
-                    changeState("busy");
-                }
-                if (cancel && waited >= WaitMax) {
-                    cancel(zway);
-                    cancel = nullptr;
-                    changeState("canceling");
-                } else {
-                    std::this_thread::sleep_for(std::chrono::milliseconds(WaitFor));
-                    waited += WaitFor;
-                }
-            }
+            waitForIdle(idle);
             changeState("idle");
+            idle = true;
         }
         std::unique_lock<std::mutex> locker(mutex);
         while (!stopped && commands.isEmpty()) {
