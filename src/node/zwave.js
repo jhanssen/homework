@@ -41,6 +41,8 @@ zwave.addDevice = function(nodeid, nodeinfo)
 
 zwave.addValue = function(nodeid, value)
 {
+    if (value.genre !== "user")
+        return;
     if (!(nodeid in zwave.devices)) {
         zwave.devices[nodeid] = new devs.Device(nodeid);
         zwave._call("deviceAdded", zwave.devices[nodeid]);
@@ -61,6 +63,8 @@ zwave.addValue = function(nodeid, value)
 
 zwave.updateValue = function(value)
 {
+    if (!value.node_id in zwave.devices)
+        return;
     var node = zwave.devices[value.node_id];
     for (var i = 0; i < node.controllers.length; ++i) {
         var ctrl = node.controllers[i];
