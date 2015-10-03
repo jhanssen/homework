@@ -11,11 +11,13 @@
     <link rel="stylesheet" type="text/css" href="bower_components/bootstrap/dist/css/bootstrap-theme.min.css">
     <link rel="stylesheet" type="text/css" href="index.css">
     <script src="bower_components/jquery/dist/jquery.min.js"></script>
+    <script src="bower_components/angular/angular.min.js"></script>
     <script src="bower_components/bootstrap/dist/js/bootstrap.min.js"></script>
+    <script src="bower_components/angular-bootstrap/ui-bootstrap.min.js"></script>
     <script src="require1k/require1k.min.js"></script>
     <script src="client.js"></script>
   </head>
-  <body onload="client.start()">
+  <body ng-app="homework" onload="client.start()">
     <nav class="navbar navbar-inverse navbar-fixed-top">
       <div class="container">
 	<div class="navbar-header">
@@ -37,11 +39,11 @@
       </div>
     </nav>
 
-    <div class="container">
+    <div id="main" class="container" ng-controller="MainController">
 
       <div class="starter-template">
 	<h1>Bootstrap starter template</h1>
-	<p class="lead">Use this document as a way to quickly start any new project.<br> All you get is this text and a mostly barebones HTML document.</p>
+	<p class="lead">{{text}}</p>
       </div>
 
     </div><!-- /.container -->

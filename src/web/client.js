@@ -1,4 +1,4 @@
-/*global WebSocket,R*/
+/*global WebSocket,R,angular,$*/
 
 var client = { _devices: Object.create(null) };
 
@@ -49,5 +49,14 @@ client.start = function()
         client._conn.onclose = function() {
             console.log("closed");
         };
+
+        var scope = $("#main").scope();
+        scope.text = "123";
+        scope.$apply();
     });
 };
+
+client._app = angular.module('homework', ['ui.bootstrap']);
+client._app.controller("MainController", function($scope) {
+    $scope.text = "abc";
+});
