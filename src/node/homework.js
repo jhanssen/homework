@@ -4,15 +4,52 @@
 
 var homework = { _ons: Object.create(null) };
 var zwave = require("./zwave");
+var devices = Object.create(null);
+var ctrls = Object.create(null);
 
 var WebSocketServer = require('ws').Server,
-    wss = new WebSocketServer({port: 8087});
+    wss = new WebSocketServer({port: 8087}),
+    conns = [];
+
+function sendDevices(ws)
+{
+    ws.send(JSON.stringify({ what: "devices", data: devices }));
+}
+
+homework._handlers = {
+    "set": function(msg) {
+        if (!(msg.id in ctrls)) {
+            console.log("set: no such id", msg);
+            return;
+        }
+        ctrls[msg.id].value = msg.value;
+    }
+};
+
+homework._handleMessage = function(msg)
+{
+    if (!("what" in msg) || !homework._handlers.hasOwnProperty(msg.what)) {
+        console.log("can't handle", msg);
+        return;
+    }
+    homework._handlers[msg.what](msg.data);
+};
 
 wss.on('connection', function(ws) {
     ws.on('message', function(message) {
-        console.log('received: %s', message);
+        homework._handleMessage(JSON.parse(message));
     });
-    ws.send('something');
+    ws.on('close', function() {
+        for (var i = 0; i < conns.length; ++i) {
+            if (conns[i] === this) {
+                console.log("closed, removed from list");
+                conns.splice(i, 1);
+                break;
+            }
+        }
+    });
+    conns.push(ws);
+    sendDevices(ws);
 });
 
 homework.on = function(name, cb)
@@ -70,10 +107,13 @@ zwave.on("deviceAdded", function(dev) {
         ctrl.on("valueChanged", function() {
             console.log("value", this.value);
         });
+        ctrls[ctrl.identifier] = ctrl;
     });
     dev.on("deviceUpdated", function() {
         console.log("dev updated");
     });
+
+    devices[dev.identifier] = dev;
 });
 
 homework.start = function()

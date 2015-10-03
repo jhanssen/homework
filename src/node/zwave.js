@@ -2,7 +2,7 @@
 
 var zwave = { _ons: Object.create(null), devices: Object.create(null), _started: false };
 
-var devs = require("./devices");
+var devs = require("../common/devices");
 var _ozw = require("openzwave-shared");
 var _zwave = new _ozw();
 

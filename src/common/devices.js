@@ -34,7 +34,7 @@ Device.prototype._update = function(node)
 };
 
 Object.defineProperty(Device.prototype, "identifier", {
-    get: function() { return "" + this._id; }
+    get: function() { return "zw:" + this._id; }
 });
 
 function Controller(value)
@@ -90,7 +90,7 @@ Object.defineProperty(Controller.prototype, "values", {
 });
 
 Object.defineProperty(Controller.prototype, "identifier", {
-    get: function() { return this._value.node_id + ":" + this._value.class_id; }
+    get: function() { return "zw:" + this._value.node_id + ":" + this._value.class_id; }
 });
 
 module.exports = { Controller: Controller, Device: Device };
