@@ -86,18 +86,29 @@ client._app.controller("AppController", function($scope) {
 });
 client._app.controller("DeviceController", function($scope) {
     $scope.controllerBody = function(controller) {
+        var ret, alts, i;
+        if (controller.readOnly) {
+            if (controller.type === "list") {
+                ret = '<ul class="list-group" ng-model="currentDeviceController.value">';
+                alts = controller.values;
+                for (i = 0; i < alts.length; ++i) {
+                    ret += '<li data-value="' + alts[i] + '" class="list-group-item">' + alts[i] + '</li>';
+                }
+                return ret + '</ul>';
+            }
+            return controller.value;
+        }
         switch (controller.type) {
         case "bool":
             return '<input bs-switch type="checkbox" ng-model="currentDeviceController.value"></input>';
         case "decimal":
         case "byte":
-            return '<input type="text" ng-model="currentDeviceController.value"></input>';
         case "string":
-            return controller.value;
+            return '<input type="text" ng-model="currentDeviceController.value"></input>';
         case "list":
-            var ret = '<ol class="nya-bs-select" ng-model="currentDeviceController.value">';
-            var alts = controller.values;
-            for (var i = 0; i < alts.length; ++i) {
+            ret = '<ol class="nya-bs-select" ng-model="currentDeviceController.value">';
+            alts = controller.values;
+            for (i = 0; i < alts.length; ++i) {
                 ret += '<li data-value="' + alts[i] + '" class="nya-bs-option"><a>' + alts[i] + '</a></li>';
             }
             return ret + '</ol>';

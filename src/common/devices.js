@@ -105,6 +105,14 @@ Object.defineProperty(Controller.prototype, "classid", {
     get: function() { return this._value.class_id; }
 });
 
+Object.defineProperty(Controller.prototype, "readOnly", {
+    get: function() { return this._value.read_only; }
+});
+
+Object.defineProperty(Controller.prototype, "writeOnly", {
+    get: function() { return this._value.write_only; }
+});
+
 Object.defineProperty(Controller.prototype, "identifier", {
     get: function() { return "zw:" + this._value.node_id + ":" + this._value.class_id; }
 });
