@@ -58,7 +58,7 @@ client.start = function()
             client._handleMessage(JSON.parse(e.data));
         };
         client._conn.onopen = function() {
-            client._conn.send(JSON.stringify({ what: "request", data: "devices" }));
+            client._requestDevices();
         };
         client._conn.onclose = function() {
             console.log("closed");
