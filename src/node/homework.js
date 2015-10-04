@@ -17,27 +17,32 @@ function sendDevices(ws)
 }
 
 homework._handlers = {
-    "set": function(msg) {
+    "set": function(ws, msg) {
         if (!(msg.id in ctrls)) {
             console.log("set: no such id", msg);
             return;
         }
         ctrls[msg.id].value = msg.value;
+    },
+    "request": function(ws, msg) {
+        if (msg === "devices") {
+            sendDevices(ws);
+        }
     }
 };
 
-homework._handleMessage = function(msg)
+homework._handleMessage = function(ws, msg)
 {
     if (!("what" in msg) || !homework._handlers.hasOwnProperty(msg.what)) {
         console.log("can't handle", msg);
         return;
     }
-    homework._handlers[msg.what](msg.data);
+    homework._handlers[msg.what](ws, msg.data);
 };
 
 wss.on('connection', function(ws) {
     ws.on('message', function(message) {
-        homework._handleMessage(JSON.parse(message));
+        homework._handleMessage(ws, JSON.parse(message));
     });
     ws.on('close', function() {
         for (var i = 0; i < conns.length; ++i) {
@@ -49,7 +54,7 @@ wss.on('connection', function(ws) {
         }
     });
     conns.push(ws);
-    sendDevices(ws);
+    //sendDevices(ws);
 });
 
 homework.on = function(name, cb)

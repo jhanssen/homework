@@ -35,6 +35,12 @@ client._handleMessage = function(msg)
     client._handlers[msg.what](msg.data);
 };
 
+client._requestDevices = function()
+{
+    if (client._conn)
+        client._conn.send(JSON.stringify({ what: "request", data: "devices" }));
+};
+
 client.start = function()
 {
     R("./devices", function(err, devices) {
@@ -50,6 +56,9 @@ client.start = function()
         };
         client._conn.onmessage = function(e) {
             client._handleMessage(JSON.parse(e.data));
+        };
+        client._conn.onopen = function() {
+            client._conn.send(JSON.stringify({ what: "request", data: "devices" }));
         };
         client._conn.onclose = function() {
             console.log("closed");
@@ -81,10 +90,10 @@ client.start = function()
 
 client._app = angular.module('homework', ['ui.bootstrap', 'frapontillo.bootstrap-switch', 'nya.bootstrap.select']);
 client._app.controller("AppController", function($scope) {
-    $scope.devices = {};
     $scope.entries = {Devices: true, Scenes: false};
 });
 client._app.controller("DeviceController", function($scope) {
+    client._requestDevices();
     $scope.controllerBody = function(controller) {
         var ret, alts, i;
         if (controller.readOnly) {
