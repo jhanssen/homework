@@ -10,6 +10,7 @@
     <link rel="stylesheet" type="text/css" href="bower_components/bootstrap/dist/css/bootstrap.min.css">
     <link rel="stylesheet" type="text/css" href="bower_components/bootstrap/dist/css/bootstrap-theme.min.css">
     <link rel="stylesheet" type="text/css" href="bower_components/bootstrap-switch/dist/css/bootstrap3/bootstrap-switch.min.css">
+    <link rel="stylesheet" type="text/css" href="bower_components/nya-bootstrap-select/dist/css/nya-bs-select.min.css">
     <link rel="stylesheet" type="text/css" href="index.css">
     <script src="bower_components/jquery/dist/jquery.min.js"></script>
     <script src="bower_components/angular/angular.min.js"></script>
@@ -17,6 +18,7 @@
     <script src="bower_components/angular-bootstrap/ui-bootstrap.min.js"></script>
     <script src="bower_components/bootstrap-switch/dist/js/bootstrap-switch.min.js"></script>
     <script src="bower_components/angular-bootstrap-switch/dist/angular-bootstrap-switch.min.js"></script>
+    <script src="bower_components/nya-bootstrap-select/dist/js/nya-bs-select.min.js"></script>
     <script src="require1k/require1k.min.js"></script>
     <script src="client.js"></script>
   </head>
@@ -46,7 +48,7 @@
       <div id="main" class="container" ng-controller="MainController">
 
 	<div class="starter-template">
-	  <h1>Bootstrap starter template</h1>
+	  <h1>Homework</h1>
 	  <p class="lead">{{$parent.text}}</p>
 
 	  <div class="list-group">
@@ -88,8 +90,8 @@
 	      <div ng-bind-html="controllerBody(currentDeviceController) | sanitize" compile-template></div>
 	    </div>
 	    <div class="modal-footer">
+	      <button type="button" class="btn" ng-click="modalBack()">Back</button>
 	      <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-	      <!-- <button type="button" class="btn btn-primary">Save changes</button> -->
 	    </div>
 	  </div><!-- /.modal-content -->
 	</div><!-- /.modal-dialog -->

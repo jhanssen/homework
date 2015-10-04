@@ -79,7 +79,7 @@ client.start = function()
     // client._observer.observe(document.body, { childList: true, subtree: true });
 };
 
-client._app = angular.module('homework', ['ui.bootstrap', 'frapontillo.bootstrap-switch']);
+client._app = angular.module('homework', ['ui.bootstrap', 'frapontillo.bootstrap-switch', 'nya.bootstrap.select']);
 client._app.controller("AppController", function($scope) {
     $scope.devices = {};
     $scope.entries = {Devices: true, Scenes: false};
@@ -89,8 +89,24 @@ client._app.controller("DeviceController", function($scope) {
         switch (controller.type) {
         case "bool":
             return '<input bs-switch type="checkbox" ng-model="currentDeviceController.value"></input>';
+        case "decimal":
+        case "byte":
+            return '<input type="text" ng-model="currentDeviceController.value"></input>';
+        case "string":
+            return controller.value;
+        case "list":
+            var ret = '<ol class="nya-bs-select" ng-model="currentDeviceController.value">';
+            var alts = controller.values;
+            for (var i = 0; i < alts.length; ++i) {
+                ret += '<li data-value="' + alts[i] + '" class="nya-bs-option"><a>' + alts[i] + '</a></li>';
+            }
+            return ret + '</ol>';
         };
         return controller.type;
+    };
+    $scope.modalBack = function() {
+        delete $scope.currentDeviceController;
+        window.history.back();
     };
 });
 client._app.controller("MainController", function($scope) {

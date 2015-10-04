@@ -5,3 +5,4 @@ bower install angular-bootstrap
 
 bower install bootstrap-switch
 bower install angular-bootstrap-switch
+bower install nya-bootstrap-select

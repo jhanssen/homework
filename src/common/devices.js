@@ -85,6 +85,10 @@ Object.defineProperty(Controller.prototype, "name", {
     get: function() { return this._value.label; }
 });
 
+Object.defineProperty(Controller.prototype, "values", {
+    get: function() { return this._value.values; }
+});
+
 Object.defineProperty(Controller.prototype, "label", {
     get: function() { return this._value.label; }
 });
@@ -99,10 +103,6 @@ Object.defineProperty(Controller.prototype, "nodeid", {
 
 Object.defineProperty(Controller.prototype, "classid", {
     get: function() { return this._value.class_id; }
-});
-
-Object.defineProperty(Controller.prototype, "values", {
-    get: function() { return this._value.values; }
 });
 
 Object.defineProperty(Controller.prototype, "identifier", {
