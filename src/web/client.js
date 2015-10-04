@@ -89,10 +89,10 @@ client._app.controller("DeviceController", function($scope) {
         var ret, alts, i;
         if (controller.readOnly) {
             if (controller.type === "list") {
-                ret = '<ul class="list-group" ng-model="currentDeviceController.value">';
+                ret = '<ul class="list-group">';
                 alts = controller.values;
                 for (i = 0; i < alts.length; ++i) {
-                    ret += '<li data-value="' + alts[i] + '" class="list-group-item">' + alts[i] + '</li>';
+                    ret += '<li data-value="' + alts[i] + '" class="list-group-item' + (controller.value === alts[i] ? ' active' : '') +'">' + alts[i] + '</li>';
                 }
                 return ret + '</ul>';
             }
