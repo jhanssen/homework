@@ -2,3 +2,6 @@
 bower install bootstrap
 bower install angular
 bower install angular-bootstrap
+
+bower install bootstrap-switch
+bower install angular-bootstrap-switch

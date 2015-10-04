@@ -37,6 +37,14 @@ Object.defineProperty(Device.prototype, "identifier", {
     get: function() { return "zw:" + this._id; }
 });
 
+Object.defineProperty(Device.prototype, "name", {
+    get: function() {
+        if (typeof this._node.name === "string" && this._node.name !== "")
+            return this._node.name;
+        return this._node.product;
+    }
+});
+
 function Controller(value)
 {
     this._value = value;
@@ -73,8 +81,16 @@ Object.defineProperty(Controller.prototype, "value", {
     set: function(v) { this._setValue(v); }
 });
 
+Object.defineProperty(Controller.prototype, "name", {
+    get: function() { return this._value.label; }
+});
+
 Object.defineProperty(Controller.prototype, "label", {
     get: function() { return this._value.label; }
+});
+
+Object.defineProperty(Controller.prototype, "type", {
+    get: function() { return this._value.type; }
 });
 
 Object.defineProperty(Controller.prototype, "nodeid", {
