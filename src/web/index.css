@@ -7,3 +7,13 @@ body {
 }
 .bootstrap-switch { height: 2.5em }
 .homework-btn-height { height: 4em; display: flex; justify-content: center; align-items: center }
+
+.Grid {
+    display: flex;
+    flex-wrap: wrap;
+}
+.Grid-cell {
+    flex-grow: 1;
+    min-width: 20%;
+    padding: 2em;
+}
