@@ -26,10 +26,21 @@ client._handlers = {
     },
     state: function(msg)
     {
-        console.log(msg);
         var scope = $("#configure").scope();
         scope.state = msg.state;
         scope.$apply();
+    },
+    value: function(msg)
+    {
+        if (msg.devices in client._devices) {
+            var dev = client._devices[msg.device];
+            for (var i = 0; i < dev.controllers; ++i) {
+                if (dev.controllers[i].identifier === msg.controller) {
+                    dev.controllers[i]._value.value = msg.value;
+                    break;
+                }
+            }
+        }
     }
 };
 

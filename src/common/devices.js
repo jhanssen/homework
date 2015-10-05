@@ -114,7 +114,7 @@ Object.defineProperty(Controller.prototype, "writeOnly", {
 });
 
 Object.defineProperty(Controller.prototype, "identifier", {
-    get: function() { return "zw:" + this._value.node_id + ":" + this._value.class_id; }
+    get: function() { return "zw:" + this._value.value_id; }
 });
 
 module.exports = { Controller: Controller, Device: Device };

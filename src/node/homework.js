@@ -120,12 +120,21 @@ rl.on('line', function(line) {
     process.exit();
 });
 
+function sendToAll(obj)
+{
+    var data = JSON.stringify(obj);
+    for (var i = 0; i < conns.length; ++i) {
+        conns[i].send(data);
+    }
+}
+
 zwave.on("deviceAdded", function(dev) {
     console.log("new device", dev);
 
     dev.on("controllerAdded", function(ctrl) {
         console.log("new ctrl", ctrl);
         ctrl.on("valueChanged", function() {
+            sendToAll({ what: "value", data: { device: dev.identifier, controller: this.identifier, value: this.value }});
             console.log("value", this.value);
         });
         ctrls[ctrl.identifier] = ctrl;
@@ -138,9 +147,7 @@ zwave.on("deviceAdded", function(dev) {
 });
 
 zwave.on("stateChanged", function(newState, oldState, err) {
-    for (var i = 0; i < conns.length; ++i) {
-        conns[i].send(JSON.stringify({ what: "state", data: { state: newState, oldState: oldState, err: err } }));
-    }
+    sendToAll({ what: "state", data: { state: newState, oldState: oldState, err: err } });
 });
 
 homework.start = function()
