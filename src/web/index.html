@@ -19,10 +19,11 @@
     <script src="bower_components/bootstrap-switch/dist/js/bootstrap-switch.min.js"></script>
     <script src="bower_components/angular-bootstrap-switch/dist/angular-bootstrap-switch.min.js"></script>
     <script src="bower_components/nya-bootstrap-select/dist/js/nya-bs-select.min.js"></script>
+    <script src="bower_components/bootstrap-treeview/dist/bootstrap-treeview.min.js"></script>
     <script src="require1k/require1k.min.js"></script>
     <script src="client.js"></script>
   </head>
-  <body ng-app="homework" ng-controller="AppController" onload="client.start()">
+  <body ng-app="homework" id="app" ng-controller="AppController" onload="client.start()">
     <nav class="navbar navbar-inverse navbar-fixed-top">
       <div class="container">
 	<div class="navbar-header">
@@ -87,7 +88,7 @@
 	      <h4 class="modal-title">{{currentDeviceController.name}}</h4>
 	    </div>
 	    <div class="modal-body">
-	      <div ng-bind-html="controllerBody(currentDeviceController) | sanitize" compile-template></div>
+	      <div ng-bind-html="controllerBody(currentDeviceController, 'currentDeviceController') | sanitize" compile-template></div>
 	    </div>
 	    <div class="modal-footer">
 	      <button type="button" class="btn" ng-click="modalBack()">Back</button>
@@ -98,21 +99,63 @@
       </div>
     </div>
 
-    <div ng-if="entries.Scenes">
-      Hello
+    <div ng-if="entries.Scenes" id="scenes" ng-controller="ScenesController">
+      <div class="container">
+	<div class="starter-template">
+	  <div class="Grid Grid-center">
+	    <h1 class="Grid-cell-center">Scenes</h1>
+	    <a class="Grid-cell-center" href="#scene-Add"><span class="glyphicon glyphicon-plus"></span></a>
+	  </div>
+	  <div class="Grid">
+	  </div>
+	</div>
+      </div>
+
+      <div class="modal fade" id="addSceneModal" ng-controller="AddSceneController">
+	<div class="modal-dialog">
+	  <div class="modal-content">
+	    <div class="modal-header">
+	      <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+	      <h4 class="modal-title">Add scene</h4>
+	    </div>
+	    <div class="modal-body" ng-if="addState==='AddScene'">
+	      <div id="addSceneTree" ng-controller="AddSceneSub1Controller"></div>
+	    </div>
+	    <div class="modal-body" ng-if="addState==='AddControllers'">
+	      <div ng-controller="AddSceneSub2Controller">
+		<div class="Grid">
+		  <div class="Grid-cell">Name</div>
+		  <input type="text" class="Grid-cell" ng-model="$parent.$parent.sceneName"></input>
+		</div>
+		<div class="Grid" ng-repeat="ctrl in $parent.selectedControllers">
+		  <div class="Grid-cell">
+		    {{ctrl.name}}
+		  </div>
+		  <div class="Grid-cell" ng-bind-html="controllerBody(ctrl, 'ctrl') | sanitize" compile-template></div>
+		</div>
+	      </div>
+	    </div>
+	    <div class="modal-footer">
+	      <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+	      <button type="button" class="btn btn-primary" ng-click="addScene(addButtonName)">{{addButtonName}}</button>
+	    </div>
+	  </div><!-- /.modal-content -->
+	</div>
+      </div>
     </div>
 
     <div ng-if="entries.Configure" id="configure" ng-controller="ConfigController">
       <div class="container">
 	<div class="starter-template">
+	  <h1>Configure</h1>
 	  <div class="Grid">
-	    <div class="Grid-cell">
+	    <div class="Grid-cell Grid-cell-pad">
 	      <a class="btn btn-primary homework-btn-height" href="#configure-AddDevice">Add device</a>
 	    </div>
-	    <div class="Grid-cell">
+	    <div class="Grid-cell Grid-cell-pad">
 	      <a class="btn btn-primary homework-btn-height" href="#configure-RemoveDevice">Remove device</a>
 	    </div>
-	    <div class="Grid-cell">
+	    <div class="Grid-cell Grid-cell-pad">
 	      <a class="btn btn-danger homework-btn-height" href="#configure-StopDevice">Stop add/remove</a>
 	    </div>
 	  </div>

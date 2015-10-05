@@ -1,6 +1,15 @@
 /*global WebSocket,R,angular,$,$compile*/
 
-var client = { _devices: Object.create(null) };
+function arrayRemove(arr, item) {
+    for (var i = 0; i < arr.length; ++i) {
+        if (arr[i] === item) {
+            arr.splice(i, 1);
+            break;
+        }
+    }
+}
+
+var client = { _devices: Object.create(null), _reqs: { devices: [] } };
 
 client._handlers = {
     devices: function(msg) {
@@ -20,9 +29,11 @@ client._handlers = {
             client._devices[dev.identifier] = dev;
         }
 
-        var scope = $("#devices").scope();
+        var scope = $("#app").scope();
         scope.devices = client._devices;
         scope.$apply();
+
+        client._callReqs("devices");
     },
     state: function(msg)
     {
@@ -44,6 +55,28 @@ client._handlers = {
     }
 };
 
+client._addScene = function(name, ctrls)
+{
+    var values = {};
+    for (var i = 0; i < ctrls.length; ++i) {
+        var ctrl = ctrls[i];
+        values[ctrl.identifier] = ctrl.value;
+    }
+    if (client._conn)
+        client._conn.send(JSON.stringify({ what: "addScene", data: { name: name, ctrls: values } }));
+};
+
+client._callReqs = function(what)
+{
+    if (client._reqs[what].length > 0) {
+        var r = client._reqs[what];
+        client._reqs[what] = [];
+        for (var i = 0; i < r.length; ++i) {
+            r[i]();
+        }
+    }
+};
+
 client._handleMessage = function(msg)
 {
     if (!("what" in msg) || !client._handlers.hasOwnProperty(msg.what)) {
@@ -53,10 +86,13 @@ client._handleMessage = function(msg)
     client._handlers[msg.what](msg.data);
 };
 
-client._requestDevices = function()
+client._requestDevices = function(cb)
 {
-    if (client._conn)
+    if (client._conn) {
+        if (cb)
+            client._reqs.devices.push(cb);
         client._conn.send(JSON.stringify({ what: "request", data: "devices" }));
+    }
 };
 
 client._requestState = function()
@@ -121,10 +157,7 @@ client.start = function()
 client._app = angular.module('homework', ['ui.bootstrap', 'frapontillo.bootstrap-switch', 'nya.bootstrap.select']);
 client._app.controller("AppController", function($scope) {
     $scope.entries = {Devices: true, Scenes: false, Configure: false};
-});
-client._app.controller("DeviceController", function($scope) {
-    client._requestDevices();
-    $scope.controllerBody = function(controller) {
+    $scope.controllerBody = function(controller, name) {
         var ret, alts, i;
         if (controller.readOnly) {
             if (controller.type === "list") {
@@ -139,13 +172,13 @@ client._app.controller("DeviceController", function($scope) {
         }
         switch (controller.type) {
         case "bool":
-            return '<input bs-switch type="checkbox" ng-model="currentDeviceController.value"></input>';
+            return '<input bs-switch type="checkbox" ng-model="' + name + '.value"></input>';
         case "decimal":
         case "byte":
         case "string":
-            return '<input type="text" ng-model="currentDeviceController.value"></input>';
+            return '<input type="text" ng-model="' + name + '.value"></input>';
         case "list":
-            ret = '<ol class="nya-bs-select" ng-model="currentDeviceController.value">';
+            ret = '<ol class="nya-bs-select" ng-model="' + name + '.value">';
             alts = controller.values;
             for (i = 0; i < alts.length; ++i) {
                 ret += '<li data-value="' + alts[i] + '" class="nya-bs-option"><a>' + alts[i] + '</a></li>';
@@ -154,6 +187,87 @@ client._app.controller("DeviceController", function($scope) {
         };
         return controller.type;
     };
+});
+client._app.controller("ScenesController", function($scope) {
+});
+client._app.controller("AddSceneController", function($scope) {
+    console.log($scope);
+    $scope.addScene = function(step)
+    {
+        if (step === "Next") {
+            window.location.hash = "#scene-AddControllers";
+            $scope.addState = "AddControllers";
+            $scope.addButtonName = "Save";
+        } else {
+            client._addScene($scope.sceneName, $scope.selectedControllers);
+            $("#addSceneModal").modal("hide");
+        }
+    };
+});
+client._app.controller("AddSceneSub2Controller", function($scope) {
+    var flattened = [];
+    for (var i in $scope.selectedDevices) {
+        var dev = $scope.devices[i];
+        var findCtrl = function(dev, id) {
+            for (var i = 0; i < dev.controllers.length; ++i) {
+                if (dev.controllers[i].identifier === id)
+                    return dev.controllers[i];
+            }
+            return null;
+        };
+        for (var j in $scope.selectedDevices[i]) {
+            var ctrlid = $scope.selectedDevices[i][j];
+            var ctrl = findCtrl(dev, ctrlid);
+            if (ctrl) {
+                var newctrl = new client._ctors.Controller(ctrl._value);
+                newctrl._setValue = function(val)
+                {
+                    this._value.value = val;
+                };
+                flattened.push(newctrl);
+            }
+        }
+    }
+    $scope.$parent.$parent.selectedControllers = flattened;
+});
+client._app.controller("AddSceneSub1Controller", function($scope) {
+    client._requestDevices(function() {
+        var tree = [];
+        for (var i in client._devices) {
+            var dev = client._devices[i];
+            var item = { text: dev.name, homeworkId: dev.identifier, selectable: false };
+            if (dev.controllers.length > 0) {
+                var nodes = [];
+                for (var j = 0; j < dev.controllers.length; ++j) {
+                    var ctrl = dev.controllers[j];
+                    if (ctrl.readOnly)
+                        continue;
+                    nodes.push({ text: ctrl.name, homeworkId: ctrl.identifier });
+                }
+                if (nodes.length > 0)
+                    item.nodes = nodes;
+            }
+            tree.push(item);
+        }
+        var dom = $("#addSceneTree");
+        dom.treeview({data: tree, multiSelect: true});
+        dom.on('nodeSelected', function(event, data) {
+            var parent = dom.treeview("getParent", data);
+            if (!(parent.homeworkId in $scope.selectedDevices))
+                $scope.selectedDevices[parent.homeworkId] = [data.homeworkId];
+            else
+                $scope.selectedDevices[parent.homeworkId].push(data.homeworkId);
+        });
+        dom.on('nodeUnselected', function(event, data) {
+            var parent = dom.treeview("getParent", data);
+            arrayRemove($scope.selectedDevices[parent.homeworkId], data.homeworkId);
+            if ($scope.selectedDevices[parent.homeworkId].length === 0)
+                delete $scope.selectedDevices[parent.homeworkId];
+        });
+    });
+});
+client._app.controller("DeviceController", function($scope) {
+    client._requestDevices();
     $scope.modalBack = function() {
         delete $scope.currentDeviceController;
         window.history.back();
@@ -216,7 +330,7 @@ function changeEntry(href)
 
 function changeDevice(href)
 {
-    var scope = $("#devices").scope();
+    var scope = $("#app").scope();
     scope.currentDevice = scope.devices[href];
     scope.$apply();
     $("#deviceModal").modal();
@@ -242,6 +356,16 @@ function configure(href)
     client._sendConfigure(href);
 }
 
+function addScene()
+{
+    $("#addSceneModal").modal();
+    var scope = $("#addSceneModal").scope();
+    scope.selectedDevices = Object.create(null);
+    scope.addState = "AddScene";
+    scope.addButtonName = "Next";
+    scope.$apply();
+}
+
 $(document).on("hidden.bs.modal", "#deviceModal", function() {
     var scope = $("#devices").scope();
     delete scope.currentDeviceController;
@@ -251,6 +375,9 @@ $(document).on("hidden.bs.modal", "#deviceModal", function() {
     window.location.hash = "";
 });
 
+$(document).on("hidden.bs.modal", "#addSceneModal", function() {
+    window.location.hash = "#entry-Scenes";
+});
 
 window.location.hash = "";
 window.onhashchange = function() {
@@ -272,6 +399,10 @@ window.onhashchange = function() {
         break;
     case "configure":
         configure(href);
+        break;
+    case "scene":
+        if (href === "Add")
+            addScene();
         break;
     }
 };
