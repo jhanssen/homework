@@ -16,17 +16,33 @@ function sendDevices(ws)
     ws.send(JSON.stringify({ what: "devices", data: devices }));
 }
 
+function sendState(ws)
+{
+    ws.send(JSON.stringify({ what: "state", data: { state: zwave.state } }));
+}
+
 homework._handlers = {
-    "set": function(ws, msg) {
+    set: function(ws, msg) {
         if (!(msg.id in ctrls)) {
             console.log("set: no such id", msg);
             return;
         }
         ctrls[msg.id].value = msg.value;
     },
-    "request": function(ws, msg) {
+    request: function(ws, msg) {
         if (msg === "devices") {
             sendDevices(ws);
+        } else if (msg === "state") {
+            sendState(ws);
+        }
+    },
+    configure: function(ws, msg) {
+        switch (msg) {
+        case "AddDevice":
+        case "RemoveDevice":
+        case "StopDevice":
+            zwave.configureController(msg);
+            break;
         }
     }
 };
@@ -119,6 +135,12 @@ zwave.on("deviceAdded", function(dev) {
     });
 
     devices[dev.identifier] = dev;
+});
+
+zwave.on("stateChanged", function(newState, oldState, err) {
+    for (var i = 0; i < conns.length; ++i) {
+        conns[i].send(JSON.stringify({ what: "state", data: { state: newState, oldState: oldState, err: err } }));
+    }
 });
 
 homework.start = function()

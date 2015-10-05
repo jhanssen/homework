@@ -1,6 +1,6 @@
 /*global module,require*/
 
-var zwave = { _ons: Object.create(null), devices: Object.create(null), _started: false };
+var zwave = { _ons: Object.create(null), devices: Object.create(null), _started: false, _state: "Normal" };
 
 var devs = require("../common/devices");
 var _ozw = require("openzwave-shared");
@@ -14,6 +14,10 @@ zwave.on = function(name, cb)
         zwave._ons[name].push(cb);
     }
 };
+
+Object.defineProperty(zwave, "state", {
+    get: function() { return this._state; }
+});
 
 zwave.start = function()
 {
@@ -76,6 +80,19 @@ zwave.updateValue = function(value)
     }
 };
 
+zwave.configureController = function(cfg)
+{
+    if (cfg === "StopDevice") {
+        if (zwave._state === "Waiting")
+            _zwave.cancelControllerCommand();
+        return;
+    }
+
+    if (zwave._state === "Waiting")
+        _zwave.cancelControllerCommand();
+    _zwave.beginControllerCommand(cfg);
+};
+
 console.log("hello");
 
 _zwave.on('node ready', function(nodeid, nodeinfo) {
@@ -100,6 +117,18 @@ _zwave.on('value changed', function(nodeid, commandclass, value){
 _zwave.on('value refreshed', function(nodeid, commandclass, value){
     //console.log('value refreshed', nodeid, commandclass, value);
     zwave.updateValue(value);
+});
+_zwave.on('controller command', function(state, err){
+    var states = ["Normal", "Starting", "Cancel", "Error", "Waiting", "Sleeping",
+                  "InProgress", "Completed", "Failed", "NodeOk", "NodeFailed"];
+    var errs = ["None", "ButtonNotFound", "NodeNotFound", "NotBridge", "NotSUC", "NotSecondary",
+                "NotPrimary", "IsPrimary", "NotFound", "Busy", "Failed", "Disabled", "Overflow"];
+
+    zwave._call("stateChanged", states[state], zwave._state, errs[err]);
+    zwave._state = states[state];
+});
+_zwave.on('notification', function(nodeid, notif){
+    console.log('notif', nodeid, notif);
 });
 
 zwave.start = function()

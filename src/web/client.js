@@ -3,7 +3,7 @@
 var client = { _devices: Object.create(null) };
 
 client._handlers = {
-    "devices": function(msg) {
+    devices: function(msg) {
         for (var k in msg) {
             var obj = msg[k];
             var dev = new client._ctors.Device(obj._id, obj._node);
@@ -23,6 +23,13 @@ client._handlers = {
         var scope = $("#devices").scope();
         scope.devices = client._devices;
         scope.$apply();
+    },
+    state: function(msg)
+    {
+        console.log(msg);
+        var scope = $("#configure").scope();
+        scope.state = msg.state;
+        scope.$apply();
     }
 };
 
@@ -39,6 +46,18 @@ client._requestDevices = function()
 {
     if (client._conn)
         client._conn.send(JSON.stringify({ what: "request", data: "devices" }));
+};
+
+client._requestState = function()
+{
+    if (client._conn)
+        client._conn.send(JSON.stringify({ what: "request", data: "state" }));
+};
+
+client._sendConfigure = function(cfg)
+{
+    if (client._conn)
+        client._conn.send(JSON.stringify({ what: "configure", data: cfg }));
 };
 
 client.start = function()
@@ -90,7 +109,7 @@ client.start = function()
 
 client._app = angular.module('homework', ['ui.bootstrap', 'frapontillo.bootstrap-switch', 'nya.bootstrap.select']);
 client._app.controller("AppController", function($scope) {
-    $scope.entries = {Devices: true, Scenes: false};
+    $scope.entries = {Devices: true, Scenes: false, Configure: false};
 });
 client._app.controller("DeviceController", function($scope) {
     client._requestDevices();
@@ -132,6 +151,9 @@ client._app.controller("DeviceController", function($scope) {
 client._app.controller("MainController", function($scope) {
     $scope.$parent.text = "abc";
     $scope.$parent.mainScope = $scope;
+});
+client._app.controller("ConfigController", function($scope) {
+    client._requestState();
 });
 client._app.directive('compileTemplate', function($compile, $parse){
     return {
@@ -204,6 +226,11 @@ function changeDeviceController(href)
     }
 }
 
+function configure(href)
+{
+    client._sendConfigure(href);
+}
+
 $(document).on("hidden.bs.modal", "#deviceModal", function() {
     var scope = $("#devices").scope();
     delete scope.currentDeviceController;
@@ -231,6 +258,9 @@ window.onhashchange = function() {
         break;
     case "deviceController":
         changeDeviceController(href);
+        break;
+    case "configure":
+        configure(href);
         break;
     }
 };

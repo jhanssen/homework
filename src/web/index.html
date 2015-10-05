@@ -101,5 +101,28 @@
     <div ng-if="entries.Scenes">
       Hello
     </div>
-  </body>
+
+    <div ng-if="entries.Configure" id="configure" ng-controller="ConfigController">
+      <div class="container">
+	<div class="starter-template">
+	  <div class="row">
+	    <div class="col-md-2">
+	      <a class="btn btn-primary homework-btn-height" href="#configure-AddDevice">Add device</a>
+	    </div>
+	    <div class="col-md-2">
+	      <a class="btn btn-primary homework-btn-height" href="#configure-RemoveDevice">Remove device</a>
+	    </div>
+	    <div class="col-md-2">
+	      <a class="btn btn-danger homework-btn-height" href="#configure-StopDevice">Stop add/remove</a>
+	    </div>
+	  </div>
+	  <div class="row">
+	    <div class="col-md-16">
+	      <h2 class="text-primary">
+		{{state}}
+	      </h2>
+	    </div>
+	</div>
+    </div>
+</body>
 </html>

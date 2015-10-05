@@ -6,3 +6,4 @@ body {
   text-align: center;
 }
 .bootstrap-switch { height: 2.5em }
+.homework-btn-height { height: 4em; display: flex; justify-content: center; align-items: center }
