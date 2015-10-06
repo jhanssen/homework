@@ -47,6 +47,7 @@ zwave.addValue = function(nodeid, value)
 {
     if (value.genre !== "user")
         return;
+    console.log("adding", value.value_id, "to", nodeid);
     if (!(nodeid in zwave.devices)) {
         zwave.devices[nodeid] = new devs.Device(nodeid);
         zwave._call("deviceAdded", zwave.devices[nodeid]);
@@ -55,6 +56,7 @@ zwave.addValue = function(nodeid, value)
     var ctrl = new devs.Controller(value);
     ctrl._setValue = function(v)
     {
+        console.log("setvalue", v);
         _zwave.setValue(this._value.node_id,
                         this._value.class_id,
                         this._value.instance,
@@ -72,8 +74,7 @@ zwave.updateValue = function(value)
     var node = zwave.devices[value.node_id];
     for (var i = 0; i < node.controllers.length; ++i) {
         var ctrl = node.controllers[i];
-        if (ctrl.nodeid === value.node_id &&
-            ctrl.classid === value.class_id) {
+        if (ctrl.identifier === value.value_id) {
             node.controllers[i]._update(value);
             break;
         }
@@ -106,7 +107,7 @@ _zwave.on('node naming', function(nodeid, nodeinfo) {
     zwave.addDevice(nodeid, nodeinfo);
 });
 _zwave.on('value added', function(nodeid, commandclass, value){
-    //console.log('value added', nodeid, commandclass, value);
+    // console.log('value added', nodeid, commandclass, value);
 
     zwave.addValue(nodeid, value);
 });

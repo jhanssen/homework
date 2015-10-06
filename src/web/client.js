@@ -16,6 +16,7 @@ client._handlers = {
         for (var k in msg) {
             var obj = msg[k];
             var dev = new client._ctors.Device(obj._id, obj._node);
+            console.log(obj);
             for (var l in obj.controllers) {
                 var sub = obj.controllers[l];
                 var ctrl = new client._ctors.Controller(sub._value);
@@ -52,15 +53,23 @@ client._handlers = {
                 }
             }
         }
+    },
+    scenes: function(msg)
+    {
+        var scope = $("#scenes").scope();
+        scope.scenes = msg;
+        scope.$apply();
     }
 };
 
 client._addScene = function(name, ctrls)
 {
-    var values = {};
+    var values = Object.create(null);
     for (var i = 0; i < ctrls.length; ++i) {
         var ctrl = ctrls[i];
-        values[ctrl.identifier] = ctrl.value;
+        if (!(ctrl.nodeid in values))
+            values[ctrl.nodeid] = {};
+        values[ctrl.nodeid][ctrl.identifier] = ctrl.value;
     }
     if (client._conn)
         client._conn.send(JSON.stringify({ what: "addScene", data: { name: name, ctrls: values } }));
@@ -95,6 +104,12 @@ client._requestDevices = function(cb)
     }
 };
 
+client._requestScenes = function()
+{
+    if (client._conn)
+        client._conn.send(JSON.stringify({ what: "request", data: "scenes" }));
+};
+
 client._requestState = function()
 {
     if (client._conn)
@@ -105,6 +120,12 @@ client._sendConfigure = function(cfg)
 {
     if (client._conn)
         client._conn.send(JSON.stringify({ what: "configure", data: cfg }));
+};
+
+client._sendSceneToggle = function(scene)
+{
+    if (client._conn)
+        client._conn.send(JSON.stringify({ what: "toggleScene", data: scene }));
 };
 
 client.start = function()
@@ -189,6 +210,7 @@ client._app.controller("AppController", function($scope) {
     };
 });
 client._app.controller("ScenesController", function($scope) {
+    client._requestScenes();
 });
 client._app.controller("AddSceneController", function($scope) {
     console.log($scope);
@@ -356,6 +378,11 @@ function configure(href)
     client._sendConfigure(href);
 }
 
+function toggleScene(href)
+{
+    client._sendSceneToggle(href);
+}
+
 function addScene()
 {
     $("#addSceneModal").modal();
@@ -403,6 +430,8 @@ window.onhashchange = function() {
     case "scene":
         if (href === "Add")
             addScene();
+        else
+            toggleScene(href);
         break;
     }
 };

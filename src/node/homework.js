@@ -6,6 +6,10 @@ var homework = { _ons: Object.create(null) };
 var zwave = require("./zwave");
 var devices = Object.create(null);
 var ctrls = Object.create(null);
+var store = require("jfs");
+var fs = require("fs");
+var db = new store("data");
+var scenes = {};
 
 var WebSocketServer = require('ws').Server,
     wss = new WebSocketServer({port: 8087}),
@@ -21,6 +25,11 @@ function sendState(ws)
     ws.send(JSON.stringify({ what: "state", data: { state: zwave.state } }));
 }
 
+function sendScenes(ws)
+{
+    ws.send(JSON.stringify({ what: "scenes", data: scenes }));
+}
+
 homework._handlers = {
     set: function(ws, msg) {
         if (!(msg.id in ctrls)) {
@@ -34,6 +43,8 @@ homework._handlers = {
             sendDevices(ws);
         } else if (msg === "state") {
             sendState(ws);
+        } else if (msg === "scenes") {
+            sendScenes(ws);
         }
     },
     configure: function(ws, msg) {
@@ -43,6 +54,48 @@ homework._handlers = {
         case "StopDevice":
             zwave.configureController(msg);
             break;
+        }
+    },
+    addScene: function(ws, msg) {
+        var name = msg.name;
+        db.save("scene-" + name, msg, function(err) {
+            //console.log(err);
+            if (!err) {
+                scenes[msg.name] = msg;
+                homework._updateScenes();
+            }
+        });
+    },
+    toggleScene: function(ws, msg) {
+        var name = msg;
+        if (!(name in scenes)) {
+            console.log("no such scene", name);
+            return;
+        }
+        var scene = scenes[name];
+        console.log(scene);
+        for (var devid in scene.ctrls) {
+            var dev = devices["zw:" + devid];
+            if (!dev) {
+                console.log("no such device", devid);
+                continue;
+            }
+            var values = scene.ctrls[devid];
+            for (var valueid in values) {
+                var value = values[valueid];
+                // find the value
+                var found = false;
+                for (var cidx = 0; cidx < dev.controllers.length; ++cidx) {
+                    if (dev.controllers[cidx].identifier === valueid) {
+                        dev.controllers[cidx].value = value;
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    console.log("value not found", valueid, "in", devid);
+                }
+            }
         }
     }
 };
@@ -128,6 +181,47 @@ function sendToAll(obj)
     }
 }
 
+homework._updateScenes = function()
+{
+    sendToAll({ what: "scenes", data: scenes});
+};
+
+homework._restore = function()
+{
+    fs.readdir("data", function(err, files) {
+        if (err) {
+            console.log("error restoring", err);
+            return;
+        }
+        for (var i = 0; i < files.length; ++i) {
+            var fn = files[i];
+            var idx = fn.indexOf("-");
+            if (idx === -1)
+                continue;
+            var type = fn.substr(0, idx);
+            idx = fn.lastIndexOf(".");
+            if (idx === -1)
+                continue;
+            var ext = fn.substr(idx);
+            if (ext !== ".json")
+                continue;
+            fn = fn.substr(0, idx);
+            db.get(fn, function(err, obj) {
+                if (err) {
+                    console.log("error restoring fn", fn, err);
+                    return;
+                }
+                switch (type) {
+                case "scene":
+                    scenes[obj.name] = obj;
+                    homework._updateScenes();
+                    break;
+                }
+            });
+        }
+    });
+};
+
 zwave.on("deviceAdded", function(dev) {
     console.log("new device", dev);
 
@@ -153,6 +247,8 @@ zwave.on("stateChanged", function(newState, oldState, err) {
 homework.start = function()
 {
     zwave.start();
+
+    homework._restore();
 };
 
 homework.start();
