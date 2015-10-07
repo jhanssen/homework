@@ -105,10 +105,12 @@
 	  <div class="Grid Grid-center">
 	    <h1 class="Grid-cell-center">Scenes</h1>
 	    <a class="Grid-cell-center" href="#scene-Add"><span class="glyphicon glyphicon-plus"></span></a>
+	    &nbsp;
+	    <a class="Grid-cell-center" href="#scene-Remove"><span class="glyphicon glyphicon-minus"></span></a>
 	  </div>
 	  <div class="Grid">
 	    <div class="Grid-cell Grid-cell-pad" ng-repeat="(name, devices) in scenes">
-	      <a class="btn btn-primary homework-btn-height" href="#scene-{{name}}">{{name}}</a>
+	      <a class="btn homework-btn-height" ng-class="removing ? 'btn-danger' : 'btn-primary'" href="#scene{{(removing ? 'Remove-' : '-') + name}}">{{name}}</a>
 	    </div>
 	  </div>
 	</div>

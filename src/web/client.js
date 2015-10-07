@@ -128,6 +128,12 @@ client._sendSceneToggle = function(scene)
         client._conn.send(JSON.stringify({ what: "toggleScene", data: scene }));
 };
 
+client._sendSceneRemove = function(scene)
+{
+    if (client._conn)
+        client._conn.send(JSON.stringify({ what: "removeScene", data: scene }));
+};
+
 client.start = function()
 {
     R("./devices", function(err, devices) {
@@ -211,6 +217,7 @@ client._app.controller("AppController", function($scope) {
 });
 client._app.controller("ScenesController", function($scope) {
     client._requestScenes();
+    $scope.removing = false;
 });
 client._app.controller("AddSceneController", function($scope) {
     console.log($scope);
@@ -378,9 +385,28 @@ function configure(href)
     client._sendConfigure(href);
 }
 
+function sceneRemove(href)
+{
+    var scope = $("#scenes").scope();
+    if (scope.removing) {
+        var really = confirm("Really remove?");
+        if (really)
+            client._sendSceneRemove(href);
+        scope.removing = false;
+        scope.$apply();
+    }
+}
+
 function toggleScene(href)
 {
     client._sendSceneToggle(href);
+}
+
+function toggleRemoveScene()
+{
+    var scope = $("#scenes").scope();
+    scope.removing = !scope.removing;
+    scope.$apply();
 }
 
 function addScene()
@@ -428,10 +454,16 @@ window.onhashchange = function() {
         configure(href);
         break;
     case "scene":
-        if (href === "Add")
+        if (href === "Add") {
             addScene();
-        else
+        } else if (href === "Remove") {
+            toggleRemoveScene();
+        } else {
             toggleScene(href);
+        }
+        break;
+    case "sceneRemove":
+        sceneRemove(href);
         break;
     }
 };

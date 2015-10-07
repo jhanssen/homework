@@ -66,6 +66,15 @@ homework._handlers = {
             }
         });
     },
+    removeScene: function(ws, msg) {
+        var name = msg;
+        db.delete("scene-" + name, function(err) {
+            if (!err) {
+                delete scenes[name];
+                homework._updateScenes();
+            }
+        });
+    },
     toggleScene: function(ws, msg) {
         var name = msg;
         if (!(name in scenes)) {
