@@ -326,7 +326,7 @@ client._app.controller("AddRuleController", function($scope) {
         matchBrackets: true,
         styleActiveLine: true,
         styleSelectedText: true,
-        theme: "3024-day",
+        theme: "solarized light",
         mode: "text/javascript"
     };
     $scope.code = "";
