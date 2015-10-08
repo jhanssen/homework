@@ -116,6 +116,12 @@ client._requestState = function()
         client._conn.send(JSON.stringify({ what: "request", data: "state" }));
 };
 
+client._requestRules = function()
+{
+    if (client._conn)
+        client._conn.send(JSON.stringify({ what: "request", data: "rules" }));
+};
+
 client._sendConfigure = function(cfg)
 {
     if (client._conn)
@@ -181,9 +187,9 @@ client.start = function()
     // client._observer.observe(document.body, { childList: true, subtree: true });
 };
 
-client._app = angular.module('homework', ['ui.bootstrap', 'frapontillo.bootstrap-switch', 'nya.bootstrap.select']);
+client._app = angular.module('homework', ['ui.bootstrap', 'frapontillo.bootstrap-switch', 'nya.bootstrap.select', 'ui.codemirror']);
 client._app.controller("AppController", function($scope) {
-    $scope.entries = {Devices: true, Scenes: false, Configure: false};
+    $scope.entries = {Devices: true, Scenes: false, Rules: false, Configure: false};
     $scope.controllerBody = function(controller, name) {
         var ret, alts, i;
         if (controller.readOnly) {
@@ -309,6 +315,26 @@ client._app.controller("MainController", function($scope) {
 client._app.controller("ConfigController", function($scope) {
     client._requestState();
 });
+client._app.controller("RulesController", function($scope) {
+    client._requestRules();
+});
+client._app.controller("AddRuleController", function($scope) {
+    $scope.ruleName = "";
+    $scope.editorOptions = {
+        lineWrapping: true,
+        lineNumbers: true,
+        matchBrackets: true,
+        styleActiveLine: true,
+        styleSelectedText: true,
+        theme: "3024-day",
+        mode: "text/javascript"
+    };
+    $scope.code = "";
+    $scope.saveRule = function() {
+        console.log("saving", $scope.ruleName, $scope.code);
+        $("#addRuleModal").modal("hide");
+    };
+});
 client._app.directive('compileTemplate', function($compile, $parse){
     return {
         link: function(scope, element, attr){
@@ -419,6 +445,16 @@ function addScene()
     scope.$apply();
 }
 
+function addRule()
+{
+    $("#addRuleModal").modal();
+    // var scope = $("#addSceneModal").scope();
+    // scope.selectedDevices = Object.create(null);
+    // scope.addState = "AddScene";
+    // scope.addButtonName = "Next";
+    // scope.$apply();
+}
+
 $(document).on("hidden.bs.modal", "#deviceModal", function() {
     var scope = $("#devices").scope();
     delete scope.currentDeviceController;
@@ -430,6 +466,19 @@ $(document).on("hidden.bs.modal", "#deviceModal", function() {
 
 $(document).on("hidden.bs.modal", "#addSceneModal", function() {
     window.location.hash = "#entry-Scenes";
+});
+
+$(document).on("hidden.bs.modal", "#addRuleModal", function() {
+    window.location.hash = "#entry-Rules";
+});
+
+$(document).on("shown.bs.modal", "#addRuleModal", function() {
+    // geh
+    var sizer = $("div.CodeMirror-sizer");
+    if (sizer.length !== 1)
+        return;
+    if (sizer[0].style.marginLeft === "0px")
+        sizer[0].style.marginLeft = "29px";
 });
 
 window.location.hash = "";
@@ -460,6 +509,11 @@ window.onhashchange = function() {
             toggleRemoveScene();
         } else {
             toggleScene(href);
+        }
+        break;
+    case "rule":
+        if (href === "Add") {
+            addRule();
         }
         break;
     case "sceneRemove":

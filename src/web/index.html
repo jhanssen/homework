@@ -11,6 +11,8 @@
     <link rel="stylesheet" type="text/css" href="bower_components/bootstrap/dist/css/bootstrap-theme.min.css">
     <link rel="stylesheet" type="text/css" href="bower_components/bootstrap-switch/dist/css/bootstrap3/bootstrap-switch.min.css">
     <link rel="stylesheet" type="text/css" href="bower_components/nya-bootstrap-select/dist/css/nya-bs-select.min.css">
+    <link rel="stylesheet" href="bower_components/codemirror/lib/codemirror.css"/>
+    <link rel="stylesheet" href="bower_components/codemirror/theme/3024-day.css"/>
     <link rel="stylesheet" type="text/css" href="index.css">
     <script src="bower_components/jquery/dist/jquery.min.js"></script>
     <script src="bower_components/angular/angular.min.js"></script>
@@ -20,6 +22,13 @@
     <script src="bower_components/angular-bootstrap-switch/dist/angular-bootstrap-switch.min.js"></script>
     <script src="bower_components/nya-bootstrap-select/dist/js/nya-bs-select.min.js"></script>
     <script src="bower_components/bootstrap-treeview/dist/bootstrap-treeview.min.js"></script>
+    <script src="bower_components/codemirror/lib/codemirror.js"></script>
+    <script src="bower_components/angular-ui-codemirror/ui-codemirror.js"></script>
+    <script src="bower_components/codemirror/mode/javascript/javascript.js"></script>
+    <script src="bower_components/codemirror/addon/edit/matchbrackets.js"></script>
+    <script src="bower_components/codemirror/addon/selection/active-line.js"></script>
+    <script src="bower_components/codemirror/addon/selection/mark-selection.js"></script>
+    <script src="bower_components/codemirror/keymap/emacs.js"></script>
     <script src="require1k/require1k.min.js"></script>
     <script src="client.js"></script>
   </head>
@@ -130,7 +139,7 @@
 	      <div ng-controller="AddSceneSub2Controller">
 		<div class="Grid">
 		  <div class="Grid-cell">Name</div>
-		  <input type="text" class="Grid-cell" ng-model="$parent.$parent.sceneName"></input>
+		  <input type="text" class="Grid-cell" ng-model="$parent.$parent.sceneName">
 		</div>
 		<div class="Grid" ng-repeat="ctrl in $parent.selectedControllers">
 		  <div class="Grid-cell">
@@ -170,7 +179,47 @@
 		State {{state}}
 	      </h2>
 	    </div>
+	  </div>
 	</div>
+      </div>
     </div>
-</body>
+
+    <div ng-if="entries.Rules" id="rules" ng-controller="RulesController">
+      <div class="container">
+	<div class="starter-template">
+	  <div class="Grid Grid-center">
+	    <h1 class="Grid-cell-center">Rules</h1>
+	    <a class="Grid-cell-center" href="#rule-Add"><span class="glyphicon glyphicon-plus"></span></a>
+	  </div>
+	</div>
+      </div>
+
+      <div class="modal fade" id="addRuleModal" ng-controller="AddRuleController">
+	<div class="modal-dialog">
+	  <div class="modal-content">
+	    <div class="modal-header">
+	      <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+	      <h4 class="modal-title">Add rule</h4>
+	    </div>
+	    <div class="modal-body">
+	      <div class="Grid">
+		<div class="Grid-cell">Name</div>
+		<input type="text" class="Grid-cell" ng-model="ruleName">
+	      </div>
+	      <div class="Grid">
+		<div class="Grid-cell">
+		  <textarea id="cm-field" class="" ui-codemirror="editorOptions" ng-model="code"></textarea>
+		</div>
+	      </div>
+	    </div>
+	    <div class="modal-footer">
+	      <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+	      <button type="button" class="btn btn-primary" ng-click="saveRule()">Save</button>
+	    </div>
+	  </div><!-- /.modal-content -->
+	</div>
+      </div>
+
+    </div>
+  </body>
 </html>
