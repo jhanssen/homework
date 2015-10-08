@@ -59,6 +59,12 @@ client._handlers = {
         var scope = $("#scenes").scope();
         scope.scenes = msg;
         scope.$apply();
+    },
+    rules: function(msg)
+    {
+        var scope = $("#rules").scope();
+        scope.rules = msg;
+        scope.$apply();
     }
 };
 
@@ -120,6 +126,12 @@ client._requestRules = function()
 {
     if (client._conn)
         client._conn.send(JSON.stringify({ what: "request", data: "rules" }));
+};
+
+client._addRule = function(name, code)
+{
+    if (client._conn)
+        client._conn.send(JSON.stringify({ what: "addRule", data: { name: name, code: code }}));
 };
 
 client._sendConfigure = function(cfg)
@@ -331,7 +343,11 @@ client._app.controller("AddRuleController", function($scope) {
     };
     $scope.code = "";
     $scope.saveRule = function() {
-        console.log("saving", $scope.ruleName, $scope.code);
+        if ($scope.ruleName === "" || $scope.code === "") {
+            alert("Need to fill in name and code");
+            return;
+        }
+        client._addRule($scope.ruleName, $scope.code);
         $("#addRuleModal").modal("hide");
     };
 });

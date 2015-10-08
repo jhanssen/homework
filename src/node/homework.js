@@ -10,6 +10,34 @@ var store = require("jfs");
 var fs = require("fs");
 var db = new store("data");
 var scenes = {};
+var rules = {
+    on: function(msg, cb) {
+        if (!(msg in rules._ons))
+            rules._ons[msg] = [];
+        rules._ons[msg].push(cb);
+    },
+    remove: function(msg, cb) {
+        if (!(msg in rules._ons))
+            return;
+        var ons = rules._ons[msg];
+        for (var i = 0; i < ons.length; ++i) {
+            if (ons[i] === cb) {
+                rules._ons.splice(i, 1);
+                return;
+            }
+        }
+    },
+    _call: function(msg, arg) {
+        if (!(msg in rules._ons))
+            return;
+        var ons = rules._ons[msg];
+        for (var i = 0; i < ons.length; ++i) {
+            ons[i](arg);
+        }
+    },
+    _ons: Object.create(null),
+    _rules: Object.create(null)
+};
 
 var WebSocketServer = require('ws').Server,
     wss = new WebSocketServer({port: 8087}),
@@ -30,6 +58,11 @@ function sendScenes(ws)
     ws.send(JSON.stringify({ what: "scenes", data: scenes }));
 }
 
+function sendRules(ws)
+{
+    ws.send(JSON.stringify({ what: "rules", data: rules._rules }));
+}
+
 homework._handlers = {
     set: function(ws, msg) {
         if (!(msg.id in ctrls)) {
@@ -45,6 +78,8 @@ homework._handlers = {
             sendState(ws);
         } else if (msg === "scenes") {
             sendScenes(ws);
+        } else if (msg === "rules") {
+            sendRules(ws);
         }
     },
     configure: function(ws, msg) {
@@ -72,6 +107,28 @@ homework._handlers = {
             if (!err) {
                 delete scenes[name];
                 homework._updateScenes();
+            }
+        });
+    },
+    addRule: function(ws, msg) {
+        var name = msg.name;
+        msg.code = "(function() {" + msg.code + "})()";
+        db.save("rule-" + name, msg, function(err) {
+            //console.log(err);
+            if (!err) {
+                rules._rules[msg.name] = msg;
+                eval(msg.code);
+                homework._updateRules();
+            }
+        });
+    },
+    removeRule: function(ws, msg) {
+        var name = msg;
+        db.delete("rule-" + name, function(err) {
+            if (!err) {
+                rules._call("remove", name);
+                delete rules._rules[name];
+                homework._updateRules();
             }
         });
     },
@@ -192,7 +249,12 @@ function sendToAll(obj)
 
 homework._updateScenes = function()
 {
-    sendToAll({ what: "scenes", data: scenes});
+    sendToAll({ what: "scenes", data: scenes });
+};
+
+homework._updateRules = function()
+{
+    sendToAll({ what: "rules", data: rules._rules });
 };
 
 homework._restore = function()
@@ -224,6 +286,11 @@ homework._restore = function()
                 case "scene":
                     scenes[obj.name] = obj;
                     homework._updateScenes();
+                    break;
+                case "rule":
+                    rules._rules[obj.name] = obj;
+                    eval(obj.code);
+                    homework._updateRules();
                     break;
                 }
             });
