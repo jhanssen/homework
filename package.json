@@ -3,10 +3,11 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "start": "node ./node/homework.js"
+    "start": "node ./src/homework.js"
   },
   "dependencies": {
     "ws": "*",
-    "jfs": "*"
+    "jfs": "*",
+    "sugar": "*"
   }
 }
