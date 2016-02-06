@@ -1,3 +1,0 @@
-[submodule "src/web/require1k"]
-	path = src/web/require1k
-	url = https://github.com/Stuk/require1k.git

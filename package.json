@@ -6,8 +6,6 @@
     "start": "node ./node/homework.js"
   },
   "dependencies": {
-    "nan": "*",
-    "openzwave-shared": "~1.0.9",
     "ws": "*",
     "jfs": "*"
   }
