@@ -1,10 +1,12 @@
 /*global require,process*/
 require("sugar");
 
+const Config = require("./config.js");
 const Device = require("./device.js");
 const Console = require("./console.js");
 const WebSocket = require("./websocket.js");
 const Rule = require("./rule.js");
+const Modules = require("./modules.js");
 const db = require("jsonfile");
 
 const homework = {
@@ -13,6 +15,7 @@ const homework = {
     _devices: [],
     _rules: [],
     _pendingRules: [],
+    _cfg: undefined,
 
     registerEvent: function(name, ctor, completion, deserialize) {
         if (name in this._events)
@@ -53,6 +56,9 @@ const homework = {
     get rules() {
         return this._rules;
     },
+    get config() {
+        return this._cfg;
+    },
 
     save: function() {
         var rules = [], i;
@@ -76,6 +82,11 @@ const homework = {
                     console.error("error loading rules", err);
             }
         });
+        Config.load(this, () => {
+            Device.init(this);
+            WebSocket.init(this);
+            Modules.init(this);
+        });
     },
     loadRules: function() {
         this._pendingRules = this._pendingRules.filter((rule) => {
@@ -92,15 +103,12 @@ const homework = {
     utils: require("./utils.js")
 };
 
-Device.init(homework);
-
 Console.init(homework);
 Console.on("shutdown", () => {
     homework.save();
     process.exit();
 });
 
-WebSocket.init(homework);
 homework.restore();
 
 // fake device
