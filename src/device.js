@@ -29,16 +29,18 @@ Device.prototype = {
     }
 };
 
-Device.Value = function(name, values)
+Device.Value = function(name, values, range)
 {
     this._name = name;
     this._values = values;
+    this._range = range;
 };
 
 Device.Value.prototype = {
     _name: undefined,
     _value: undefined,
     _values: undefined,
+    _range: undefined,
     _valueUpdated: undefined,
 
     get name() {
@@ -46,6 +48,9 @@ Device.Value.prototype = {
     },
     get values() {
         return this._values;
+    },
+    get range() {
+        return this._range;
     },
     get value() {
         // see if our value maps to one of our values

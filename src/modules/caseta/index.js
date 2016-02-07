@@ -70,7 +70,7 @@ const caseta = {
         for (var id in this._devices) {
             var dev = this._devices[id];
             var hwdev = new this._homework.Device(fullName(dev));
-            var hwval = new this._homework.Device.Value("level", { off: 0, on: 100 });
+            var hwval = new this._homework.Device.Value("level", { off: 0, on: 100 }, [0, 100]);
             var data = {
                 integrationid: id,
                 functions: functions[dev.type],
