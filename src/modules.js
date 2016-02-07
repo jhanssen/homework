@@ -27,7 +27,7 @@ const modules = {
             }
             var total = files.length;
             var dirs = [];
-            var done = () => {
+            const done = () => {
                 for (var i = 0; i < dirs.length; ++i) {
                     this._loadModule(dirs[i]);
                 }
