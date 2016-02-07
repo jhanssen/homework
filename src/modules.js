@@ -62,7 +62,6 @@ const modules = {
                 }.bind(this, file, files[i]));
             }
         });
-        console.log(modules);
     }
 };
 
