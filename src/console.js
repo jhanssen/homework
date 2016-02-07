@@ -324,6 +324,18 @@ Console.init = function(homework)
     rl.prompt();
 };
 
+Console.log = function()
+{
+    console.log.apply(console, arguments);
+    rl.prompt();
+};
+
+Console.error = function()
+{
+    console.error.apply(console, arguments);
+    rl.prompt();
+};
+
 Console.on = data.on;
 
 module.exports = Console;

@@ -55,11 +55,15 @@ const homework = {
     },
 
     save: function() {
-        var rules = [];
-        for (var i = 0; i < this._rules.length; ++i) {
+        var rules = [], i;
+        for (i = 0; i < this._rules.length; ++i) {
             rules.push(this._rules[i].serialize());
         }
-        console.log(rules);
+        // merge with pendingRules if we still have any
+        for (i = 0; i < this._pendingRules.length; ++i) {
+            rules.push(this._pendingRules[i]);
+        }
+        Console.log(rules);
         db.writeFileSync("rules.json", rules);
     },
     restore: function() {
@@ -76,6 +80,7 @@ const homework = {
         this._pendingRules = this._pendingRules.filter(function(rule) {
             var r = Rule.Deserialize(homework, rule);
             if (r) {
+                Console.log("restored rule", r.name);
                 homework.addRule(r);
                 return false;
             }
