@@ -63,11 +63,10 @@ Rule.prototype = {
         var as = [].slice.apply(arguments);
         this._events.push(as);
 
-        var that = this;
         for (var i = 0; i < as.length; ++i) {
             as[i].on("triggered", () => {
-                if (that._check())
-                    that._trigger();
+                if (this._check())
+                    this._trigger();
             });
         }
     },

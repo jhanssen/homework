@@ -102,10 +102,9 @@ Device.Event = function()
         this._value = dev.values[valname];
         this._equals = arguments[2];
 
-        const that = this;
         this._value.on("changed", (v) => {
-            if (that._equals === v)
-                that._emit("triggered");
+            if (this._equals === v)
+                this._emit("triggered");
         });
     } else {
         throw "No device value named " + arguments[1] + " for device " + arguments[0];
