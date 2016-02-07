@@ -14,6 +14,17 @@ const modules = {
         // load modules in module path
         this._loadBuiltins();
     },
+    shutdown: function(cb) {
+        var rem = this._modules.length;
+        for (var i = 0; i < this._modules.length; ++i) {
+            this._modules[i].shutdown(() => {
+                if (!--rem) {
+                    cb();
+                }
+            });
+        }
+    },
+
     get modules() {
         return this._modules;
     },

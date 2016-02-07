@@ -114,7 +114,9 @@ const homework = {
 Console.init(homework);
 Console.on("shutdown", () => {
     homework.save();
-    process.exit();
+    Modules.shutdown(() => {
+        process.exit();
+    });
 });
 
 homework.restore();

@@ -122,6 +122,9 @@ module.exports = {
         connectionOpts = opts;
         connection.connect(opts);
     },
+    close: function() {
+        connection.end();
+    },
     on: function(evt, cb) {
         ons[evt] = cb;
     },

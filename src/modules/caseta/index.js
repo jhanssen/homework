@@ -67,6 +67,10 @@ const caseta = {
         bridge.connect(cfg.connection);
         //Console.log("caseta", cfg);
     },
+    shutdown: function(cb) {
+        bridge.close();
+        cb();
+    },
 
     _create: function() {
         this._created = true;
