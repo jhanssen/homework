@@ -18,7 +18,7 @@ const functions = {
 
 function fullName(dev)
 {
-    return (dev.floor + " " + dev.room + " " + dev.name).replace(/ /g, "_");
+    return (dev.floor + " " + dev.room + " " + dev.name);
 }
 
 function fixup(obj)

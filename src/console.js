@@ -291,14 +291,14 @@ const states = {
                 if (states.device._device === undefined) {
                     // list all devices
                     for (var i = 0; i < devices.length; ++i) {
-                        candidates.push(devices[i].name);
+                        candidates.push(devices[i].name.replace(/ /g, "_"));
                     }
                 } else {
                     candidates.push("back");
                     if (states.device._value === undefined) {
                         // list all values
                         for (var k in states.device._device.values) {
-                            candidates.push(k);
+                            candidates.push(k.replace(/ /g, "_"));
                         }
                     } else {
                         candidates.push("get");
@@ -325,7 +325,7 @@ const states = {
             if (states.device._device === undefined) {
                 // find and set the device
                 for (var i = 0; i < devices.length; ++i) {
-                    if (devices[i].name === elems[0]) {
+                    if (devices[i].name.replace(/ /g, "_") === elems[0]) {
                         states.device._device = devices[i];
                         state = {
                             prompt: "device " + devices[i].name + "> ",
