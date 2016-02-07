@@ -14,9 +14,26 @@ const modules = {
         // load modules in module path
         this._loadBuiltins();
     },
+    get modules() {
+        return this._modules;
+    },
 
     _loadModule: function(module) {
-        console.log("loading module", module);
+        //Console.log("loading module", module);
+        // load index.json with the appropriate config section
+        var idx = module.path + path.sep + "index.js";
+        fs.stat(idx, (err, stat) => {
+            if (!err && (stat.isFile() || stat.isSymbolicLink())) {
+                var m = require(idx);
+                if (typeof m === "object" && "init" in m) {
+                    var cfg = this._homework.config ? this._homework.config[m.section] : {};
+                    m.init(cfg);
+                    this._modules.push(m);
+                } else {
+                    Console.error("unable to load module", module.section);
+                }
+            }
+        });
     },
     _loadBuiltins: function() {
         var modules = path.resolve(__dirname, 'modules');
@@ -36,13 +53,13 @@ const modules = {
                 var file = modules + path.sep + files[i];
                 if (file[0] === ".")
                     continue;
-                fs.stat(file, function(file, err, stat) {
+                fs.stat(file, function(file, section, err, stat) {
                     if (!err && stat.isDirectory()) {
-                        dirs.push(file);
+                        dirs.push({ path: file, section: section });
                     }
                     if (!--total)
                         done();
-                }.bind(this, file));
+                }.bind(this, file, files[i]));
             }
         });
         console.log(modules);
