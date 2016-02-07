@@ -8,6 +8,7 @@
   "dependencies": {
     "ws": "*",
     "jsonfile": "*",
-    "sugar": "*"
+    "sugar": "*",
+    "openzwave-shared": "*"
   }
 }
