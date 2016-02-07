@@ -16,7 +16,6 @@ Rule.prototype = {
 
     and: function() {
         var as = [].slice.apply(arguments);
-        console.log("balls", as);
         this._events.push(as);
 
         var that = this;
@@ -28,7 +27,6 @@ Rule.prototype = {
         }
     },
     then: function() {
-        console.log(arguments);
         this._actions.push.apply(this._actions, arguments);
     },
 

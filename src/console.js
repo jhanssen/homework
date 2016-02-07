@@ -158,12 +158,18 @@ const states = {
                 data.applyState();
                 return;
             }
+            if (elems[0] === "save") {
+                console.log("can only save in state then");
+                return;
+            }
             if (elems[0] in events) {
                 const event = events[elems[0]];
                 elems.splice(0, 1);
                 const created = construct(event.ctor, elems);
                 //console.log("got event", created);
                 states.rule._currentEvent().push(created);
+            } else {
+                console.log("no such event", elems[0]);
             }
         }
     },
@@ -232,6 +238,8 @@ const states = {
                 const created = construct(action.ctor, elems);
                 //console.log("got action", created);
                 states.rule._actions.push(created);
+            } else {
+                console.log("no such action", elems[0]);
             }
         }
     }
@@ -258,11 +266,16 @@ function completer(partial, callback) {
     }
     var hits;
     const what = partial.split(' ');
+    const last = what[what.length - 1];
     if (typeof state.completions === "function")
         hits = state.completions(partial);
-    else
-        hits = state.completions.filter((c) => { return c.indexOf(partial) === 0; });
-    callback(null, [hits, what[what.length - 1]]);
+    else {
+        if (last !== "")
+            hits = state.completions.filter((c) => { return c.indexOf(partial) === 0; });
+        else
+            hits = [];
+    }
+    callback(null, [hits, last]);
 }
 
 function Console()
