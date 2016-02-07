@@ -65,7 +65,7 @@ Rule.prototype = {
 
         var that = this;
         for (var i = 0; i < as.length; ++i) {
-            as[i].on("triggered", function() {
+            as[i].on("triggered", () => {
                 if (that._check())
                     that._trigger();
             });

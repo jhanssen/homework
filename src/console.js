@@ -46,7 +46,7 @@ const states = {
                 data._emit("shutdown");
                 return;
             }
-            var elems = line.split(' ').filter(function(e) { return e.length > 0; });
+            var elems = line.split(' ').filter((e) => { return e.length > 0; });
             switch (elems[0]) {
             case "rule":
                 if (elems.length < 2) {
@@ -140,7 +140,7 @@ const states = {
                     args.splice(0, 1);
                     if (args.length === 1 || (args.length > 1 && args[args.length - 1] !== ""))
                         args.splice(args.length - 1, 1);
-                    var eventcomps = event.completion.apply(null, args).map(function(e) { return e + " "; });
+                    var eventcomps = event.completion.apply(null, args).map((e) => { return e + " "; });
                     if (!(eventcomps instanceof Array))
                         return eventcomps;
                     if (elems.length === 1) {
@@ -154,7 +154,7 @@ const states = {
         },
         apply: function(line) {
             const events = data.homework.events;
-            var elems = line.split(' ').filter(function(e) { return e.length > 0; });
+            var elems = line.split(' ').filter((e) => { return e.length > 0; });
             if (states.rule._currentEvent().length > 0) {
                 if (elems[0] === "and") {
                     states.rule._mode = "event";
@@ -231,7 +231,7 @@ const states = {
                     args.splice(0, 1);
                     if (args.length === 1 || (args.length > 1 && args[args.length - 1] !== ""))
                         args.splice(args.length - 1, 1);
-                    var actioncomps = action.completion.apply(null, args).map(function(e) { return e + " "; });
+                    var actioncomps = action.completion.apply(null, args).map((e) => { return e + " "; });
                     if (!(actioncomps instanceof Array))
                         return actioncomps;
                     if (elems.length === 1) {
@@ -245,7 +245,7 @@ const states = {
         },
         apply: function(line) {
             const actions = data.homework.actions;
-            var elems = line.split(' ').filter(function(e) { return e.length > 0; });
+            var elems = line.split(' ').filter((e) => { return e.length > 0; });
             if (elems[0] === "save") {
                 var rule = new Rule(states.rule._name);
                 rule.then.apply(rule, states.rule._actions);
@@ -312,7 +312,7 @@ const states = {
         },
         apply: function(line) {
             const devices = data.homework.devices;
-            const elems = line ? line.split(' ').filter(function(e) { return e.length > 0; }) : [];
+            const elems = line ? line.split(' ').filter((e) => { return e.length > 0; }) : [];
             var state;
             if (!elems.length)
                 return;

@@ -31,14 +31,14 @@ const homework = {
         this._devices.push(device);
     },
     removeDevice: function(device) {
-        this._devices.remove(function(el) { return Object.is(device, el); });
+        this._devices.remove((el) => { return Object.is(device, el); });
     },
 
     addRule: function(rule) {
         this._rules.push(rule);
     },
     removeRule: function(rule) {
-        this._rules.remove(function(el) { return Object.is(rule, el); });
+        this._rules.remove((el) => { return Object.is(rule, el); });
     },
 
     get events() {
@@ -67,7 +67,7 @@ const homework = {
         db.writeFileSync("rules.json", rules);
     },
     restore: function() {
-        db.readFile("rules.json", function(err, obj) {
+        db.readFile("rules.json", (err, obj) => {
             if (obj) {
                 homework._pendingRules = obj;
                 homework.loadRules();
@@ -78,7 +78,7 @@ const homework = {
         });
     },
     loadRules: function() {
-        this._pendingRules = this._pendingRules.filter(function(rule) {
+        this._pendingRules = this._pendingRules.filter((rule) => {
             var r = Rule.Deserialize(homework, rule);
             if (r) {
                 Console.log("restored rule", r.name);
@@ -95,7 +95,7 @@ const homework = {
 Device.init(homework);
 
 Console.init(homework);
-Console.on("shutdown", function() {
+Console.on("shutdown", () => {
     homework.save();
     process.exit();
 });
@@ -106,7 +106,7 @@ homework.restore();
 // fake device
 var hey = new Device("hey");
 var heyval = new Device.Value("mode", {"on": 1, "off": 2});
-setInterval(function() {
+setInterval(() => {
     if (heyval.value === "on") {
         heyval.update(2);
     } else {

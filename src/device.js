@@ -97,13 +97,13 @@ Device.Event = function()
     this._device = dev;
 
     // find the device value
-    var valname = arguments[1];
+    const valname = arguments[1];
     if (valname in dev.values) {
         this._value = dev.values[valname];
         this._equals = arguments[2];
 
-        var that = this;
-        this._value.on("changed", function(v) {
+        const that = this;
+        this._value.on("changed", (v) => {
             if (that._equals === v)
                 that._emit("triggered");
         });
