@@ -9,6 +9,9 @@ const functions = {
         },
         set: function(integrationid, value) {
             bridge.set("OUTPUT", integrationid, 1, value);
+        },
+        check: function(value) {
+            return value >= 0 && value <= 100;
         }
     }
 };
@@ -71,10 +74,17 @@ const caseta = {
             var data = {
                 integrationid: id,
                 functions: functions[dev.type],
-                value: hwval
+                value: hwval,
+                log: function() {
+                    this._homework.Console.error.apply(null, arguments);
+                }.bind(this)
             };
             hwval._valueUpdated = function() {
-                this.functions.set(this.integrationid, this.value.raw);
+                if (this.functions.check(this.value.raw)) {
+                    this.functions.set(this.integrationid, this.value.raw);
+                } else {
+                    this.log("caseta: value out of range", this.value.raw);
+                }
             }.bind(data);
             hwdev.addValue(hwval);
 
