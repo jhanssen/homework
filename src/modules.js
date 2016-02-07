@@ -26,8 +26,8 @@ const modules = {
             if (!err && (stat.isFile() || stat.isSymbolicLink())) {
                 var m = require(idx);
                 if (typeof m === "object" && "init" in m) {
-                    var cfg = this._homework.config ? this._homework.config[m.section] : {};
-                    m.init(cfg);
+                    var cfg = this._homework.config ? this._homework.config[module.section] : {};
+                    m.init(cfg, this._homework);
                     this._modules.push(m);
                 } else {
                     Console.error("unable to load module", module.section);

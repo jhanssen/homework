@@ -58,6 +58,9 @@ Device.Value.prototype = {
 
         return this._value;
     },
+    get raw() {
+        return this._value;
+    },
     set value(v) {
         // see if this value maps to one of our values
         if (typeof this._values === "object" && v in this._values) {

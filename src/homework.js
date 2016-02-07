@@ -16,6 +16,8 @@ const homework = {
     _rules: [],
     _pendingRules: [],
     _cfg: undefined,
+    _Device: Device,
+    _Console: Console,
 
     registerEvent: function(name, ctor, completion, deserialize) {
         if (name in this._events)
@@ -58,6 +60,12 @@ const homework = {
     },
     get config() {
         return this._cfg;
+    },
+    get Console() {
+        return this._Console;
+    },
+    get Device() {
+        return this._Device;
     },
 
     save: function() {
@@ -111,6 +119,7 @@ Console.on("shutdown", () => {
 
 homework.restore();
 
+/*
 // fake device
 var hey = new Device("hey");
 var heyval = new Device.Value("mode", {"on": 1, "off": 2});
@@ -125,3 +134,4 @@ hey.addValue(heyval);
 
 homework.addDevice(hey);
 homework.loadRules();
+*/

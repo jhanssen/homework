@@ -316,6 +316,12 @@ const states = {
             var state;
             if (!elems.length)
                 return;
+            if (elems[0] === "home") {
+                states.device._clear();
+                data.gotoState(1);
+                data.applyState();
+                return;
+            }
             if (states.device._device === undefined) {
                 // find and set the device
                 for (var i = 0; i < devices.length; ++i) {
@@ -331,12 +337,6 @@ const states = {
                     }
                 }
             } else {
-                if (elems[0] === "home") {
-                    states.device._clear();
-                    data.gotoState(1);
-                    data.applyState();
-                    return;
-                }
                 if (elems[0] === "back") {
                     var ok = false;
                     if (states.device._value !== undefined) {
