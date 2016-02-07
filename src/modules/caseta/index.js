@@ -34,6 +34,8 @@ function fixup(obj)
     return obj;
 }
 
+var Console = undefined;
+
 const caseta = {
     _devices: undefined,
     _created: false,
@@ -44,6 +46,7 @@ const caseta = {
     init: function(cfg, homework) {
         this._devices = fixup(cfg.devices);
         this._homework = homework;
+        Console = homework.Console;
         bridge.on("OUTPUT", (args) => {
             //console.log("output: ", args);
             if (args[1] === "1") {
@@ -62,7 +65,7 @@ const caseta = {
             }
         });
         bridge.connect(cfg.connection);
-        homework.Console.log("caseta", cfg);
+        //Console.log("caseta", cfg);
     },
 
     _create: function() {
@@ -76,7 +79,7 @@ const caseta = {
                 functions: functions[dev.type],
                 value: hwval,
                 log: function() {
-                    this._homework.Console.error.apply(null, arguments);
+                    Console.error.apply(null, arguments);
                 }.bind(this)
             };
             hwval._valueUpdated = function() {
@@ -87,6 +90,7 @@ const caseta = {
                 }
             }.bind(data);
             hwdev.addValue(hwval);
+            Console.log("created caseta", dev.type, hwdev.name);
 
             data.functions.query(id);
 
@@ -94,6 +98,7 @@ const caseta = {
             this._homework.addDevice(hwdev);
             this._homework.loadRules();
         }
+        Console.log("caseta initialized");
     }
 };
 
