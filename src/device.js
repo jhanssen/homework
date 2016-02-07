@@ -111,7 +111,7 @@ Device.Event = function()
         this._equals = arguments[2];
 
         this._value.on("changed", (v) => {
-            if (this._equals === v)
+            if (this._equals == v)
                 this._emit("triggered");
         });
     } else {

@@ -140,7 +140,8 @@ const states = {
                     args.splice(0, 1);
                     if (args.length === 1 || (args.length > 1 && args[args.length - 1] !== ""))
                         args.splice(args.length - 1, 1);
-                    var eventcomps = event.completion.apply(null, args).map((e) => { return e + " "; });
+                    args = args.map((e) => { return e.replace(/_/g, " "); });
+                    var eventcomps = event.completion.apply(null, args).map((e) => { return e.replace(/ /g, "_") + " "; });
                     if (!(eventcomps instanceof Array))
                         return eventcomps;
                     if (elems.length === 1) {
@@ -190,7 +191,7 @@ const states = {
             if (elems[0] in events) {
                 const event = events[elems[0]];
                 elems.splice(0, 1);
-                const created = construct(event.ctor, elems);
+                const created = construct(event.ctor, elems.map((e) => { return e.replace(/_/g, " "); }));
                 //console.log("got event", created);
                 states.rule._currentEvent().push(created);
             } else {
@@ -231,7 +232,8 @@ const states = {
                     args.splice(0, 1);
                     if (args.length === 1 || (args.length > 1 && args[args.length - 1] !== ""))
                         args.splice(args.length - 1, 1);
-                    var actioncomps = action.completion.apply(null, args).map((e) => { return e + " "; });
+                    args = args.map((e) => { return e.replace(/_/g, " "); });
+                    var actioncomps = action.completion.apply(null, args).map((e) => { return e.replace(/ /g, "_") + " "; });
                     if (!(actioncomps instanceof Array))
                         return actioncomps;
                     if (elems.length === 1) {
@@ -269,7 +271,7 @@ const states = {
             if (elems[0] in actions) {
                 const action = actions[elems[0]];
                 elems.splice(0, 1);
-                const created = construct(action.ctor, elems);
+                const created = construct(action.ctor, elems.map((e) => { return e.replace(/_/g, " "); }));
                 //console.log("got action", created);
                 states.rule._actions.push(created);
             } else {
