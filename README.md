@@ -1,16 +1,24 @@
 # homework
 Home automation system
 
-## example rule
-``` javascript
-(function() {
-    var cron = require("cron-parser");
-    var interval = cron.parseExpression('*/30 * * * * *');
-    homework.rule.alarm(interval.next());
-    return function(args) {
-        console.log(args);
-        homework.rule.alarm(interval.next());
-        return true;
-    };
-})();
+## example config
+```javascript
+{
+    "caseta": {
+        "connection": {
+            "host": "hostname",
+            "port": 23,
+            "login": "lutron",
+            "password": "integration"
+        },
+        "devices": {
+            "2": {
+                "type": "dimmer",
+                "name": "Lights",
+                "room": "Hallway",
+                "floor": "2nd floor"
+            }
+        }
+    }
+}
 ```
