@@ -40,14 +40,15 @@ utils.onify(data);
 const states = {
     default: {
         prompt: "homework> ",
-        completions: ["rule ", "shutdown"],
+        completions: ["rule ", "shutdown", "device"],
         apply: function(line) {
             if (line === "shutdown") {
                 data._emit("shutdown");
                 return;
             }
             var elems = line.split(' ').filter(function(e) { return e.length > 0; });
-            if (elems[0] === "rule") {
+            switch (elems[0]) {
+            case "rule":
                 if (elems.length < 2) {
                     console.log("rule needs a name");
                     return;
@@ -55,6 +56,15 @@ const states = {
                 data.state.push(states.rule);
                 states.rule._name = elems[1];
                 data.applyState();
+                break;
+            case "device":
+                data.state.push(states.device);
+                states.device._device = undefined;
+                data.applyState();
+                break;
+            default:
+                console.log("unknown command", elems[0]);
+                break;
             }
         }
     },
@@ -265,6 +275,111 @@ const states = {
             } else {
                 console.log("no such action", elems[0]);
             }
+        }
+    },
+    device: {
+        prompt: "device> ",
+        completions: function(line) {
+            var candidates = [];
+            const elems = line ? line.split(' ') : [];
+            if (states.device._value !== undefined && elems.length > 1 && elems[0] === "set") {
+                var vs = states.device._value.values;
+                candidates = (typeof vs === "object") ? Object.keys(vs) : [];
+            } else {
+                candidates.push("home");
+                const devices = data.homework.devices;
+                if (states.device._device === undefined) {
+                    // list all devices
+                    for (var i = 0; i < devices.length; ++i) {
+                        candidates.push(devices[i].name);
+                    }
+                } else {
+                    candidates.push("back");
+                    if (states.device._value === undefined) {
+                        // list all values
+                        for (var k in states.device._device.values) {
+                            candidates.push(k);
+                        }
+                    } else {
+                        candidates.push("get");
+                        candidates.push("set ");
+                    }
+                }
+            }
+            if (elems.length > 0)
+                return candidates.filter((c) => { return c.indexOf(elems[elems.length - 1]) === 0; });
+            return candidates;
+        },
+        apply: function(line) {
+            const devices = data.homework.devices;
+            const elems = line ? line.split(' ').filter(function(e) { return e.length > 0; }) : [];
+            var state;
+            if (!elems.length)
+                return;
+            if (states.device._device === undefined) {
+                // find and set the device
+                for (var i = 0; i < devices.length; ++i) {
+                    if (devices[i].name === elems[0]) {
+                        states.device._device = devices[i];
+                        state = {
+                            prompt: "device " + devices[i].name + "> ",
+                            completions: states.device.completions,
+                            apply: states.device.apply
+                        };
+                        data.state.push(state);
+                        data.applyState();
+                    }
+                }
+            } else {
+                if (elems[0] === "home") {
+                    states.device._clear();
+                    data.gotoState(1);
+                    data.applyState();
+                    return;
+                }
+                if (elems[0] === "back") {
+                    var ok = false;
+                    if (states.device._value !== undefined) {
+                        states.device._value = undefined;
+                        ok = true;
+                    } else if (states.device._device !== undefined) {
+                        states.device._device = undefined;
+                        ok = true;
+                    }
+                    if (ok) {
+                        data.state.pop();
+                        data.applyState();
+                    }
+                    return;
+                }
+                if (states.device._value === undefined) {
+                    // find and set the value
+                    const values = states.device._device.values;
+                    if (elems[0] in values) {
+                        states.device._value = values[elems[0]];
+                        state = {
+                            prompt: "device " + states.device._device.name + " " + states.device._value.name + "> ",
+                            completions: states.device.completions,
+                            apply: states.device.apply
+                        };
+                        data.state.push(state);
+                        data.applyState();
+                    }
+                } else {
+                    if (elems[0] === "set" && elems.length > 1) {
+                        states.device._value.value = elems[1];
+                    } else if (elems[0] === "get") {
+                        console.log(states.device._value.value);
+                    }
+                }
+            }
+        },
+
+        _device: undefined,
+        _value: undefined,
+        _clear: function() {
+            this._device = undefined;
+            this._value = undefined;
         }
     }
 };

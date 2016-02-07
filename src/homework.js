@@ -72,7 +72,8 @@ const homework = {
                 homework._pendingRules = obj;
                 homework.loadRules();
             } else {
-                console.error("error loading rules", err);
+                if (err.code !== "ENOENT")
+                    console.error("error loading rules", err);
             }
         });
     },
