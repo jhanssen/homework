@@ -36,14 +36,43 @@ const homework = {
     },
     removeRule: function(rule) {
         this._rules.remove(function(el) { return Object.is(rule, el); });
-    }
+    },
+
+    get events() {
+        return this._events;
+    },
+    get actions() {
+        return this._actions;
+    },
+    get devices() {
+        return this._devices;
+    },
+    get rules() {
+        return this._rules;
+    },
+
+    utils: require("./utils.js")
 };
 
-Device.init();
+Device.init(homework);
 
-Console.init();
+Console.init(homework);
 Console.on("shutdown", function() {
     process.exit();
 });
 
-WebSocket.init();
+WebSocket.init(homework);
+
+// fake device
+var hey = new Device("hey");
+var heyval = new Device.Value("mode", {"on": 1, "off": 2});
+setInterval(function() {
+    if (heyval.value === "on") {
+        heyval.update(2);
+    } else {
+        heyval.update(1);
+    }
+}, 1000);
+hey.addValue(heyval);
+
+homework.addDevice(hey);
