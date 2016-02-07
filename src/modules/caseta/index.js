@@ -96,8 +96,8 @@ const caseta = {
 
             this._hwdevices[id] = hwdev;
             this._homework.addDevice(hwdev);
-            this._homework.loadRules();
         }
+        this._homework.loadRules();
         Console.log("caseta initialized");
     }
 };
