@@ -28,6 +28,10 @@ const data = {
     applyState: function() {
         var s = this.currentState;
         rl.setPrompt(s.prompt);
+    },
+    gotoState: function(pos) {
+        while (this.state.length > pos)
+            this.state.pop();
     }
 };
 
@@ -56,16 +60,15 @@ const states = {
     },
     rule: {
         prompt: "rule> ",
-        completions: ["if", "back", "shutdown"],
+        completions: ["if", "home", "shutdown"],
         apply: function(line) {
             switch (line) {
             case "if":
-                states.rule._mode = "if";
                 data.state.push(states.ruleif);
                 data.applyState();
                 break;
-            case "back":
-                data.state.pop();
+            case "home":
+                data.gotoState(1);
                 data.applyState();
                 break;
             case "shutdown":
@@ -75,11 +78,12 @@ const states = {
         },
 
         _name: undefined,
-        _mode: undefined,
+        _mode: "event",
         _events: [[]],
         _actions: [],
         _clear: function() {
-            this._name = this._mode = undefined;
+            this._name = undefined;
+            this._mode = "event";
             this._events = [[]];
             this._actions = [];
         },
@@ -94,9 +98,13 @@ const states = {
     ruleif: {
         prompt: "rule if> ",
         completions: function(line) {
-            var candidates = [], event;
-            if (states.rule._mode === "if" && states.rule._currentEvent().length > 0) {
-                candidates.push("and", "or", "then");
+            var candidates = ["home"], event;
+            const elems = line ? line.split(' ') : [];
+            if (states.rule._mode !== "event" && states.rule._currentEvent().length > 0) {
+                candidates = ["and", "or", "then"];
+                if (!elems.length)
+                    return candidates;
+                return candidates.filter((c) => { return c.indexOf(elems[elems.length - 1]) === 0; });
             }
             const events = data.homework.events;
             if (!line) {
@@ -104,7 +112,6 @@ const states = {
                     candidates.push(event + " ");
                 }
             } else {
-                const elems = line.split(' ');
                 if (elems.length === 1) {
                     // make sure we have a complete keyword
                     for (event in events) {
@@ -138,28 +145,36 @@ const states = {
         apply: function(line) {
             const events = data.homework.events;
             var elems = line.split(' ').filter(function(e) { return e.length > 0; });
-            if (elems[0] === "and") {
-                states.rule._mode = "and";
-                data.state.push(states.ruleand);
-                data.applyState();
-                return;
-            }
-            if (elems[0] === "or") {
-                states.rule._mode = "or";
-                states.rule._createEvent();
-                data.state.push(states.ruleor);
-                data.applyState();
-                return;
-            }
-            if (elems[0] === "then") {
-                // console.log(states.rule._events);
-                states.rule._mode = "then";
-                data.state.push(states.rulethen);
-                data.applyState();
-                return;
+            if (states.rule._currentEvent().length > 0) {
+                if (elems[0] === "and") {
+                    states.rule._mode = "event";
+                    data.state.push(states.ruleand);
+                    data.applyState();
+                    return;
+                }
+                if (elems[0] === "or") {
+                    states.rule._mode = "event";
+                    states.rule._createEvent();
+                    data.state.push(states.ruleor);
+                    data.applyState();
+                    return;
+                }
+                if (elems[0] === "then") {
+                    // console.log(states.rule._events);
+                    states.rule._mode = "then";
+                    data.state.push(states.rulethen);
+                    data.applyState();
+                    return;
+                }
             }
             if (elems[0] === "save") {
                 console.log("can only save in state then");
+                return;
+            }
+            if (elems[0] === "home") {
+                states.rule._clear();
+                data.gotoState(1);
+                data.applyState();
                 return;
             }
             if (elems[0] in events) {
@@ -171,13 +186,14 @@ const states = {
             } else {
                 console.log("no such event", elems[0]);
             }
+            states.rule._mode = "next";
         }
     },
     rulethen: {
         prompt: "rule then> ",
         completions: function(line) {
-            var candidates = [], action;
-            if (states.rule._mode === "if" && states.rule._currentAction().length > 0) {
+            var candidates = ["home"], action;
+            if (states.rule._actions.length > 0) {
                 candidates.push("save");
             }
             const actions = data.homework.actions;
@@ -223,13 +239,21 @@ const states = {
             if (elems[0] === "save") {
                 var rule = new Rule(states.rule._name);
                 rule.then.apply(rule, states.rule._actions);
-                console.log("hekekek", states.rule._events);
                 for (var i = 0; i < states.rule._events.length; ++i) {
                     rule.and.apply(rule, states.rule._events[i]);
                 }
                 data.homework.addRule(rule);
                 states.rule._clear();
 
+                data.gotoState(1);
+                data.applyState();
+
+                return;
+            }
+            if (elems[0] === "home") {
+                states.rule._clear();
+                data.gotoState(1);
+                data.applyState();
                 return;
             }
             if (elems[0] in actions) {
