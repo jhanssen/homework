@@ -4,23 +4,26 @@ require("sugar");
 const Device = require("./device.js");
 const Console = require("./console.js");
 const WebSocket = require("./websocket.js");
+const Rule = require("./rule.js");
+const db = require("jsonfile");
 
 const homework = {
     _events: Object.create(null),
     _actions: Object.create(null),
     _devices: [],
     _rules: [],
+    _pendingRules: [],
 
-    registerEvent: function(name, ctor, completion) {
+    registerEvent: function(name, ctor, completion, deserialize) {
         if (name in this._events)
             return false;
-        this._events[name] = { ctor: ctor, completion: completion };
+        this._events[name] = { ctor: ctor, completion: completion, deserialize: deserialize };
         return true;
     },
-    registerAction: function(name, ctor, completion) {
+    registerAction: function(name, ctor, completion, deserialize) {
         if (name in this._actions)
             return false;
-        this._actions[name] = { ctor: ctor, completion: completion };
+        this._actions[name] = { ctor: ctor, completion: completion, deserialize: deserialize };
         return true;
     },
 
@@ -51,6 +54,35 @@ const homework = {
         return this._rules;
     },
 
+    save: function() {
+        var rules = [];
+        for (var i = 0; i < this._rules.length; ++i) {
+            rules.push(this._rules[i].serialize());
+        }
+        console.log(rules);
+        db.writeFileSync("rules.json", rules);
+    },
+    restore: function() {
+        db.readFile("rules.json", function(err, obj) {
+            if (obj) {
+                homework._pendingRules = obj;
+                homework.loadRules();
+            } else {
+                console.error("error loading rules", err);
+            }
+        });
+    },
+    loadRules: function() {
+        this._pendingRules = this._pendingRules.filter(function(rule) {
+            var r = Rule.Deserialize(homework, rule);
+            if (r) {
+                homework.addRule(r);
+                return false;
+            }
+            return true;
+        });
+    },
+
     utils: require("./utils.js")
 };
 
@@ -58,10 +90,12 @@ Device.init(homework);
 
 Console.init(homework);
 Console.on("shutdown", function() {
+    homework.save();
     process.exit();
 });
 
 WebSocket.init(homework);
+homework.restore();
 
 // fake device
 var hey = new Device("hey");
@@ -76,3 +110,4 @@ setInterval(function() {
 hey.addValue(heyval);
 
 homework.addDevice(hey);
+homework.loadRules();

@@ -129,6 +129,10 @@ Device.Event.prototype = {
 
     check: function() {
         return this._value.value == this._equals;
+    },
+    serialize: function() {
+        var s = { type: "DeviceEvent", deviceName: this._device.name, valueName: this._value.name, value: this._equals };
+        return JSON.stringify(s);
     }
 };
 
@@ -136,9 +140,9 @@ utils.onify(Device.Event.prototype);
 
 Device.Action = function()
 {
-    //console.log("deviceevent ctor", arguments);
+    //console.log("deviceaction ctor", arguments);
     if (arguments.length < 3) {
-        throw "Device event needs at least three arguments";
+        throw "Device action needs at least three arguments";
     }
 
     // find the device
@@ -180,6 +184,10 @@ Device.Action.prototype = {
 
     trigger: function() {
         this._value.value = this._equals;
+    },
+    serialize: function() {
+        var s = { type: "DeviceAction", deviceName: this._device.name, valueName: this._value.name, value: this._equals };
+        return JSON.stringify(s);
     }
 };
 
@@ -217,11 +225,53 @@ function eventCompleter()
 
 var actionCompleter = eventCompleter;
 
+function eventDeserializer(ev)
+{
+    try {
+        var e = JSON.parse(ev);
+    } catch (e) {
+        return null;
+    }
+    if (!(typeof e === "object"))
+        return null;
+
+    if (e.type !== "DeviceEvent")
+        return null;
+
+    try {
+        var event = new Device.Event(e.deviceName, e.valueName, e.value);
+    } catch (e) {
+        return null;
+    }
+    return event;
+}
+
+function actionDeserializer(ac)
+{
+    try {
+        var a = JSON.parse(ac);
+    } catch (e) {
+        return null;
+    }
+    if (!(typeof a === "object"))
+        return null;
+
+    if (a.type !== "DeviceAction")
+        return null;
+
+    try {
+        var action = new Device.Action(a.deviceName, a.valueName, a.value);
+    } catch (e) {
+        return null;
+    }
+    return action;
+}
+
 Device.init = function(homework)
 {
     data.homework = homework;
-    homework.registerEvent("Device", Device.Event, eventCompleter);
-    homework.registerAction("Device", Device.Action, actionCompleter);
+    homework.registerEvent("Device", Device.Event, eventCompleter, eventDeserializer);
+    homework.registerAction("Device", Device.Action, actionCompleter, actionDeserializer);
 };
 
 module.exports = Device;
