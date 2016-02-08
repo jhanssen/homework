@@ -4,14 +4,17 @@
 
 var homework = undefined;
 var zwave = undefined;
-var cnt = 0;
 
 const Devices = {
     "Multilevel Scene Switch": function(nodeid, nodeinfo) {
         this._initValues(this);
+    },
+    "Binary Scene Switch": function(nodeid, nodeinfo) {
+        this._initValues(this);
     }
 };
 
+Devices["Multilevel Scene Switch"].cnt = 0;
 Devices["Multilevel Scene Switch"].prototype = {
     _acceptValue: function(value) {
         if (value.class_id == 38 && value.type == "byte" && value.genre == "user"
@@ -29,7 +32,7 @@ Devices["Multilevel Scene Switch"].prototype = {
     _removeValue: function(value) {
     },
     createHomeworkDevice: function() {
-        var hwdev = new homework.Device("Multilevel Scene Switch " + (++cnt));
+        var hwdev = new homework.Device("Multilevel Scene Switch " + (++Devices["Multilevel Scene Switch"].cnt));
         for (var k in this._values) {
             let v = this._values[k];
             let hwval = new homework.Device.Value("level", { off: 0, on: 100 }, [0, 100]);
@@ -40,7 +43,49 @@ Devices["Multilevel Scene Switch"].prototype = {
                     homework.Console.error("error updating value", e);
                 }
             };
-            hwval._fittefaen = v.node_id;
+            hwval.update(v.value);
+            this._hwvalues[k] = hwval;
+            hwdev.addValue(hwval);
+        }
+
+        this._hwdevice = hwdev;
+        homework.addDevice(hwdev);
+    }
+};
+
+Devices["Binary Scene Switch"].cnt = 0;
+Devices["Binary Scene Switch"].prototype = {
+    _acceptValue: function(value) {
+        if (value.class_id == 37 && value.type == "bool" && value.genre == "user"
+            && !value.read_only && !value.write_only)
+            return true;
+        return false;
+    },
+    _changeValue: function(value) {
+        // find the homework value
+        if (value.value_id in this._hwvalues) {
+            var hwval = this._hwvalues[value.value_id];
+            hwval.update(value.value);
+        }
+    },
+    _removeValue: function(value) {
+    },
+    createHomeworkDevice: function() {
+        var hwdev = new homework.Device("Binary Scene Switch " + (++Devices["Binary Scene Switch"].cnt));
+        for (var k in this._values) {
+            let v = this._values[k];
+            let hwval = new homework.Device.Value("value", { off: false, on: true });
+            hwval._valueUpdated = function() {
+                try {
+                    if (typeof hwval.raw === "boolean") {
+                        zwave.setValue(v.node_id, v.class_id, v.instance, v.index, hwval.raw);
+                    } else if (typeof hwval.raw === "number") {
+                        zwave.setValue(v.node_id, v.class_id, v.instance, v.index, (hwval.raw != 0));
+                    }
+                } catch (e) {
+                    homework.Console.error("error updating value", e);
+                }
+            };
             hwval.update(v.value);
             this._hwvalues[k] = hwval;
             hwdev.addValue(hwval);
@@ -83,6 +128,7 @@ function valueify(obj) {
 };
 
 valueify(Devices["Multilevel Scene Switch"].prototype);
+valueify(Devices["Binary Scene Switch"].prototype);
 
 const Classes = {
     init: function(hw, zw, cfg) {
