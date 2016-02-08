@@ -26,6 +26,7 @@ const zwave = {
             });
             ozw.on('scan complete', () => {
                 Console.log("scan complete");
+                homework.loadRules();
             });
             ozw.on('node added', (nodeid) => {
                 Console.log("node added", nodeid);
