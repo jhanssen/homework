@@ -44,6 +44,8 @@ const caseta = {
     _hwdevices: Object.create(null),
 
     init: function(cfg, homework) {
+        if (!cfg || !cfg.devices || !cfg.connection)
+            return;
         this._devices = fixup(cfg.devices);
         this._homework = homework;
         Console = homework.Console;
@@ -68,7 +70,8 @@ const caseta = {
         //Console.log("caseta", cfg);
     },
     shutdown: function(cb) {
-        bridge.close();
+        if (this._homework)
+            bridge.close();
         cb();
     },
 

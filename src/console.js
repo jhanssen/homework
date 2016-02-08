@@ -40,7 +40,7 @@ utils.onify(data);
 const states = {
     default: {
         prompt: "homework> ",
-        completions: ["rule ", "shutdown", "device"],
+        completions: ["rule ", "shutdown", "device", "eval"],
         apply: function(line) {
             if (line === "shutdown") {
                 data._emit("shutdown");
@@ -60,6 +60,10 @@ const states = {
             case "device":
                 data.state.push(states.device);
                 states.device._device = undefined;
+                data.applyState();
+                break;
+            case "eval":
+                data.state.push(states.eval);
                 data.applyState();
                 break;
             default:
@@ -382,6 +386,21 @@ const states = {
         _clear: function() {
             this._device = undefined;
             this._value = undefined;
+        }
+    },
+    eval: {
+        prompt: "eval> ",
+        completions: function(line) {
+            return [];
+        },
+        apply: function(line) {
+            if (line === "back" || line === "home") {
+                states.device._clear();
+                data.gotoState(1);
+                data.applyState();
+                return;
+            }
+            eval(line);
         }
     }
 };
