@@ -374,8 +374,6 @@ const states = {
                     }
                 } else {
                     if (elems[0] === "set" && elems.length > 1) {
-                        Console.log("setting on device", states.device._device);
-                        Console.log("value is", states.device._value);
                         var val = parseInt(elems[1]);
                         if (val + "" === elems[1])
                             states.device._value.value = val;

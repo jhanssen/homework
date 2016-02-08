@@ -94,6 +94,8 @@ const caseta = {
             hwdev.addValue(hwval);
             func.query(id);
 
+            Console.log("created caseta", dev.type, hwdev.name);
+
             this._hwdevices[id] = hwdev;
             this._homework.addDevice(hwdev);
         }
