@@ -10,19 +10,22 @@ function strip(array) {
 }
 
 function onify(o) {
-    o._ons = Object.create(null);
-    o._emit = (type, arg) => {
-        if (type in o._ons) {
-            for (var i = 0; i < o._ons[type].length; ++i) {
-                o._ons[type][i].call(this, arg);
+    o._initOns = function() {
+        this._ons = Object.create(null);
+    },
+
+    o._emit = function(type, arg) {
+        if (type in this._ons) {
+            for (var i = 0; i < this._ons[type].length; ++i) {
+                this._ons[type][i].call(this, arg);
             }
         }
     };
-    o.on = (type, cb) => {
-        if (!(type in o._ons))
-            o._ons[type] = [cb];
+    o.on = function(type, cb) {
+        if (!(type in this._ons))
+            this._ons[type] = [cb];
         else
-            o._ons[type].push(cb);
+            this._ons[type].push(cb);
     };
 }
 

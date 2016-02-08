@@ -36,6 +36,7 @@ const data = {
 };
 
 utils.onify(data);
+data._initOns();
 
 const states = {
     default: {
@@ -373,7 +374,13 @@ const states = {
                     }
                 } else {
                     if (elems[0] === "set" && elems.length > 1) {
-                        states.device._value.value = elems[1];
+                        Console.log("setting on device", states.device._device);
+                        Console.log("value is", states.device._value);
+                        var val = parseInt(elems[1]);
+                        if (val + "" === elems[1])
+                            states.device._value.value = val;
+                        else
+                            states.device._value.value = elems[1];
                     } else if (elems[0] === "get") {
                         console.log(states.device._value.value);
                     }
@@ -400,7 +407,11 @@ const states = {
                 data.applyState();
                 return;
             }
-            eval(line);
+            try {
+                eval(line);
+            } catch (e) {
+                Console.error("eval error", e);
+            }
         }
     }
 };
@@ -472,6 +483,6 @@ Console.error = function()
     rl.prompt();
 };
 
-Console.on = data.on;
+Console.on = data.on.bind(data);
 
 module.exports = Console;

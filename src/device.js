@@ -8,11 +8,12 @@ const data = {
 function Device(name)
 {
     this._name = name;
+    this._values = Object.create(null);
 }
 
 Device.prototype = {
     _name: undefined,
-    _values: Object.create(null),
+    _values: undefined,
 
     get name() {
         return this._name;
@@ -34,6 +35,7 @@ Device.Value = function(name, values, range)
     this._name = name;
     this._values = values;
     this._range = range;
+    this._initOns();
 };
 
 Device.Value.prototype = {
@@ -91,6 +93,7 @@ Device.Event = function()
     if (arguments.length < 3) {
         throw "Device event needs at least three arguments";
     }
+    this._initOns();
 
     // find the device
     const devs = data.homework.devices;

@@ -1,5 +1,7 @@
 /*global require,module*/
 
+"use strict";
+
 const bridge = require("./smartbridge.js");
 
 const functions = {
@@ -77,29 +79,20 @@ const caseta = {
 
     _create: function() {
         this._created = true;
-        for (var id in this._devices) {
-            var dev = this._devices[id];
-            var hwdev = new this._homework.Device(fullName(dev));
-            var hwval = new this._homework.Device.Value("level", { off: 0, on: 100 }, [0, 100]);
-            var data = {
-                integrationid: id,
-                functions: functions[dev.type],
-                value: hwval,
-                log: function() {
-                    Console.error.apply(null, arguments);
-                }.bind(this)
-            };
+        for (let id in this._devices) {
+            let dev = this._devices[id];
+            let hwdev = new this._homework.Device(fullName(dev));
+            let hwval = new this._homework.Device.Value("level", { off: 0, on: 100 }, [0, 100]);
+            let func = functions[dev.type];
             hwval._valueUpdated = function() {
-                if (this.functions.check(this.value.raw)) {
-                    this.functions.set(this.integrationid, this.value.raw);
+                if (func.check(hwval.raw)) {
+                    func.set(id, hwval.raw);
                 } else {
-                    this.log("caseta: value out of range", this.value.raw);
+                    Console.error("caseta: value out of range", hwval.raw);
                 }
-            }.bind(data);
+            };
             hwdev.addValue(hwval);
-            Console.log("created caseta", dev.type, hwdev.name);
-
-            data.functions.query(id);
+            func.query(id);
 
             this._hwdevices[id] = hwdev;
             this._homework.addDevice(hwdev);

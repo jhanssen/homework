@@ -1,4 +1,4 @@
-/*global require,process*/
+/*global require,process,homework*/
 require("sugar");
 
 const Config = require("./config.js");
@@ -9,7 +9,7 @@ const Rule = require("./rule.js");
 const Modules = require("./modules.js");
 const db = require("jsonfile");
 
-const homework = {
+homework = {
     _events: Object.create(null),
     _actions: Object.create(null),
     _devices: [],

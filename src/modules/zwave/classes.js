@@ -1,11 +1,14 @@
 /*global module*/
 
+"use strict";
+
 var homework = undefined;
 var zwave = undefined;
 var cnt = 0;
 
 const Devices = {
     "Multilevel Scene Switch": function(nodeid, nodeinfo) {
+        this._initValues(this);
     }
 };
 
@@ -28,13 +31,19 @@ Devices["Multilevel Scene Switch"].prototype = {
     createHomeworkDevice: function() {
         var hwdev = new homework.Device("Multilevel Scene Switch " + (++cnt));
         for (var k in this._values) {
-            var v = this._values[k];
-            var hwval = new homework.Device.Value("level", { off: 0, on: 100 }, [0, 100]);
-            hwval._valueUpdated = function(v, hwval) {
-                zwave.setValue(v.node_id, v.class_id, v.instance, v.index, hwval.raw);
-            }.bind(v, hwval);
+            let v = this._values[k];
+            let hwval = new homework.Device.Value("level", { off: 0, on: 100 }, [0, 100]);
+            hwval._valueUpdated = function() {
+                try {
+                    zwave.setValue(v.node_id, v.class_id, v.instance, v.index, hwval.raw);
+                } catch (e) {
+                    homework.Console.error("error updating value", e);
+                }
+            };
+            hwval._fittefaen = v.node_id;
             hwval.update(v.value);
             this._hwvalues[k] = hwval;
+            hwdev.addValue(hwval);
         }
 
         this._hwdevice = hwdev;
@@ -65,15 +74,15 @@ function valueify(obj) {
     };
     obj.homework = function() {
         return this._hwdevice;
-    },
-
-    obj._hwdevice = undefined;
-    obj._values = Object.create(null);
-    obj._hwvalues = Object.create(null);
+    };
+    obj._initValues = function() {
+        this._hwdevice = undefined;
+        this._values = Object.create(null);
+        this._hwvalues = Object.create(null);
+    };
 };
 
 valueify(Devices["Multilevel Scene Switch"].prototype);
-//homework.utils.onify(Devices["Multilevel Scene Switch"].prototype);
 
 const Classes = {
     init: function(hw, zw, cfg) {

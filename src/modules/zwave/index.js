@@ -9,6 +9,7 @@ const devices = Object.create(null);
 const classes = require("./classes.js");
 
 const zwave = {
+    port: undefined,
     init: function(cfg, hw) {
         if (typeof cfg === "object" && cfg.port) {
             homework = hw;
@@ -81,7 +82,7 @@ const zwave = {
                 }
             });
             ozw.on('value refreshed', (nodeid, commandclass, valueId) => {
-                //Console.log("value refreshed for", nodeid, commandclass, valueId);
+                Console.log("value refreshed for", nodeid, commandclass, valueId);
             });
             ozw.on('value removed', (nodeid, commandclass, instance, index) => {
                 // silly API
@@ -99,9 +100,12 @@ const zwave = {
             });
             Console.log("initing zwave", cfg.port);
             ozw.connect(cfg.port);
+            this.port = cfg.port;
         }
     },
     shutdown: function(cb) {
+        if (this.port)
+            ozw.disconnect(this.port);
         cb();
     }
 };
