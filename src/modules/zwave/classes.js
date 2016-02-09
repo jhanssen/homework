@@ -1,4 +1,4 @@
-/*global module*/
+/*global module,setInterval,clearInterval*/
 
 "use strict";
 
@@ -8,6 +8,7 @@ var zwave = undefined;
 const Devices = {
     "Multilevel Scene Switch": function(nodeid, nodeinfo) {
         this._initValues(this);
+        this._pending = undefined;
     },
     "Binary Scene Switch": function(nodeid, nodeinfo) {
         this._initValues(this);
@@ -26,7 +27,31 @@ Devices["Multilevel Scene Switch"].prototype = {
         // find the homework value
         if (value.value_id in this._hwvalues) {
             var hwval = this._hwvalues[value.value_id];
-            hwval.update(value.value);
+            // some dimmers like to report intermediate values while dimming so if
+            // that happens we'll poll for a bit to see if we get the final value later
+            if (this._pending === undefined || value.value == this._pending.value) {
+                if (this._pending && "interval" in this._pending)
+                    clearInterval(this._pending.interval);
+                this._pending = undefined;
+                hwval.update(value.value);
+            } else {
+                this._pending.lastValue = value.value;
+                if (this._pending.interval === undefined) {
+                    this._pending.key = [value.node_id, value.class_id, value.instance, value.index];
+                    this._pending.fired = 0;
+                    this._pending.interval = setInterval(() => {
+                        if (++this._pending.fired > 10) {
+                            clearInterval(this._pending.interval);
+                            hwval.update(this._pending.lastValue);
+                            this._pending = undefined;
+                        } else {
+                            var k = this._pending.key;
+                            zwave.refreshValue(k[0], k[1], k[2], k[3]);
+                        }
+                    }, 500);
+                    zwave.refreshValue(value.node_id, value.class_id, value.instance, value.index);
+                }
+            }
         }
     },
     _removeValue: function(value) {
@@ -36,8 +61,10 @@ Devices["Multilevel Scene Switch"].prototype = {
         for (var k in this._values) {
             let v = this._values[k];
             let hwval = new homework.Device.Value("level", { off: 0, on: 100 }, [0, 100]);
-            hwval._valueUpdated = function() {
+            hwval._zwave = v;
+            hwval._valueUpdated = () => {
                 try {
+                    this._pending = { value: hwval.raw };
                     zwave.setValue(v.node_id, v.class_id, v.instance, v.index, hwval.raw);
                 } catch (e) {
                     homework.Console.error("error updating value", e);
