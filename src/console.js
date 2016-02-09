@@ -11,7 +11,7 @@ const rl = readline.createInterface({
 
 function lineFixup(line) {
     // replace all consecutive spaces with one space
-    return line.replace(/\s/g, " ");
+    return line.replace(/\s+/g, " ");
 }
 
 function construct(constructor, args) {
