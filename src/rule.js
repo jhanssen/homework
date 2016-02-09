@@ -7,6 +7,25 @@ function Rule(name)
     this._actions = [];
 }
 
+Rule.SerializePending = function(rule) {
+    var events = rule.events, i, j;
+    for (i = 0; i < events.length; ++i) {
+        var a = events[i];
+        for (j = 0; j < a.length; ++j) {
+            if (typeof events[i][j] === "object" && "serialize" in events[i][j]) {
+                events[i][j] = events[i][j].serialize();
+            }
+        }
+    }
+    var actions = rule.actions;
+    for (i = 0; i < actions.length; ++i) {
+        if (typeof actions[i] === "object" && "serialize" in actions[i]) {
+            actions[i] = actions[i].serialize();
+        }
+    }
+    return rule;
+};
+
 Rule.Deserialize = function(homework, rule) {
     var i, j, o, done;
     var events = rule.events;

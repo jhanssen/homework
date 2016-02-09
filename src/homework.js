@@ -80,7 +80,7 @@ homework = {
         }
         // merge with pendingRules if we still have any
         for (i = 0; i < this._pendingRules.length; ++i) {
-            rules.push(this._pendingRules[i]);
+            rules.push(Rule.SerializePending(this._pendingRules[i]));
         }
         Console.log(rules);
         db.writeFileSync("rules.json", rules);
