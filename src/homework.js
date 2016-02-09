@@ -7,6 +7,7 @@ const Console = require("./console.js");
 const WebSocket = require("./websocket.js");
 const Rule = require("./rule.js");
 const Modules = require("./modules.js");
+const Timer = require("./timer.js");
 const db = require("jsonfile");
 
 homework = {
@@ -18,6 +19,7 @@ homework = {
     _cfg: undefined,
     _Device: Device,
     _Console: Console,
+    _Timer: Timer,
 
     registerEvent: function(name, ctor, completion, deserialize) {
         if (name in this._events)
@@ -67,6 +69,9 @@ homework = {
     get Device() {
         return this._Device;
     },
+    get Timer() {
+        return this._Timer;
+    },
 
     save: function() {
         var rules = [], i;
@@ -92,6 +97,7 @@ homework = {
         });
         Config.load(this, () => {
             Device.init(this);
+            Timer.init(this);
             WebSocket.init(this);
             Modules.init(this);
         });

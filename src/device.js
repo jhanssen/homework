@@ -141,8 +141,7 @@ Device.Event.prototype = {
         return this._value.value == this._equals;
     },
     serialize: function() {
-        var s = { type: "DeviceEvent", deviceName: this._device.name, valueName: this._value.name, value: this._equals };
-        return JSON.stringify(s);
+        return { type: "DeviceEvent", deviceName: this._device.name, valueName: this._value.name, value: this._equals };
     }
 };
 
@@ -166,6 +165,7 @@ Device.Action = function()
         throw "No device named " + arguments[0];
     }
     this._device = dev;
+    this._initOns();
 
     // find the device value
     var valname = arguments[1];
@@ -196,10 +196,11 @@ Device.Action.prototype = {
         this._value.value = this._equals;
     },
     serialize: function() {
-        var s = { type: "DeviceAction", deviceName: this._device.name, valueName: this._value.name, value: this._equals };
-        return JSON.stringify(s);
+        return { type: "DeviceAction", deviceName: this._device.name, valueName: this._value.name, value: this._equals };
     }
 };
+
+utils.onify(Device.Action.prototype);
 
 function eventCompleter()
 {
@@ -235,13 +236,8 @@ function eventCompleter()
 
 var actionCompleter = eventCompleter;
 
-function eventDeserializer(ev)
+function eventDeserializer(e)
 {
-    try {
-        var e = JSON.parse(ev);
-    } catch (e) {
-        return null;
-    }
     if (!(typeof e === "object"))
         return null;
 
@@ -256,13 +252,8 @@ function eventDeserializer(ev)
     return event;
 }
 
-function actionDeserializer(ac)
+function actionDeserializer(a)
 {
-    try {
-        var a = JSON.parse(ac);
-    } catch (e) {
-        return null;
-    }
     if (!(typeof a === "object"))
         return null;
 

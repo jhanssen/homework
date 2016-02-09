@@ -3,6 +3,8 @@
 function Rule(name)
 {
     this._name = name;
+    this._events = [];
+    this._actions = [];
 }
 
 Rule.Deserialize = function(homework, rule) {
@@ -16,6 +18,10 @@ Rule.Deserialize = function(homework, rule) {
             //events[i][j] = events[i][j].serialize();
             done = false;
             for (var k in hevents) {
+                if (typeof events[i][j] === "object" && "serialize" in events[i][j]) {
+                    done = true;
+                    break;
+                }
                 o = hevents[k].deserialize(events[i][j]);
                 if (o) {
                     events[i][j] = o;
@@ -32,6 +38,10 @@ Rule.Deserialize = function(homework, rule) {
     for (i = 0; i < actions.length; ++i) {
         done = false;
         for (j in hactions) {
+            if (typeof actions[i] === "object" && "serialize" in actions[i]) {
+                done = true;
+                break;
+            }
             o = hactions[j].deserialize(actions[i]);
             if (o) {
                 actions[i] = o;
@@ -52,8 +62,6 @@ Rule.Deserialize = function(homework, rule) {
 
 Rule.prototype = {
     _name: undefined,
-    _events: [],
-    _actions: [],
 
     get name() {
         return this._name;
@@ -80,7 +88,7 @@ Rule.prototype = {
             var a = events[i];
             var ok = true;
             for (var j = 0; j < a.length; ++j) {
-                events[i][j] = events[i][j].serialize();
+                a[j] = a[j].serialize();
             }
         }
         var actions = this._actions.slice(0);

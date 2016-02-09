@@ -9,12 +9,23 @@ const rl = readline.createInterface({
     completer: completer
 });
 
+function lineFixup(line) {
+    // replace all consecutive spaces with one space
+    return line.replace(/\s/g, " ");
+}
+
 function construct(constructor, args) {
     function F() {
         return constructor.apply(this, args);
     }
     F.prototype = constructor.prototype;
-    return new F();
+    try {
+        var f = new F();
+    } catch (e) {
+        Console.log("Couldn't create", e);
+        return undefined;
+    }
+    return f;
 }
 
 const data = {
@@ -41,7 +52,7 @@ data._initOns();
 const states = {
     default: {
         prompt: "homework> ",
-        completions: ["rule ", "shutdown", "device", "eval"],
+        completions: ["rule ", "shutdown", "device", "eval", "timers"],
         apply: function(line) {
             if (line === "shutdown") {
                 data._emit("shutdown");
@@ -65,6 +76,10 @@ const states = {
                 break;
             case "eval":
                 data.state.push(states.eval);
+                data.applyState();
+                break;
+            case "timers":
+                data.state.push(states.timers);
                 data.applyState();
                 break;
             default:
@@ -197,6 +212,8 @@ const states = {
                 const event = events[elems[0]];
                 elems.splice(0, 1);
                 const created = construct(event.ctor, elems.map((e) => { return e.replace(/_/g, " "); }));
+                if (!created)
+                    return;
                 //console.log("got event", created);
                 states.rule._currentEvent().push(created);
             } else {
@@ -277,6 +294,8 @@ const states = {
                 const action = actions[elems[0]];
                 elems.splice(0, 1);
                 const created = construct(action.ctor, elems.map((e) => { return e.replace(/_/g, " "); }));
+                if (!created)
+                    return;
                 //console.log("got action", created);
                 states.rule._actions.push(created);
             } else {
@@ -409,6 +428,54 @@ const states = {
                 eval(line);
             } catch (e) {
                 Console.error("eval error", e);
+            }
+        }
+    },
+    timers: {
+        prompt: "timers> ",
+        completions: function(line) {
+            var candidates = [["home", "create ", "destroy "], ["timeout ", "interval "]];
+            var ret = [];
+            const elems = line ? lineFixup(line).split(' ') : [];
+            if (elems.length === 0) {
+                return candidates[0];
+            } else if (elems.length <= candidates.length) {
+                // verify that we have a full word
+                ret = candidates[elems.length - 1].filter((c) => {
+                    return c.indexOf(elems[elems.length - 1]) === 0
+                        && c.length > elems[elems.length - 1].length + 1;
+                });
+                if (ret.length > 0)
+                    return ret;
+            }
+            var stripped = utils.strip(elems);
+            if ((stripped.length === 2 || stripped.length === 3) && stripped[0] === "destroy") {
+                // complete on timer names
+                ret = data.homework.Timer.names(stripped[1]);
+            }
+            return ret.filter((c) => { return c.indexOf(elems[elems.length - 1]) === 0; });
+        },
+        apply: function(line) {
+            if (line === "back" || line === "home") {
+                data.gotoState(1);
+                data.applyState();
+                return;
+            }
+            const elems = line ? line.split(' ').filter((e) => { return e.length > 0; }) : [];
+            if (!elems.length)
+                return;
+            if (elems.length < 3) {
+                Console.error("Need at least 3 arguments");
+                return;
+            }
+            if (elems[0] === "create") {
+                if (data.homework.Timer.create(elems[1], elems[2])) {
+                    Console.log("created");
+                } else {
+                    Console.log("couldn't create");
+                }
+            } else if (elems[0] === "destroy") {
+                data.homework.Timer.destroy(elems[1], elems[2]);
             }
         }
     }
