@@ -19,6 +19,9 @@ Home automation system
                 "floor": "2nd floor"
             }
         }
+    },
+    "zwave": {
+        "port": "/dev/ttyAMA0"
     }
 }
 ```
