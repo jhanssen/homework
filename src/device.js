@@ -1,18 +1,25 @@
 /*global module,require*/
 const utils = require("./utils.js");
 const uuid = require("node-uuid");
+const devices = [];
 
 const data = {
-    homework: undefined
+    homework: undefined,
+    data: undefined
 };
 
 function Device(u)
 {
+    this._name = undefined;
     this._values = Object.create(null);
-    if (u)
+    if (u) {
         this._uuid = u;
-    else
+        if (typeof data.data[u] === "object") {
+            this._name = data.data[u].name;
+        }
+    } else {
         this._uuid = uuid.v1();
+    }
 }
 
 Device.prototype = {
@@ -282,9 +289,10 @@ function actionDeserializer(a)
     return action;
 }
 
-Device.init = function(homework)
+Device.init = function(homework, d)
 {
     data.homework = homework;
+    data.data = d;
     homework.registerEvent("Device", Device.Event, eventCompleter, eventDeserializer);
     homework.registerAction("Device", Device.Action, actionCompleter, actionDeserializer);
 };

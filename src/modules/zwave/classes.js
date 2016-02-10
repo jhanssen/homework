@@ -61,10 +61,11 @@ Devices["Multilevel Scene Switch"].prototype = {
     },
     createHomeworkDevice: function() {
         var uuid;
-        if (this.nodeid in data)
+        if (typeof data === "object" && this.nodeid in data)
             uuid = data[this.nodeid];
         var hwdev = new homework.Device(uuid);
-        hwdev.name = "Multilevel Scene Switch " + (++Devices["Multilevel Scene Switch"].cnt);
+        if (!hwdev.name)
+            hwdev.name = "Multilevel Scene Switch " + (++Devices["Multilevel Scene Switch"].cnt);
         for (var k in this._values) {
             let v = this._values[k];
             let hwval = new homework.Device.Value("level", { off: 0, on: 100 }, [0, 100]);
@@ -106,10 +107,11 @@ Devices["Binary Scene Switch"].prototype = {
     },
     createHomeworkDevice: function() {
         var uuid;
-        if (this.nodeid in data)
+        if (typeof data === "object" && this.nodeid in data)
             uuid = data[this.nodeid];
         var hwdev = new homework.Device(uuid);
-        hwdev.name = "Binary Scene Switch " + (++Devices["Binary Scene Switch"].cnt);
+        if (!hwdev.name)
+            hwdev.name = "Binary Scene Switch " + (++Devices["Binary Scene Switch"].cnt);
         for (var k in this._values) {
             let v = this._values[k];
             let hwval = new homework.Device.Value("value", { off: false, on: true });

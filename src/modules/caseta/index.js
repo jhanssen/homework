@@ -43,6 +43,7 @@ const caseta = {
     _created: false,
     _homework: undefined,
     _console: undefined,
+    _data: undefined,
     _hwdevices: Object.create(null),
 
     get name() { return "caseta"; },
@@ -50,6 +51,7 @@ const caseta = {
     init: function(cfg, data, homework) {
         if (!cfg || !cfg.devices || !cfg.connection)
             return;
+        this._data = data;
         this._devices = fixup(cfg.devices);
         this._homework = homework;
         Console = homework.Console;
@@ -76,15 +78,23 @@ const caseta = {
     shutdown: function(cb) {
         if (this._homework)
             bridge.close();
-        cb();
+        var data = this._data || Object.create(null);
+        for (var id in this._hwdevices) {
+            data[id] = this._hwdevices[id].uuid;
+        }
+        cb(data);
     },
 
     _create: function() {
         this._created = true;
         for (let id in this._devices) {
             let dev = this._devices[id];
-            let hwdev = new this._homework.Device();
-            hwdev.name = fullName(dev);
+            var uuid;
+            if (typeof this._data === "object" && id in this._data)
+                uuid = this._data[id];
+            let hwdev = new this._homework.Device(uuid);
+            if (!hwdev.name)
+                hwdev.name = fullName(dev);
             let hwval = new this._homework.Device.Value("level", { off: 0, on: 100 }, [0, 100]);
             let func = functions[dev.type];
             hwval._valueUpdated = function(v) {

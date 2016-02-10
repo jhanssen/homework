@@ -84,6 +84,13 @@ homework = {
         }
         Console.log(rules);
         db.writeFileSync("rules.json", rules);
+
+        var devices = Object.create(null);
+        for (i = 0; i < this._devices.length; ++i) {
+            var dev = this._devices[i];
+            devices[dev.uuid] = { name: dev.name };
+        }
+        db.writeFileSync("devices.json", devices);
     },
     restore: function() {
         db.readFile("rules.json", (err, obj) => {
@@ -96,11 +103,13 @@ homework = {
             }
         });
         Config.load(this, () => {
-            Device.init(this);
-            Timer.init(this);
-            WebSocket.init(this);
-            db.readFile("modules.json", (err, obj) => {
-                Modules.init(this, obj);
+            db.readFile("devices.json", (err, obj) => {
+                Device.init(this, obj);
+                Timer.init(this);
+                WebSocket.init(this);
+                db.readFile("modules.json", (err, obj) => {
+                    Modules.init(this, obj);
+                });
             });
         });
     },
