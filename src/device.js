@@ -80,6 +80,8 @@ Device.Value.prototype = {
     },
 
     update: function(v) {
+        if (this._value == v)
+            return;
         this._value = v;
         this._emit("changed", this.value);
     }

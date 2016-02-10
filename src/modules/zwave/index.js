@@ -84,6 +84,14 @@ const zwave = {
             });
             ozw.on('value refreshed', (nodeid, commandclass, valueId) => {
                 Console.log("value refreshed for", nodeid, commandclass, valueId);
+                if (nodeid in devices) {
+                    devices[nodeid].changeValue(valueId);
+                } else {
+                    if (!(nodeid in values)) {
+                        values[nodeid] = Object.create(null);
+                    }
+                    values[nodeid][valueId.value_id] = valueId;
+                }
             });
             ozw.on('value removed', (nodeid, commandclass, instance, index) => {
                 // silly API
