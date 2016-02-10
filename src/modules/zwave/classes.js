@@ -117,9 +117,9 @@ Devices["Binary Scene Switch"].prototype = {
             let hwval = new homework.Device.Value("value", { off: false, on: true });
             hwval._valueUpdated = function(val) {
                 try {
-                    if (typeof v === "boolean") {
+                    if (typeof val === "boolean") {
                         zwave.setValue(v.node_id, v.class_id, v.instance, v.index, val);
-                    } else if (typeof v === "number") {
+                    } else if (typeof val === "number") {
                         zwave.setValue(v.node_id, v.class_id, v.instance, v.index, (val != 0));
                     }
                 } catch (e) {
