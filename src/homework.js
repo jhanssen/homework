@@ -14,6 +14,7 @@ homework = {
     _events: Object.create(null),
     _actions: Object.create(null),
     _devices: [],
+    _deviceinfo: undefined,
     _rules: [],
     _pendingRules: [],
     _cfg: undefined,
@@ -85,7 +86,7 @@ homework = {
         Console.log(rules);
         db.writeFileSync("rules.json", rules);
 
-        var devices = Object.create(null);
+        var devices = this._deviceinfo || Object.create(null);
         for (i = 0; i < this._devices.length; ++i) {
             var dev = this._devices[i];
             devices[dev.uuid] = { name: dev.name };
@@ -104,6 +105,7 @@ homework = {
         });
         Config.load(this, () => {
             db.readFile("devices.json", (err, obj) => {
+                this._deviceinfo = obj;
                 Device.init(this, obj);
                 Timer.init(this);
                 WebSocket.init(this);
