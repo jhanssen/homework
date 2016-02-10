@@ -1,4 +1,7 @@
 /*global module,require,__dirname*/
+
+"use strict";
+
 const os = require("os");
 const path = require("path");
 const fs = require("fs");
@@ -6,20 +9,26 @@ const Console = require("./console.js");
 
 const modules = {
     _homework: undefined,
+    _moduledata: undefined,
     _modules: [],
 
-    init: function(homework) {
+    init: function(homework, data) {
         this._homework = homework;
+        this._moduledata = data;
 
         // load modules in module path
         this._loadBuiltins();
     },
     shutdown: function(cb) {
         var rem = this._modules.length;
+        var moduledata = Object.create(null);
         for (var i = 0; i < this._modules.length; ++i) {
-            this._modules[i].shutdown(() => {
+            let mod = this._modules[i];
+            mod.shutdown((data) => {
+                if (data)
+                    moduledata[mod.name] = data;
                 if (!--rem) {
-                    cb();
+                    cb(moduledata);
                 }
             });
         }
@@ -36,9 +45,10 @@ const modules = {
         fs.stat(idx, (err, stat) => {
             if (!err && (stat.isFile() || stat.isSymbolicLink())) {
                 var m = require(idx);
-                if (typeof m === "object" && "init" in m) {
-                    var cfg = this._homework.config ? this._homework.config[module.section] : {};
-                    m.init(cfg, this._homework);
+                if (typeof m === "object" && "init" in m && "name" in m) {
+                    var data = this._moduledata ? this._moduledata[m.name] : {};
+                    var cfg = this._homework.config ? this._homework.config[m.name] : {};
+                    m.init(cfg, data, this._homework);
                     this._modules.push(m);
                 } else {
                     Console.error("unable to load module", module.section);

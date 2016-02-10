@@ -9,6 +9,7 @@
     "ws": "*",
     "jsonfile": "*",
     "sugar": "*",
-    "openzwave-shared": "*"
+    "openzwave-shared": "*",
+    "node-uuid": "*"
   }
 }

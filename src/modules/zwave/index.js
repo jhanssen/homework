@@ -9,8 +9,13 @@ const devices = Object.create(null);
 const classes = require("./classes.js");
 
 const zwave = {
-    port: undefined,
-    init: function(cfg, hw) {
+    _pendingData: undefined,
+    _port: undefined,
+
+    get name() { return "zwave"; },
+
+    init: function(cfg, data, hw) {
+        this._pendingData = data;
         if (typeof cfg === "object" && cfg.port) {
             homework = hw;
             Console = hw.Console;
@@ -18,7 +23,7 @@ const zwave = {
             ozwshared = require("openzwave-shared");
             ozw = new ozwshared({ ConsoleOutput: false });
 
-            classes.init(hw, ozw, cfg);
+            classes.init(hw, ozw, cfg, data);
 
             ozw.on('driver ready', (homeid) => {
             });
@@ -51,6 +56,7 @@ const zwave = {
                 Console.log("node event", nodeid, event, valueId);
             });
             ozw.on('node removed', (nodeid) => {
+                // remove from pendingData here
             });
             ozw.on('node reset', (nodeid, event, notif) => {
             });
@@ -109,13 +115,19 @@ const zwave = {
             });
             Console.log("initing zwave", cfg.port);
             ozw.connect(cfg.port);
-            this.port = cfg.port;
+            this._port = cfg.port;
         }
     },
     shutdown: function(cb) {
-        if (this.port)
-            ozw.disconnect(this.port);
-        cb();
+        // write node_id to uuid map
+        var map = this._pendingData || Object.create(null);
+        for (var k in devices) {
+            var dev = devices[k];
+            map[k] = dev.homework().uuid;
+        }
+        if (this._port)
+            ozw.disconnect(this._port);
+        cb(map);
     }
 };
 

@@ -45,7 +45,9 @@ const caseta = {
     _console: undefined,
     _hwdevices: Object.create(null),
 
-    init: function(cfg, homework) {
+    get name() { return "caseta"; },
+
+    init: function(cfg, data, homework) {
         if (!cfg || !cfg.devices || !cfg.connection)
             return;
         this._devices = fixup(cfg.devices);
@@ -81,12 +83,13 @@ const caseta = {
         this._created = true;
         for (let id in this._devices) {
             let dev = this._devices[id];
-            let hwdev = new this._homework.Device(fullName(dev));
+            let hwdev = new this._homework.Device();
+            hwdev.name = fullName(dev);
             let hwval = new this._homework.Device.Value("level", { off: 0, on: 100 }, [0, 100]);
             let func = functions[dev.type];
-            hwval._valueUpdated = function() {
-                if (func.check(hwval.raw)) {
-                    func.set(id, hwval.raw);
+            hwval._valueUpdated = function(v) {
+                if (func.check(v)) {
+                    func.set(id, v);
                 } else {
                     Console.error("caseta: value out of range", hwval.raw);
                 }

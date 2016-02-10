@@ -99,7 +99,9 @@ homework = {
             Device.init(this);
             Timer.init(this);
             WebSocket.init(this);
-            Modules.init(this);
+            db.readFile("modules.json", (err, obj) => {
+                Modules.init(this, obj);
+            });
         });
     },
     loadRules: function() {
@@ -120,7 +122,11 @@ homework = {
 Console.init(homework);
 Console.on("shutdown", () => {
     homework.save();
-    Modules.shutdown(() => {
+    Modules.shutdown((data) => {
+        if (data) {
+            console.log("modules.json", data);
+            db.writeFileSync("modules.json", data);
+        }
         process.exit();
     });
 });

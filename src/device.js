@@ -1,25 +1,35 @@
 /*global module,require*/
 const utils = require("./utils.js");
+const uuid = require("node-uuid");
 
 const data = {
     homework: undefined
 };
 
-function Device(name)
+function Device(u)
 {
-    this._name = name;
     this._values = Object.create(null);
+    if (u)
+        this._uuid = u;
+    else
+        this._uuid = uuid.v1();
 }
 
 Device.prototype = {
     _name: undefined,
     _values: undefined,
 
+    set name(name) {
+        this._name = name;
+    },
     get name() {
         return this._name;
     },
     get values() {
         return this._values;
+    },
+    get uuid() {
+        return this._uuid;
     },
 
     addValue: function(v) {
@@ -74,15 +84,17 @@ Device.Value.prototype = {
             v = this._values[v];
         }
 
-        this._value = v;
         if (typeof this._valueUpdated === "function")
-            this._valueUpdated();
+            this._valueUpdated(v);
+        else
+            this._value = v;
     },
 
     update: function(v) {
         if (this._value == v)
             return;
         this._value = v;
+        data.homework.Console.log("device value changed to", this._value);
         this._emit("changed", this.value);
     }
 };
