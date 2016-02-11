@@ -120,7 +120,7 @@ Device.Event = function()
     const devs = data.homework.devices;
     var dev;
     for (var i = 0; i < devs.length; ++i) {
-        if (devs[i].name === arguments[0])
+        if (devs[i].uuid === arguments[0])
             dev = devs[i];
     }
     if (dev == undefined) {
@@ -162,7 +162,7 @@ Device.Event.prototype = {
         return this._value.value == this._equals;
     },
     serialize: function() {
-        return { type: "DeviceEvent", deviceName: this._device.name, valueName: this._value.name, value: this._equals };
+        return { type: "DeviceEvent", deviceUuid: this._device.uuid, valueName: this._value.name, value: this._equals };
     }
 };
 
@@ -179,7 +179,7 @@ Device.Action = function()
     const devs = data.homework.devices;
     var dev;
     for (var i = 0; i < devs.length; ++i) {
-        if (devs[i].name === arguments[0])
+        if (devs[i].uuid === arguments[0])
             dev = devs[i];
     }
     if (dev == undefined) {
@@ -217,7 +217,7 @@ Device.Action.prototype = {
         this._value.value = this._equals;
     },
     serialize: function() {
-        return { type: "DeviceAction", deviceName: this._device.name, valueName: this._value.name, value: this._equals };
+        return { type: "DeviceAction", deviceUuid: this._device.uuid, valueName: this._value.name, value: this._equals };
     }
 };
 
@@ -266,7 +266,7 @@ function eventDeserializer(e)
         return null;
 
     try {
-        var event = new Device.Event(e.deviceName, e.valueName, e.value);
+        var event = new Device.Event(e.deviceUuid, e.valueName, e.value);
     } catch (e) {
         return null;
     }
@@ -282,7 +282,7 @@ function actionDeserializer(a)
         return null;
 
     try {
-        var action = new Device.Action(a.deviceName, a.valueName, a.value);
+        var action = new Device.Action(a.deviceUuid, a.valueName, a.value);
     } catch (e) {
         return null;
     }
