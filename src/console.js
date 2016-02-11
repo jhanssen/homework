@@ -36,6 +36,15 @@ const data = {
         return this.state[this.state.length - 1];
     },
 
+    get prompt() {
+        return this.currentState.prompt;
+    },
+    set prompt(p) {
+        var s = this.currentState;
+        s.prompt = p;
+        rl.setPrompt(s.prompt);
+    },
+
     applyState: function() {
         var s = this.currentState;
         rl.setPrompt(s.prompt);
@@ -326,6 +335,7 @@ const states = {
                         for (var k in states.device._device.values) {
                             candidates.push(k.replace(/ /g, "_"));
                         }
+                        candidates.push("rename ");
                     } else {
                         candidates.push("get");
                         candidates.push("set ");
@@ -377,6 +387,12 @@ const states = {
                         data.applyState();
                     }
                     return;
+                } else if (elems[0] === "rename" && states.device._device !== undefined) {
+                    var newname = /rename\s+([^\s].*)/.exec(line);
+                    if (newname instanceof Array && newname.length === 2) {
+                        states.device._device.name = newname[1];
+                        data.prompt = "device " + newname[1] + "> ";
+                    }
                 }
                 if (states.device._value === undefined) {
                     // find and set the value
