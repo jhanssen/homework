@@ -10,6 +10,8 @@
     "jsonfile": "*",
     "sugar": "*",
     "openzwave-shared": "*",
-    "node-uuid": "*"
+    "node-uuid": "*",
+    "minimist": "*",
+    "tilde-expansion": "*"
   }
 }

@@ -93,7 +93,9 @@ homework = {
         }
         db.writeFileSync("devices.json", devices);
     },
-    restore: function() {
+    restore: function(args) {
+        const modulePath = args.modulePath || args.M;
+
         db.readFile("rules.json", (err, obj) => {
             if (obj) {
                 homework._pendingRules = obj;
@@ -110,7 +112,7 @@ homework = {
                 Timer.init(this);
                 WebSocket.init(this);
                 db.readFile("modules.json", (err, obj) => {
-                    Modules.init(this, obj);
+                    Modules.init(this, modulePath, obj);
                 });
             });
         });
@@ -142,7 +144,7 @@ Console.on("shutdown", () => {
     });
 });
 
-homework.restore();
+homework.restore(require('minimist')(process.argv.slice(2)));
 
 /*
 // fake device

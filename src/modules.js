@@ -4,6 +4,7 @@
 
 const os = require("os");
 const path = require("path");
+const tilde = require('tilde-expansion');
 const fs = require("fs");
 const Console = require("./console.js");
 
@@ -11,17 +12,30 @@ const modules = {
     _homework: undefined,
     _moduledata: undefined,
     _modules: [],
+    _pending: [],
 
-    init: function(homework, data) {
+    init: function(homework, path, data) {
         this._homework = homework;
         this._moduledata = data;
 
         // load modules in module path
         this._loadBuiltins();
+
+        // load modules in path
+        if (!(typeof path === "string"))
+            return;
+        var paths = path.split(':');
+        for (var p = 0; p < paths.length; ++p) {
+            tilde(paths[p], (path) => {
+                this._loadPath(path);
+            });
+        }
     },
     shutdown: function(cb) {
         var rem = this._modules.length;
         var moduledata = Object.create(null);
+        if (!rem)
+            cb(moduledata);
         for (var i = 0; i < this._modules.length; ++i) {
             let mod = this._modules[i];
             mod.shutdown((data) => {
@@ -53,14 +67,30 @@ const modules = {
                 } else {
                     Console.error("unable to load module", module.section);
                 }
+            } else {
+                Console.error("no module at", idx);
             }
         });
     },
     _loadBuiltins: function() {
         var modules = path.resolve(__dirname, 'modules');
-        fs.readdir(modules, (err, files) => {
+        this._loadPath(modules);
+    },
+    _loadPath: function(arg) {
+        //Console.log("loading path", arg);
+        if (arg) {
+            this._pending.push(arg);
+        } else if (this._pending.length > 0) {
+            arg = this._pending[0];
+            this._pending.splice(0, 1);
+        } else {
+            return;
+        }
+        if (this._pending.length > 1)
+            return;
+        fs.readdir(arg, (err, files) => {
             if (err) {
-                Console.error("can't find path for builtin modules", err);
+                Console.error("can't find path", arg, err);
                 return;
             }
             var total = files.length;
@@ -69,9 +99,10 @@ const modules = {
                 for (var i = 0; i < dirs.length; ++i) {
                     this._loadModule(dirs[i]);
                 }
+                this._loadPath();
             };
             for (var i = 0; i < files.length; ++i) {
-                var file = modules + path.sep + files[i];
+                var file = arg + path.sep + files[i];
                 if (file[0] === ".")
                     continue;
                 fs.stat(file, function(file, section, err, stat) {
