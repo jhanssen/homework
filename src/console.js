@@ -409,14 +409,21 @@ const states = {
                         data.applyState();
                     }
                 } else {
-                    if (elems[0] === "set" && elems.length > 1) {
-                        var val = parseInt(elems[1]);
-                        if (val + "" === elems[1])
-                            states.device._value.value = val;
-                        else
-                            states.device._value.value = elems[1];
+                    if (elems[0] === "set") {
+                        if (elems.length === 1) {
+                            var val = parseInt(elems[1]);
+                            if (val + "" === elems[1])
+                                states.device._value.value = val;
+                        } else {
+                            var newval = /set\s+([^\s].*)/.exec(line);
+                            if (newval instanceof Array && newval.length === 2) {
+                                states.device._value.value = newval[1];
+                            } else {
+                                Console.log("couldn't set value");
+                            }
+                        }
                     } else if (elems[0] === "get") {
-                        console.log(states.device._value.value);
+                        Console.log(states.device._value.value);
                     }
                 }
             }
