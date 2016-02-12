@@ -43,6 +43,10 @@ const devices = {
     get homework() { return this._homework; },
     get zwave() { return this._zwave; },
 
+    init: function(hw, zw) {
+        devices._homework = hw;
+        devices._zwave = zw;
+    },
     registerDevice: function(creator, proto) {
         if (proto)
             valueify(proto);
@@ -200,8 +204,7 @@ const Classes = {
     init: function(hw, zw, cfg, dt) {
         data = dt;
 
-        devices._homework = hw;
-        devices._zwave = zw;
+        devices.init(hw, zw);
 
         require("./dimmer.js").init(devices);
         require("./switch.js").init(devices);
