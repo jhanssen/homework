@@ -78,6 +78,7 @@ const Classes = {
 
         require("./dimmer.js").init(devices);
         require("./switch.js").init(devices);
+        require("./thermostat.js").init(devices);
     },
     createDevice: function(nodeid, nodeinfo, values) {
         return devices.create(nodeid, nodeinfo, values);
