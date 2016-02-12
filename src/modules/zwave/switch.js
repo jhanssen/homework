@@ -10,7 +10,6 @@ const data = {
 function Switch(nodeid, nodeinfo)
 {
     this._initValues(this);
-    this._pending = undefined;
     this.nodeid = nodeid;
 }
 
