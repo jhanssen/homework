@@ -12,7 +12,6 @@ const modules = {
     _homework: undefined,
     _moduledata: undefined,
     _modules: [],
-    _pending: [],
 
     init: function(homework, path, data) {
         this._homework = homework;
@@ -78,16 +77,6 @@ const modules = {
     },
     _loadPath: function(arg) {
         //Console.log("loading path", arg);
-        if (arg) {
-            this._pending.push(arg);
-        } else if (this._pending.length > 0) {
-            arg = this._pending[0];
-            this._pending.splice(0, 1);
-        } else {
-            return;
-        }
-        if (this._pending.length > 1)
-            return;
         fs.readdir(arg, (err, files) => {
             if (err) {
                 Console.error("can't find path", arg, err);
@@ -99,7 +88,6 @@ const modules = {
                 for (var i = 0; i < dirs.length; ++i) {
                     this._loadModule(dirs[i]);
                 }
-                this._loadPath();
             };
             for (var i = 0; i < files.length; ++i) {
                 var file = arg + path.sep + files[i];
