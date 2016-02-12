@@ -7,15 +7,17 @@ const data = {
     zwave: undefined
 };
 
-function Thermostat(nodeid, nodeinfo)
+function Generic(nodeid, nodeinfo)
 {
     this._initValues(this);
     this.nodeid = nodeid;
+    this.type = nodeinfo.type;
 }
 
-Thermostat.cnt = 0;
+Generic.dcnt = 0;
+Generic.vcnt = 0;
 
-Thermostat.ClassIds = {
+Generic.ClassIds = {
     49: "Temperature", // read only
     67: "Setpoint",
     64: "Mode",
@@ -24,16 +26,20 @@ Thermostat.ClassIds = {
     68: "Fan Mode"
 };
 
-Thermostat.acceptable = function(val)
+Generic.acceptable = function(val)
 {
     return val.genre == "user" && !val.write_only;
 };
 
-Thermostat.createValue = function(v)
+Generic.createValue = function(v)
 {
     var name = v.label;
-    if (!(typeof name === "string") || !name.length)
-        name = Thermostat.ClassIds[v.class_id];
+    if (!(typeof name === "string") || !name.length) {
+        if (v.class_id in Generic.ClassIds)
+            name = Generic.ClassIds[v.class_id];
+        else
+            name = "Unknown:" + v.class_id + " " + (++Generic.vcnt);
+    }
     var values, range;
     if (v.type == "list") {
         values = Object.create(null);
@@ -43,7 +49,7 @@ Thermostat.createValue = function(v)
         if (v.max > v.min)
             range = [v.min, v.max];
     }
-    const hwv = new data.homework.Device.Value(name, values, range);
+    const hwv = new data.homework.Device.Value(name, values, range, v);
     if (!v.read_only) {
         hwv._valueUpdated = function(val) {
             try {
@@ -58,9 +64,9 @@ Thermostat.createValue = function(v)
     return hwv;
 };
 
-Thermostat.prototype = {
+Generic.prototype = {
     _acceptValue: function(value) {
-        if (value.class_id in Thermostat.ClassIds && Thermostat.acceptable(value))
+        if (Generic.acceptable(value))
             return true;
         return false;
     },
@@ -73,17 +79,23 @@ Thermostat.prototype = {
     },
     _removeValue: function(value) {
     },
-    createHomeworkDevice: function(uuid) {
+    createHomeworkDevice: function(uuid, devices) {
         var hwdev = new data.homework.Device(uuid);
-        if (!hwdev.name)
-            hwdev.name = "Thermostat " + (++Thermostat.cnt);
+        if (!hwdev.name) {
+            var n = this.type;
+            if (!(typeof n === "string") || !n.length)
+                n = "Generic";
+            hwdev.name = n + " " + (++Generic.dcnt);
+        }
         for (var k in this._values) {
             let v = this._values[k];
-            let hwval = Thermostat.createValue(v);
+            let hwval = Generic.createValue(v);
             hwval.update(v.value);
             this._hwvalues[k] = hwval;
             hwdev.addValue(hwval);
         }
+
+        devices.fixupValues(hwdev);
 
         this._hwdevice = hwdev;
         data.homework.addDevice(hwdev);
@@ -96,11 +108,8 @@ module.exports = {
         data.zwave = devices.zwave;
 
         var ctor = function(nodeid, nodeinfo) {
-            if (nodeinfo.type == "General Thermostat V2") {
-                return new Thermostat(nodeid, nodeinfo);
-            }
-            return undefined;
+            return new Generic(nodeid, nodeinfo);
         };
-        devices.registerDevice(ctor, Thermostat.prototype);
+        devices.registerDevice(ctor, Generic.prototype);
     }
 };

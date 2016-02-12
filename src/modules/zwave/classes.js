@@ -48,6 +48,133 @@ const devices = {
             valueify(proto);
         this._devices.push(creator);
     },
+    fixupValues: function(device) {
+        if (typeof device.values !== "object" || device.values === null)
+            return;
+        var clock = {
+            values: Object.create(null),
+
+            add: function(k, v) {
+                this.values[k] = v;
+            },
+            fixup: function(device, homework) {
+                const keys = Object.keys(this.values);
+                // console.log("fixup", keys);
+                if (keys.length == 3 || keys.length == 4) {
+                    var day, hour, minute, second;
+                    for (let k in this.values) {
+                        let hwval = this.values[k];
+                        let handle = this.values[k].handle;
+                        // console.log("key", k);
+                        // console.log("handle", handle);
+                        switch (handle.index) {
+                        case 0:
+                            day = { key: k, val: handle, hw: hwval };
+                            break;
+                        case 1:
+                            hour = { key: k, val: handle, hw: hwval };
+                            break;
+                        case 2:
+                            minute = { key: k, val: handle, hw: hwval };
+                            break;
+                        case 3:
+                            second = { key: k, val: handle, hw: hwval };
+                            break;
+                        }
+                    }
+                    // console.log("here 1", day, hour, minute, second);
+                    if (day && hour && minute) {
+                        var valueData = {
+                            day: day.val,
+                            hour: hour.val,
+                            minute: minute.val,
+                            second: second ? second.val : undefined,
+
+                            toString: function() {
+                                return this.day.value + " " + this.hour.value + ":" + this.minute.value + (this.second ? ":" + this.second.value : "");
+                            }
+                        };
+                        device.removeValue(day.key);
+                        device.removeValue(hour.key);
+                        device.removeValue(minute.key);
+                        if (second) {
+                            device.removeValue(second.key);
+                        }
+                        const val = new homework.Device.Value("clock");
+
+                        day.hw.on("changed", function() {
+                            val.value = valueData.toString();
+                        });
+                        hour.hw.on("changed", function() {
+                            val.value = valueData.toString();
+                        });
+                        minute.hw.on("changed", function() {
+                            val.value = valueData.toString();
+                        });
+                        if (second) {
+                            second.hw.on("changed", function() {
+                                val.value = valueData.toString();
+                            });
+                        }
+                        val.value = valueData.toString();
+
+                        val._valueUpdated = function(v) {
+                            var rxs = [
+                                { rx: /^([0-9]+):([0-9]+)$/, keys: ["hour", "minute"] },
+                                { rx: /^([0-9]+):([0-9]+):([0-9]+)$/, keys: ["hour", "minute", "second"] },
+                                { rx: /^([A-Za-z]+)$/, keys: ["day"] }
+                            ];
+                            var update = function(obj) {
+                                if ("day" in obj && day)
+                                    day.hw.value = obj.day;
+                                if ("hour" in obj && hour)
+                                    hour.hw.value = obj.hour;
+                                if ("minute" in obj && minute)
+                                    minute.hw.value = obj.minute;
+                                if ("second" in obj && second)
+                                    second.hw.value = obj.second;
+                            };
+
+                            switch (typeof v) {
+                            case "string":
+                                // console.log("value is", v);
+                                for (var i = 0; i < rxs.length; ++i) {
+                                    var keys = rxs[i].keys;
+                                    var res = rxs[i].rx.exec(v);
+                                    // console.log("trying", rxs[i].rx);
+                                    // console.log(res);
+                                    // if (res instanceof Array) {
+                                    //     console.log(res.length, keys.length);
+                                    // } else {
+                                    //     console.log("not array", typeof res);
+                                    // }
+                                    if (res instanceof Array && res.length === keys.length + 1) {
+                                        var obj = {};
+                                        for (var j = 0; j < keys.length; ++j) {
+                                            obj[keys[j]] = res[j + 1];
+                                        }
+                                        // console.log("updating", obj);
+                                        update(obj);
+                                        break;
+                                    }
+                                }
+                                break;
+                            default:
+                                break;
+                            }
+                        };
+                        device.addValue(val);
+                    }
+                }
+            }
+        };
+        for (var value in device.values) {
+            if (device.values[value].handle.class_id == 129) {
+                clock.add(value, device.values[value]);
+            }
+        }
+        clock.fixup(device, this.homework);
+    },
     create: function(nodeid, nodeinfo, values) {
         for (var i = 0; i < this._devices.length; ++i) {
             var dev = this._devices[i](nodeid, nodeinfo);
@@ -60,7 +187,7 @@ const devices = {
                 if (typeof data === "object" && dev.nodeid in data)
                     uuid = data[dev.nodeid];
 
-                dev.createHomeworkDevice(uuid);
+                dev.createHomeworkDevice(uuid, this);
                 return dev;
             }
         }
@@ -78,7 +205,7 @@ const Classes = {
 
         require("./dimmer.js").init(devices);
         require("./switch.js").init(devices);
-        require("./thermostat.js").init(devices);
+        require("./generic.js").init(devices);
     },
     createDevice: function(nodeid, nodeinfo, values) {
         return devices.create(nodeid, nodeinfo, values);
