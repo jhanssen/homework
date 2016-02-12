@@ -397,8 +397,9 @@ const states = {
                 if (states.device._value === undefined) {
                     // find and set the value
                     const values = states.device._device.values;
-                    if (elems[0] in values) {
-                        states.device._value = values[elems[0]];
+                    const vn = elems[0].replace(/_/g, " ");
+                    if (vn in values) {
+                        states.device._value = values[vn];
                         state = {
                             prompt: "device " + states.device._device.name + " " + states.device._value.name + "> ",
                             completions: states.device.completions,
