@@ -61,7 +61,7 @@ data._initOns();
 const states = {
     default: {
         prompt: "homework> ",
-        completions: ["rule ", "shutdown", "device", "eval", "timers"],
+        completions: ["rule ", "shutdown", "device", "eval", "timers", "variables"],
         apply: function(line) {
             if (line === "shutdown") {
                 data._emit("shutdown");
@@ -89,6 +89,10 @@ const states = {
                 break;
             case "timers":
                 data.state.push(states.timers);
+                data.applyState();
+                break;
+            case "variables":
+                data.state.push(states.variables);
                 data.applyState();
                 break;
             default:
@@ -509,6 +513,58 @@ const states = {
                 }
             } else if (elems[0] === "destroy") {
                 data.homework.Timer.destroy(elems[1], elems[2]);
+            }
+        }
+    },
+    variables: {
+        prompt: "variables> ",
+        completions: function(line) {
+            var candidates = ["home", "create ", "destroy "];
+            var ret = [];
+            const elems = line ? lineFixup(line).split(' ') : [];
+            if (elems.length === 0) {
+                return candidates;
+            } else if (elems.length === 1) {
+                // verify that we have a full word
+                ret = candidates.filter((c) => {
+                    return c.indexOf(elems[0]) === 0
+                        && c.length > elems[0].length + 1;
+                });
+                if (ret.length > 0)
+                    return ret;
+            }
+            var stripped = utils.strip(elems);
+            if ((stripped.length === 1 || stripped.length === 2) && stripped[0] === "destroy") {
+                // complete on variable names
+                ret = data.homework.Variable.names();
+            }
+            return ret.filter((c) => { return c.indexOf(elems[elems.length - 1]) === 0; });
+        },
+        apply: function(line) {
+            if (line === "back" || line === "home") {
+                data.gotoState(1);
+                data.applyState();
+                return;
+            }
+            const elems = line ? line.split(' ').filter((e) => { return e.length > 0; }) : [];
+            if (!elems.length)
+                return;
+            if (elems.length < 2) {
+                Console.error("Need at least 2 arguments");
+                return;
+            }
+            if (elems[0] === "create") {
+                try {
+                    if (data.homework.Variable.create(elems[1])) {
+                        Console.log("created");
+                    } else {
+                        Console.log("couldn't create");
+                    }
+                } catch (e) {
+                    Console.error("Couldn't create variable", e);
+                }
+            } else if (elems[0] === "destroy") {
+                data.homework.Variable.destroy(elems[1]);
             }
         }
     }

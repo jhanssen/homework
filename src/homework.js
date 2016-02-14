@@ -8,6 +8,7 @@ const WebSocket = require("./websocket.js");
 const Rule = require("./rule.js");
 const Modules = require("./modules.js");
 const Timer = require("./timer.js");
+const Variable = require("./variable.js");
 const db = require("jsonfile");
 
 homework = {
@@ -21,6 +22,7 @@ homework = {
     _Device: Device,
     _Console: Console,
     _Timer: Timer,
+    _Variable: Variable,
     _restored: false,
 
     registerEvent: function(name, ctor, completion, deserialize) {
@@ -74,6 +76,9 @@ homework = {
     get Timer() {
         return this._Timer;
     },
+    get Variable() {
+        return this._Variable;
+    },
     get restored() {
         return this._restored;
     },
@@ -114,6 +119,7 @@ homework = {
                 this._deviceinfo = obj;
                 Device.init(this, obj);
                 Timer.init(this);
+                Variable.init(this);
                 WebSocket.init(this);
                 db.readFile("modules.json", (err, obj) => {
                     Modules.init(this, modulePath, obj);
