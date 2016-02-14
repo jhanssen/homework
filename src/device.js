@@ -8,6 +8,23 @@ const data = {
     data: undefined
 };
 
+function stringAsType(a) {
+    if (typeof a === "string") {
+        // int?
+        if (parseInt(a) == a)
+            return parseInt(a);
+        if (parseFloat(a) == a)
+            return parseFloat(a);
+        switch (a) {
+        case "true":
+            return true;
+        case "false":
+            return false;
+        }
+    }
+    return a;
+}
+
 function Device(u)
 {
     this._name = undefined;
@@ -125,7 +142,7 @@ Device.Event = function()
     const devs = data.homework.devices;
     var dev;
     for (var i = 0; i < devs.length; ++i) {
-        if (devs[i].uuid === arguments[0])
+        if (devs[i].name === arguments[0])
             dev = devs[i];
     }
     if (dev == undefined) {
@@ -137,10 +154,10 @@ Device.Event = function()
     const valname = arguments[1];
     if (valname in dev.values) {
         this._value = dev.values[valname];
-        this._equals = arguments[2];
+        this._equals = stringAsType(arguments[2]);
 
         this._value.on("changed", (v) => {
-            if (this._equals == v)
+            if (this._equals == stringAsType(v))
                 this._emit("triggered");
         });
     } else {
@@ -164,7 +181,7 @@ Device.Event.prototype = {
     },
 
     check: function() {
-        return this._value.value == this._equals;
+        return stringAsType(this._value.value) == this._equals;
     },
     serialize: function() {
         return { type: "DeviceEvent", deviceUuid: this._device.uuid, valueName: this._value.name, value: this._equals };
@@ -184,7 +201,7 @@ Device.Action = function()
     const devs = data.homework.devices;
     var dev;
     for (var i = 0; i < devs.length; ++i) {
-        if (devs[i].uuid === arguments[0])
+        if (devs[i].name === arguments[0])
             dev = devs[i];
     }
     if (dev == undefined) {
@@ -197,7 +214,7 @@ Device.Action = function()
     var valname = arguments[1];
     if (valname in dev.values) {
         this._value = dev.values[valname];
-        this._equals = arguments[2];
+        this._equals = stringAsType(arguments[2]);
     } else {
         throw "No device value named " + arguments[1] + " for device " + arguments[0];
     }
