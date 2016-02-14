@@ -92,6 +92,11 @@ const states = {
                 data.applyState();
                 break;
             default:
+                if (typeof states.default._extraCommands === "object" && elems[0] in states.default._extraCommands) {
+                    data.state.push(states.default._extraCommands[elems[0]]);
+                    data.applyState();
+                    break;
+                }
                 console.log("unknown command", elems[0]);
                 break;
             }
@@ -570,6 +575,21 @@ Console.error = function()
 {
     console.error.apply(console, arguments);
     rl.prompt();
+};
+
+Console.registerCommand = function(parent, name, section)
+{
+    states[parent].completions.push(name);
+    if (!states[parent]._extraCommands)
+        states[parent]._extraCommands = Object.create(null);
+    states[parent]._extraCommands[name] = section;
+    states[name] = section;
+};
+
+Console.home = function()
+{
+    data.gotoState(1);
+    data.applyState();
 };
 
 Console.on = data.on.bind(data);

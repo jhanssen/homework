@@ -20,6 +20,8 @@ const zwave = {
             homework = hw;
             Console = hw.Console;
 
+            Console.registerCommand("default", "zwave", this._console);
+
             ozwshared = require("openzwave-shared");
             ozw = new ozwshared({ ConsoleOutput: false });
 
@@ -128,6 +130,26 @@ const zwave = {
         if (this._port)
             ozw.disconnect(this._port);
         cb(map);
+    },
+
+    _console: {
+        prompt: "zwave> ",
+        completions: ["pair ", "depair", "stop", "home", "back"],
+        apply: function(line) {
+            var elems = line.split(' ').filter((e) => { return e.length > 0; });
+            switch (elems[0]) {
+            case "pair":
+                ozw.addNode((elems.length > 1 && elems[1]) ? true : false);
+                break;
+            case "depair":
+                ozw.removeNode();
+                break;
+            case "home":
+            case "back":
+                Console.home();
+                break;
+            }
+        }
     }
 };
 
