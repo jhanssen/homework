@@ -13,6 +13,7 @@
     "node-uuid": "*",
     "minimist": "*",
     "tilde-expansion": "*",
-    "node-schedule": "*"
+    "node-schedule": "*",
+    "suncalc": "*"
   }
 }

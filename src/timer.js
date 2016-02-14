@@ -1,8 +1,14 @@
 /*global module,setTimeout,clearTimeout,setInterval,clearInterval,require*/
 
 const nodeschedule = require("node-schedule");
+const suncalc = require("suncalc");
 
 var homework = undefined;
+var utils = undefined;
+var location = {
+    latitude: undefined,
+    longitude: undefined
+};
 
 function clone(obj)
 {
@@ -11,6 +17,70 @@ function clone(obj)
         ret[k] = obj[k];
     }
     return ret;
+}
+
+function createDate(d, adj, set)
+{
+    const adjust = function(date, adj) {
+        const keys = {
+            time: { set: "setTime", get: "getTime" },
+            day: { set: "setDate", get: "getDate" },
+            hour: { set: "setHours", get: "getHours" },
+            minute: { set: "setMinutes", get: "getMinutes" },
+            year: { set: "setFullYear", get: "getFullYear" },
+            month: { set: "setMonth", get: "getMonth" },
+            second: { set: "setSeconds", get: "getSeconds" },
+            ms: { set: "setMilliseconds", get: "getMilliseconds" }
+        };
+        for (var k in keys) {
+            if (k in adj && keys[k].set in date && keys[k].get in date) {
+                if (set)
+                    date[keys[k].set](adj[k]);
+                else
+                    date[keys[k].set](date[keys[k].get]() + adj[k]);
+            }
+        }
+        return date;
+    };
+
+    var dt;
+    if (typeof d === "string") {
+        switch (d) {
+        case "sunset":
+        case "sunrise":
+            if (location.latitude === undefined || location.longitude === undefined) {
+                throw "Need location.latitude and location.longitude set in config";
+            }
+            dt = suncalc.getTimes(new Date(), location.latitude, location.longitude);
+            if (adj) {
+                adjust(dt[d], adj);
+                if (dt[d].getTime() === dt[d].getTime()) {
+                    return dt[d];
+                }
+                return undefined;
+            }
+            return dt[d];
+        default:
+            dt = new Date(d);
+            if (adj)
+                adjust(dt, adj);
+            if (dt.getTime() === dt.getTime())
+                return dt;
+            return undefined;
+        }
+    } else if (typeof d === "object") {
+        if (d instanceof Date) {
+            if (adj)
+                adjust(d, adj);
+            if (d.getTime() === d.getTime())
+                return d;
+            return undefined;
+        }
+        dt = adjust(new Date(), d);
+        if (dt.getTime() === dt.getTime())
+            return dt;
+    }
+    return undefined;
 }
 
 function Timer(type)
@@ -159,6 +229,80 @@ function ScheduleEvent()
 ScheduleEvent.prototype = clone(Event.prototype);
 ScheduleEvent.prototype._type = "schedule";
 
+function RangeEvent(name, start, end)
+{
+    if (arguments.length !== 3) {
+        throw "RangeEvent needs three arguments, name, start and end";
+    }
+
+    const fromJSON = function(a) {
+        if (typeof a === "object") {
+            return a;
+        } else if (typeof a === "string") {
+            var ret;
+            try {
+                ret = JSON.parse(a);
+            } catch (e) {
+                return a;
+            }
+            return ret;
+        }
+        return undefined;
+    };
+    const allowed = function(a) {
+        if (typeof a === "object")
+            return true;
+        switch (a) {
+        case "sunrise":
+        case "sunset":
+            return true;
+        }
+        return false;
+    };
+
+    start = fromJSON(start);
+    end = fromJSON(end);
+    if (!allowed(start)) {
+        throw "RangeEvent start is not allowed: " + JSON.stringify(start);
+    }
+    if (!allowed(end)) {
+        throw "RangeEvent end is not allowed: " + JSON.stringify(end);
+    }
+
+    var d1 = createDate(start);
+    var d2 = createDate(end);
+    if (d1 && d1 instanceof Date && d2 && d2 instanceof Date) {
+        this._start = start;
+        this._end = end;
+        this._name = name;
+        if (d1 > d2) {
+            this._endAdjust = { day: 1 };
+        } else {
+            this._endAdjust = undefined;
+        }
+        this._initOns();
+    } else {
+        throw "RangeEvent needs two date arguments";
+    }
+}
+
+RangeEvent.prototype = {
+    _name: undefined,
+    _start: undefined,
+    _end: undefined,
+    _endAdjust: undefined,
+
+    check: function() {
+        var d1 = createDate(this._start);
+        var d2 = createDate(this._end, this._endAdjust, true);
+        var now = new Date();
+        return d1 <= now && d2 >= now;
+    },
+    serialize: function() {
+        return { type: "TimeRangeEvent", name: this._name, start: this._start, end: this._end };
+    }
+};
+
 function Action()
 {
     if (arguments.length < 2) {
@@ -219,6 +363,32 @@ function IntervalAction()
 IntervalAction.prototype = clone(Action.prototype);
 IntervalAction.prototype._type = "interval";
 
+function rangeEventCompleter()
+{
+    // ### complete on dates?
+    var args = utils.strip(arguments);
+    if (args.length >= 1)
+        return ["sunrise", "sunset"];
+    return [];
+}
+
+function rangeEventDeserializer(e)
+{
+    if (!(typeof e === "object"))
+        return null;
+
+    if (e.type !== "TimeRangeEvent")
+        return null;
+
+    var event;
+    try {
+        event = new RangeEvent(e.name, e.start, e.end);
+    } catch (e) {
+        return null;
+    }
+    return event;
+}
+
 function eventCompleter(items)
 {
     if (!items)
@@ -231,7 +401,7 @@ function eventCompleter(items)
     if (!(arguments[1] in items)) {
         return [];
     }
-    var args = homework.utils.strip(arguments).slice(1);
+    var args = utils.strip(arguments).slice(1);
     if (args.length === 1) {
         return ["fires"];
     }
@@ -250,7 +420,7 @@ function actionCompleter(items)
     if (!(arguments[1] in items)) {
         return [];
     }
-    var args = homework.utils.strip(arguments).slice(1);
+    var args = utils.strip(arguments).slice(1);
     if (args.length === 1) {
         return ["start", "stop"];
     }
@@ -311,13 +481,25 @@ const timers = {
     init: function(hw)
     {
         homework = hw;
-        homework.utils.onify(Timer.prototype);
-        homework.utils.onify(Schedule.prototype);
-        homework.utils.onify(TimeoutEvent.prototype);
-        homework.utils.onify(TimeoutAction.prototype);
-        homework.utils.onify(IntervalEvent.prototype);
-        homework.utils.onify(IntervalAction.prototype);
-        homework.utils.onify(ScheduleEvent.prototype);
+        utils = hw.utils;
+        const cfg = hw.config;
+        if ("location" in cfg) {
+            if ("latitude" in cfg.location && "longitude" in cfg.location) {
+                location.latitude = cfg.location.latitude;
+                location.longitude = cfg.location.longitude;
+            } else {
+                throw "need latitude and longitude in config";
+            }
+        }
+
+        utils.onify(Timer.prototype);
+        utils.onify(Schedule.prototype);
+        utils.onify(TimeoutEvent.prototype);
+        utils.onify(TimeoutAction.prototype);
+        utils.onify(IntervalEvent.prototype);
+        utils.onify(IntervalAction.prototype);
+        utils.onify(ScheduleEvent.prototype);
+        utils.onify(RangeEvent.prototype);
 
         homework.registerEvent("Timeout", TimeoutEvent, eventCompleter.bind(null, timers.timeout), eventDeserializer.bind(null, "timeout"));
         homework.registerAction("Timeout", TimeoutAction, actionCompleter.bind(null, timers.timeout), actionDeserializer.bind(null, "timeout"));
@@ -325,6 +507,8 @@ const timers = {
         homework.registerAction("Interval", IntervalAction, actionCompleter.bind(null, timers.interval), actionDeserializer.bind(null, "interval"));
 
         homework.registerEvent("Schedule", ScheduleEvent, eventCompleter.bind(null, timers.schedule), eventDeserializer.bind(null, "schedule"));
+
+        homework.registerEvent("TimeRange", RangeEvent, rangeEventCompleter, rangeEventDeserializer);
 
         homework.loadRules();
     },
