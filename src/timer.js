@@ -229,10 +229,10 @@ function ScheduleEvent()
 ScheduleEvent.prototype = clone(Event.prototype);
 ScheduleEvent.prototype._type = "schedule";
 
-function RangeEvent(name, start, end)
+function RangeEvent(start, end)
 {
-    if (arguments.length !== 3) {
-        throw "RangeEvent needs three arguments, name, start and end";
+    if (arguments.length !== 2) {
+        throw "RangeEvent needs three arguments, start and end";
     }
 
     const fromJSON = function(a) {
@@ -274,7 +274,6 @@ function RangeEvent(name, start, end)
     if (d1 && d1 instanceof Date && d2 && d2 instanceof Date) {
         this._start = start;
         this._end = end;
-        this._name = name;
         if (d1 > d2) {
             this._endAdjust = { day: 1 };
         } else {
@@ -287,7 +286,6 @@ function RangeEvent(name, start, end)
 }
 
 RangeEvent.prototype = {
-    _name: undefined,
     _start: undefined,
     _end: undefined,
     _endAdjust: undefined,
@@ -299,7 +297,7 @@ RangeEvent.prototype = {
         return d1 <= now && d2 >= now;
     },
     serialize: function() {
-        return { type: "TimeRangeEvent", name: this._name, start: this._start, end: this._end };
+        return { type: "TimeRangeEvent", start: this._start, end: this._end };
     }
 };
 
@@ -366,10 +364,7 @@ IntervalAction.prototype._type = "interval";
 function rangeEventCompleter()
 {
     // ### complete on dates?
-    var args = utils.strip(arguments);
-    if (args.length >= 1)
-        return ["sunrise", "sunset"];
-    return [];
+    return ["sunrise", "sunset"];
 }
 
 function rangeEventDeserializer(e)
@@ -382,7 +377,7 @@ function rangeEventDeserializer(e)
 
     var event;
     try {
-        event = new RangeEvent(e.name, e.start, e.end);
+        event = new RangeEvent(e.start, e.end);
     } catch (e) {
         return null;
     }
