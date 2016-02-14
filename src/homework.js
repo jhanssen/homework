@@ -117,6 +117,7 @@ homework = {
                 WebSocket.init(this);
                 db.readFile("modules.json", (err, obj) => {
                     Modules.init(this, modulePath, obj);
+                    this._restored = true;
                 });
             });
         });
