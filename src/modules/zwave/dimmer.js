@@ -62,7 +62,7 @@ Dimmer.prototype = {
             hwdev.name = "Multilevel Scene Switch " + (++Dimmer.cnt);
         for (var k in this._values) {
             let v = this._values[k];
-            let hwval = new data.homework.Device.Value("level", { off: 0, on: 100 }, [0, 100]);
+            let hwval = new data.homework.Device.Value("level", { off: 0, on: 99 }, [0, 99]);
             hwval._zwave = v;
             hwval._valueUpdated = (val) => {
                 try {
@@ -86,7 +86,7 @@ Dimmer.prototype = {
             if (k in this._hwvalues)
                 continue;
             let v = this._values[k];
-            let hwval = new data.homework.Device.Value("level", { off: 0, on: 100 }, [0, 100]);
+            let hwval = new data.homework.Device.Value("level", { off: 0, on: 99 }, [0, 99]);
             hwval._zwave = v;
             hwval._valueUpdated = (val) => {
                 try {
