@@ -79,9 +79,9 @@ const caseta = {
         if (this._homework)
             bridge.close();
         var data = this._data || Object.create(null);
-        for (var id in this._hwdevices) {
-            data[id] = this._hwdevices[id].uuid;
-        }
+        // for (var id in this._hwdevices) {
+        //     data[id] = this._hwdevices[id].uuid;
+        // }
         cb(data);
     },
 
@@ -89,9 +89,9 @@ const caseta = {
         this._created = true;
         for (let id in this._devices) {
             let dev = this._devices[id];
-            var uuid;
-            if (typeof this._data === "object" && id in this._data)
-                uuid = this._data[id];
+            var uuid = "caseta:" + id;
+            // if (typeof this._data === "object" && id in this._data)
+            //     uuid = this._data[id];
             let hwdev = new this._homework.Device(uuid);
             if (!hwdev.name)
                 hwdev.name = fullName(dev);

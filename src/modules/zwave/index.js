@@ -123,10 +123,10 @@ const zwave = {
     shutdown: function(cb) {
         // write node_id to uuid map
         var map = this._pendingData || Object.create(null);
-        for (var k in devices) {
-            var dev = devices[k];
-            map[k] = dev.homework().uuid;
-        }
+        // for (var k in devices) {
+        //     var dev = devices[k];
+        //     map[k] = dev.homework().uuid;
+        // }
         if (this._port)
             ozw.disconnect(this._port);
         cb(map);

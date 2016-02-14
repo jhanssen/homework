@@ -201,11 +201,11 @@ const devices = {
                     dev.addValue(values[j]);
                 }
 
-                var uuid;
-                if (typeof data === "object" && dev.nodeid in data)
-                    uuid = data[dev.nodeid];
+                // var uuid;
+                // if (typeof data === "object" && dev.nodeid in data)
+                //     uuid = data[dev.nodeid];
 
-                dev.createHomeworkDevice(uuid, this);
+                dev.createHomeworkDevice("zwave:" + dev.nodeid, this);
                 return dev;
             }
         }
