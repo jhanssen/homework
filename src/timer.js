@@ -171,10 +171,14 @@ Schedule.prototype = {
     },
 
     _createSpecial: function(val) {
+        if (this._job) {
+            this._job.cancel();
+            this._job = undefined;
+        }
         var now = new Date();
         var date = createDate(val);
         if (date) {
-            if (now.getTime() + 1000 > date.getTime()) {
+            if (now.getTime() + 10000 > date.getTime()) {
                 date = createDate(val, { day: 1 }, false);
                 if (date && now < date) {
                     this._job = nodeschedule.scheduleJob(date, () => {
