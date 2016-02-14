@@ -140,10 +140,16 @@ Device.Event = function()
 
     // find the device
     const devs = data.homework.devices;
-    var dev;
-    for (var i = 0; i < devs.length; ++i) {
-        if (devs[i].name === arguments[0])
+    var dev, i;
+    for (i = 0; i < devs.length; ++i) {
+        if (devs[i].uuid === arguments[0])
             dev = devs[i];
+    }
+    if (!dev) {
+        for (i = 0; i < devs.length; ++i) {
+            if (devs[i].name === arguments[0])
+                dev = devs[i];
+        }
     }
     if (dev == undefined) {
         throw "No device named " + arguments[0];
@@ -199,10 +205,16 @@ Device.Action = function()
 
     // find the device
     const devs = data.homework.devices;
-    var dev;
-    for (var i = 0; i < devs.length; ++i) {
-        if (devs[i].name === arguments[0])
+    var dev, i;
+    for (i = 0; i < devs.length; ++i) {
+        if (devs[i].uuid === arguments[0])
             dev = devs[i];
+    }
+    if (!dev) {
+        for (i = 0; i < devs.length; ++i) {
+            if (devs[i].name === arguments[0])
+                dev = devs[i];
+        }
     }
     if (dev == undefined) {
         throw "No device named " + arguments[0];
