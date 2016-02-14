@@ -222,6 +222,7 @@ const Classes = {
 
         require("./dimmer.js").init(devices);
         require("./switch.js").init(devices);
+        require("./multisensor6.js").init(devices);
         require("./generic.js").init(devices);
     },
     createDevice: function(nodeid, nodeinfo, values) {
