@@ -58,6 +58,7 @@ Device.prototype = {
 
     addValue: function(v) {
         this._values[v.name] = v;
+        v._device = this;
     },
     removeValue: function(name) {
         delete this._values[name];
@@ -70,6 +71,7 @@ Device.Value = function(name, values, range, handle)
     this._values = values;
     this._range = range;
     this._handle = handle;
+    this._device = undefined;
     this._initOns();
 };
 
@@ -80,6 +82,7 @@ Device.Value.prototype = {
     _range: undefined,
     _valueUpdated: undefined,
     _handle: undefined,
+    _device: undefined,
 
     get name() {
         return this._name;
@@ -92,6 +95,9 @@ Device.Value.prototype = {
     },
     get handle() {
         return this._handle;
+    },
+    get device() {
+        return this._device;
     },
     get value() {
         // see if our value maps to one of our values
@@ -123,7 +129,7 @@ Device.Value.prototype = {
         if (this._value == v)
             return;
         this._value = v;
-        data.homework.Console.log("device value changed to", this._value);
+        data.homework.Console.log("device value", this.name, "changed to", this._value, "for device", (this.device ? this.device.name : "(not set)"));
         this._emit("changed", this.value);
     }
 };
