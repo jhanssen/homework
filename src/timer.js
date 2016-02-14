@@ -1,4 +1,6 @@
-/*global module,setTimeout,clearTimeout,setInterval,clearInterval*/
+/*global module,setTimeout,clearTimeout,setInterval,clearInterval,require*/
+
+const nodeschedule = require("node-schedule");
 
 var homework = undefined;
 
@@ -57,12 +59,51 @@ Timer.prototype = {
     }
 };
 
+function Schedule(val)
+{
+    if (arguments.length !== 1) {
+        throw "Schedule needs one argument, spec";
+    }
+    this._job = nodeschedule.scheduleJob(val, () => { this._emit("fired"); });
+    if (!this._job) {
+        if (typeof val === "string") {
+            const date = new Date(val);
+            // Fun fact, NaN === NaN returns false
+            if (date.getTime() === date.getTime()) {
+                this._job = nodeschedule.scheduleJob(date, () => { this._emit("fired"); });
+            }
+        }
+        if (!this._job)
+            throw "Couldn't schedule job " + JSON.stringify(val);
+    }
+    this._date = val;
+    this._initOns();
+}
+
+Schedule.prototype = {
+    _job: undefined,
+    _date: undefined,
+
+    get date() { return this._date; },
+
+    stop: function() {
+        if (this._job) {
+            this._job.cancel();
+            this._job = undefined;
+        }
+    },
+    destroy: function() {
+        this.stop();
+        this._emit("destroyed");
+    }
+};
+
 function Event()
 {
     if (arguments.length < 1) {
         throw "Timer event needs one arguments, name";
     }
-    if (this._type !== "timeout" && this._type !== "interval") {
+    if (this._type !== "timeout" && this._type !== "interval" && this._type !== "schedule") {
         throw "Timer event type mismatch " + this._type;
     }
     const obj = timers[this._type];
@@ -72,16 +113,25 @@ function Event()
     this._initOns();
     this._fired = false;
     this._name = arguments[0];
-    obj[arguments[0]].on("fired", () => { homework.Console.log("triggering timer event", this._name); this._fired = true; this._emit("triggered"); });
-    obj[arguments[0]].on("destroyed", () => { this._emit("cancel"); });
+
+    const tt = obj[arguments[0]];
+    if (this._type === "schedule") {
+        this._date = tt.date;
+    } else {
+        this._date = undefined;
+    }
+    tt.on("fired", () => { homework.Console.log("triggering timer event", this._name); this._fired = true; this._emit("triggered"); });
+    tt.on("destroyed", () => { this._emit("cancel"); });
 }
 
 Event.prototype = {
+    _date: undefined,
+
     check: function() {
         return this._fired;
     },
     serialize: function() {
-        return { type: "TimerEvent" + this._type, name: this._name };
+        return { type: "TimerEvent" + this._type, name: this._name, date: this._date };
     }
 };
 
@@ -100,6 +150,14 @@ function IntervalEvent()
 
 IntervalEvent.prototype = clone(Event.prototype);
 IntervalEvent.prototype._type = "interval";
+
+function ScheduleEvent()
+{
+    Event.apply(this, arguments);
+}
+
+ScheduleEvent.prototype = clone(Event.prototype);
+ScheduleEvent.prototype._type = "schedule";
 
 function Action()
 {
@@ -210,11 +268,13 @@ function eventDeserializer(type, e)
     var event;
     try {
         // create the timer now if it doesn't exist
-        timers.create(type, e.name);
+        timers.create(type, e.name, e.date);
         if (type === "timeout")
             event = new TimeoutEvent(e.name);
         else if (type === "interval")
             event = new IntervalEvent(e.name);
+        else if (type === "schedule")
+            event = new ScheduleEvent(e.name);
     } catch (e) {
         return null;
     }
@@ -246,42 +306,55 @@ function actionDeserializer(type, e)
 const timers = {
     timeout: Object.create(null),
     interval: Object.create(null),
+    schedule: Object.create(null),
 
     init: function(hw)
     {
         homework = hw;
         homework.utils.onify(Timer.prototype);
+        homework.utils.onify(Schedule.prototype);
         homework.utils.onify(TimeoutEvent.prototype);
         homework.utils.onify(TimeoutAction.prototype);
         homework.utils.onify(IntervalEvent.prototype);
         homework.utils.onify(IntervalAction.prototype);
+        homework.utils.onify(ScheduleEvent.prototype);
 
         homework.registerEvent("Timeout", TimeoutEvent, eventCompleter.bind(null, timers.timeout), eventDeserializer.bind(null, "timeout"));
         homework.registerAction("Timeout", TimeoutAction, actionCompleter.bind(null, timers.timeout), actionDeserializer.bind(null, "timeout"));
         homework.registerEvent("Interval", IntervalEvent, eventCompleter.bind(null, timers.interval), eventDeserializer.bind(null, "interval"));
         homework.registerAction("Interval", IntervalAction, actionCompleter.bind(null, timers.interval), actionDeserializer.bind(null, "interval"));
 
+        homework.registerEvent("Schedule", ScheduleEvent, eventCompleter.bind(null, timers.schedule), eventDeserializer.bind(null, "schedule"));
+
         homework.loadRules();
     },
     names: function(type)
     {
-        if (type !== "timeout" && type !== "interval")
+        if (type !== "timeout" && type !== "interval" && type !== "schedule")
             return [];
         return Object.keys(this[type]);
     },
     create: function(type, name)
     {
-        if (type !== "timeout" && type !== "interval")
+        if (type !== "timeout" && type !== "interval" && type !== "schedule")
             return null;
         if (name in this[type])
             return null;
-        var t = new Timer(type);
-        this[type][name] = t;
+        var t;
+        if (type === "schedule") {
+            if (arguments.length < 3)
+                return null;
+            t = new Schedule([].slice.apply(arguments).slice(2).join(" "));
+            this.schedule[name] = t;
+        } else {
+            t = new Timer(type);
+            this[type][name] = t;
+        }
         return t;
     },
     destroy: function(type, name)
     {
-        if (type !== "timeout" && type !== "interval")
+        if (type !== "timeout" && type !== "interval" && type !== "schedule")
             return false;
         if (name in this[type]) {
             this[type][name].destroy();

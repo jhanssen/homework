@@ -12,6 +12,7 @@
     "openzwave-shared": "*",
     "node-uuid": "*",
     "minimist": "*",
-    "tilde-expansion": "*"
+    "tilde-expansion": "*",
+    "node-schedule": "*"
   }
 }

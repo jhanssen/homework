@@ -463,7 +463,7 @@ const states = {
     timers: {
         prompt: "timers> ",
         completions: function(line) {
-            var candidates = [["home", "create ", "destroy "], ["timeout ", "interval "]];
+            var candidates = [["home", "create ", "destroy "], ["timeout ", "interval ", "schedule "]];
             var ret = [];
             const elems = line ? lineFixup(line).split(' ') : [];
             if (elems.length === 0) {
@@ -498,10 +498,14 @@ const states = {
                 return;
             }
             if (elems[0] === "create") {
-                if (data.homework.Timer.create(elems[1], elems[2])) {
-                    Console.log("created");
-                } else {
-                    Console.log("couldn't create");
+                try {
+                    if (data.homework.Timer.create.apply(data.homework.Timer, elems.slice(1))) {
+                        Console.log("created");
+                    } else {
+                        Console.log("couldn't create");
+                    }
+                } catch (e) {
+                    Console.error("Couldn't create timer", e);
                 }
             } else if (elems[0] === "destroy") {
                 data.homework.Timer.destroy(elems[1], elems[2]);
