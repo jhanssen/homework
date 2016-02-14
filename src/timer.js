@@ -143,18 +143,7 @@ function Schedule(val)
                 this._job = nodeschedule.scheduleJob(date, () => { this._emit("fired"); });
             } else {
                 // might be a sunset/sunrise thing
-                var now = new Date();
-                date = createDate(val);
-                if (date) {
-                    if (now > date) {
-                        date = createDate(val, { day: 1 }, false);
-                        if (date && now < date) {
-                            this._job = nodeschedule.scheduleJob(date, () => { this._emit("fired"); });
-                        }
-                    } else {
-                        this._job = nodeschedule.scheduleJob(date, () => { this._emit("fired"); });
-                    }
-                }
+                this._job = this._createSpecial(val);
             }
         }
         if (!this._job)
@@ -179,6 +168,27 @@ Schedule.prototype = {
     destroy: function() {
         this.stop();
         this._emit("destroyed");
+    },
+
+    _createSpecial: function(val) {
+        var now = new Date();
+        var date = createDate(val);
+        if (date) {
+            if (now.getTime() + 1000 > date.getTime()) {
+                date = createDate(val, { day: 1 }, false);
+                if (date && now < date) {
+                    this._job = nodeschedule.scheduleJob(date, () => {
+                        this._emit("fired");
+                        this._createSpecial(val);
+                    });
+                }
+            } else {
+                this._job = nodeschedule.scheduleJob(date, () => {
+                    this._emit("fired");
+                    this._createSpecial(val);
+                });
+            }
+        }
     }
 };
 
