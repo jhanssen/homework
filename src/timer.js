@@ -137,10 +137,24 @@ function Schedule(val)
     this._job = nodeschedule.scheduleJob(val, () => { this._emit("fired"); });
     if (!this._job) {
         if (typeof val === "string") {
-            const date = new Date(val);
+            var date = new Date(val);
             // Fun fact, NaN === NaN returns false
             if (date.getTime() === date.getTime()) {
                 this._job = nodeschedule.scheduleJob(date, () => { this._emit("fired"); });
+            } else {
+                // might be a sunset/sunrise thing
+                var now = new Date();
+                date = createDate(val);
+                if (date) {
+                    if (now > date) {
+                        date = createDate(val, { day: 1 }, false);
+                        if (date && now < date) {
+                            this._job = nodeschedule.scheduleJob(date, () => { this._emit("fired"); });
+                        }
+                    } else {
+                        this._job = nodeschedule.scheduleJob(date, () => { this._emit("fired"); });
+                    }
+                }
             }
         }
         if (!this._job)
@@ -292,8 +306,18 @@ RangeEvent.prototype = {
 
     check: function() {
         var d1 = createDate(this._start);
-        var d2 = createDate(this._end, this._endAdjust, true);
+        var d2 = createDate(this._end, this._endAdjust, false);
         var now = new Date();
+        // console.log("checking range1", now);
+        // console.log("checking range2", d1, this._start);
+        // console.log("checking range3", d2, this._end, this._endAdjust);
+        if (now < d1 && now < d2) {
+            // try to adjust -1
+            d1 = createDate(this._start, { day: -1 }, false);
+            // console.log("checking again range1", now);
+            // console.log("checking again range2", d1, this._start);
+            // console.log("checking again range3", d2, this._end, this._endAdjust);
+        }
         return d1 <= now && d2 >= now;
     },
     serialize: function() {
