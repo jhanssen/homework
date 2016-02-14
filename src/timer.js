@@ -232,7 +232,7 @@ ScheduleEvent.prototype._type = "schedule";
 function RangeEvent(start, end)
 {
     if (arguments.length !== 2) {
-        throw "RangeEvent needs three arguments, start and end";
+        throw "RangeEvent needs two arguments, start and end";
     }
 
     const fromJSON = function(a) {
