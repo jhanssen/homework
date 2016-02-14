@@ -171,10 +171,8 @@ Schedule.prototype = {
     },
 
     _createSpecial: function(val) {
-        if (this._job) {
-            this._job.cancel();
-            this._job = undefined;
-        }
+        this.stop();
+
         var now = new Date();
         var date = createDate(val);
         if (date) {
