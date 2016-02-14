@@ -79,6 +79,27 @@ Dimmer.prototype = {
 
         this._hwdevice = hwdev;
         data.homework.addDevice(hwdev);
+    },
+    updateHomeworkDevice: function() {
+        // create outstanding values
+        for (var k in this._values) {
+            if (k in this._hwvalues)
+                continue;
+            let v = this._values[k];
+            let hwval = new data.homework.Device.Value("level", { off: 0, on: 100 }, [0, 100]);
+            hwval._zwave = v;
+            hwval._valueUpdated = (val) => {
+                try {
+                    this._pending = { value: val };
+                    data.zwave.setValue(v.node_id, v.class_id, v.instance, v.index, val);
+                } catch (e) {
+                    data.homework.Console.error("error updating value", e);
+                }
+            };
+            hwval.update(v.value);
+            this._hwvalues[k] = hwval;
+            this._hwdevice.addValue(hwval);
+        }
     }
 };
 

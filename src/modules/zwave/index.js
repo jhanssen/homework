@@ -43,9 +43,6 @@ const zwave = {
             });
             ozw.on('node available', (nodeid, nodeinfo) => {
                 Console.log("node available", nodeid, nodeinfo);
-            });
-            ozw.on('node ready', (nodeid, nodeinfo) => {
-                Console.log("node ready", nodeid, nodeinfo);
                 var dev = classes.createDevice(nodeid, nodeinfo, values[nodeid]);
                 if (dev) {
                     devices[nodeid] = dev;
@@ -53,6 +50,9 @@ const zwave = {
                 } else {
                     Console.log("couldn't create device", nodeinfo);
                 }
+            });
+            ozw.on('node ready', (nodeid, nodeinfo) => {
+                Console.log("node ready", nodeid, nodeinfo);
             });
             ozw.on('node event', (nodeid, event, valueId) => {
                 Console.log("node event", nodeid, event, valueId);

@@ -56,6 +56,29 @@ Switch.prototype = {
 
         this._hwdevice = hwdev;
         data.homework.addDevice(hwdev);
+    },
+    updateHomeworkDevice: function() {
+        // create outstanding values
+        for (var k in this._values) {
+            if (k in this._hwvalues)
+                continue;
+            let v = this._values[k];
+            let hwval = new data.homework.Device.Value("value", { off: false, on: true });
+            hwval._valueUpdated = function(val) {
+                try {
+                    if (typeof val === "boolean") {
+                        data.zwave.setValue(v.node_id, v.class_id, v.instance, v.index, val);
+                    } else if (typeof val === "number") {
+                        data.zwave.setValue(v.node_id, v.class_id, v.instance, v.index, (val != 0));
+                    }
+                } catch (e) {
+                    data.homework.Console.error("error updating value", e);
+                }
+            };
+            hwval.update(v.value);
+            this._hwvalues[k] = hwval;
+            this._hwdevice.addValue(hwval);
+        }
     }
 };
 

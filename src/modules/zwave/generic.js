@@ -99,6 +99,20 @@ Generic.prototype = {
 
         this._hwdevice = hwdev;
         data.homework.addDevice(hwdev);
+    },
+    updateHomeworkDevice: function(devices) {
+        // create outstanding values
+        for (var k in this._values) {
+            if (k in this._hwvalues)
+                continue;
+            let v = this._values[k];
+            let hwval = Generic.createValue(v);
+            hwval.update(v.value);
+            this._hwvalues[k] = hwval;
+            this._hwdevice.addValue(hwval);
+        }
+
+        devices.fixupValues(this._hwdevice);
     }
 };
 

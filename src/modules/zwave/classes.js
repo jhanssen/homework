@@ -1,4 +1,4 @@
-/*global module,setInterval,clearInterval,require*/
+/*global module,setInterval,clearInterval,setTimeout,clearTimeout,require*/
 
 "use strict";
 
@@ -15,6 +15,9 @@ function valueify(obj) {
     obj.addValue = function(value) {
         if (this._acceptValue(value)) {
             this._values[value.value_id] = value;
+            if (this._hwdevice) {
+                this._scheduleUpdateValues();
+            }
         }
     };
     obj.removeValue = function(key) {
@@ -32,6 +35,17 @@ function valueify(obj) {
         this._hwdevice = undefined;
         this._values = Object.create(null);
         this._hwvalues = Object.create(null);
+        this._updateTimer = undefined;
+    };
+    obj._scheduleUpdateValues = function() {
+        if (!this.updateHomeworkDevice)
+            return;
+        if (this._updateTimer)
+            clearTimeout(this._updateTimer);
+        this._updateTimer = setTimeout(() => {
+            this._updateTimer = undefined;
+            this.updateHomeworkDevice(devices);
+        }, 1000);
     };
 };
 
