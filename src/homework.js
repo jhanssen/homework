@@ -21,6 +21,7 @@ homework = {
     _Device: Device,
     _Console: Console,
     _Timer: Timer,
+    _restored: false,
 
     registerEvent: function(name, ctor, completion, deserialize) {
         if (name in this._events)
@@ -72,6 +73,9 @@ homework = {
     },
     get Timer() {
         return this._Timer;
+    },
+    get restored() {
+        return this._restored;
     },
 
     save: function() {
@@ -134,14 +138,18 @@ homework = {
 
 Console.init(homework);
 Console.on("shutdown", () => {
-    homework.save();
-    Modules.shutdown((data) => {
-        if (data) {
-            console.log("modules.json", data);
-            db.writeFileSync("modules.json", data);
-        }
+    if (!homework.restored) {
         process.exit();
-    });
+    } else {
+        homework.save();
+        Modules.shutdown((data) => {
+            if (data) {
+                console.log("modules.json", data);
+                db.writeFileSync("modules.json", data);
+            }
+            process.exit();
+        });
+    }
 });
 
 homework.restore(require('minimist')(process.argv.slice(2)));
