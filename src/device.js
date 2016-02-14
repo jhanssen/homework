@@ -31,7 +31,7 @@ function Device(u)
     this._values = Object.create(null);
     if (u) {
         this._uuid = u;
-        if (typeof data.data[u] === "object") {
+        if (typeof data.data === "object" && typeof data.data[u] === "object") {
             this._name = data.data[u].name;
         }
     } else {
