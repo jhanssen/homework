@@ -324,9 +324,18 @@ RangeEvent.prototype = {
         // console.log("checking range2", d1, this._start);
         // console.log("checking range3", d2, this._end, this._endAdjust);
         if (now < d1 && now < d2) {
-            // try to adjust -1 but only if start and end is on the same day as our current day
-            if (now.getDate() == d1.getDate() == d2.getDate()) {
+            // try to adjust -1 but only if the end date is one day past and current is the same day as start
+            if (now.getDate() == d1.getDate() && now.getDate() + 1 == d2.getDate()) {
                 d1 = createDate(this._start, { day: -1 }, false);
+                var adj = this._endAdjust ? clone(this._endAdjust) : Object.create(null);
+                if (!("day" in adj)) {
+                    adj.day = -1;
+                } else {
+                    adj.day -= 1;
+                }
+
+                d1 = createDate(this._start, { day: -1 }, false);
+                d2 = createDate(this._end, adj, false);
                 // console.log("checking again range1", now);
                 // console.log("checking again range2", d1, this._start);
                 // console.log("checking again range3", d2, this._end, this._endAdjust);
