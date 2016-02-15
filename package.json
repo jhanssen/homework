@@ -6,14 +6,14 @@
     "start": "node ./src/homework.js"
   },
   "dependencies": {
-    "ws": "*",
-    "jsonfile": "*",
-    "sugar": "*",
-    "openzwave-shared": "*",
-    "node-uuid": "*",
-    "minimist": "*",
-    "tilde-expansion": "*",
-    "node-schedule": "*",
-    "suncalc": "*"
+    "ws": "~1.0.1",
+    "jsonfile": "~2.2.3",
+    "sugar": "~1.4.1",
+    "openzwave-shared": "~1.1.7",
+    "node-uuid": "~1.4.7",
+    "minimist": "~1.2.0",
+    "tilde-expansion": "~0.0.0",
+    "node-schedule": "~1.0.0",
+    "suncalc": "~1.7.0"
   }
 }
