@@ -324,11 +324,13 @@ RangeEvent.prototype = {
         // console.log("checking range2", d1, this._start);
         // console.log("checking range3", d2, this._end, this._endAdjust);
         if (now < d1 && now < d2) {
-            // try to adjust -1
-            d1 = createDate(this._start, { day: -1 }, false);
-            // console.log("checking again range1", now);
-            // console.log("checking again range2", d1, this._start);
-            // console.log("checking again range3", d2, this._end, this._endAdjust);
+            // try to adjust -1 but only if start and end is on the same day
+            if (d1.getDate() == d2.getDate()) {
+                d1 = createDate(this._start, { day: -1 }, false);
+                // console.log("checking again range1", now);
+                // console.log("checking again range2", d1, this._start);
+                // console.log("checking again range3", d2, this._end, this._endAdjust);
+            }
         }
         return d1 <= now && d2 >= now;
     },
