@@ -143,7 +143,7 @@ function Schedule(val)
                 this._job = nodeschedule.scheduleJob(date, () => { this._emit("fired"); });
             } else {
                 // might be a sunset/sunrise thing
-                this._job = this._createSpecial(val);
+                this._createSpecial(val);
             }
         }
         if (!this._job)
