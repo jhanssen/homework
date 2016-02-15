@@ -61,7 +61,7 @@ const types = {
             retmsg = JSON.stringify({ id: msg.id, result: ret });
         } catch (e) {
             console.log("ws data exception", e);
-            retmsg = JSON.stringify({ id: msg.id, result: "message data exception" });
+            retmsg = JSON.stringify({ id: msg.id, error: "message data exception" });
         }
         ws.send(retmsg);
     },
