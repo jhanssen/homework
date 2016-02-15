@@ -52,6 +52,10 @@ homework = {
         this._rules.remove((el) => { return Object.is(rule, el); });
     },
 
+    valueUpdated(value) {
+        this._emit("valueUpdated", value);
+    },
+
     get events() {
         return this._events;
     },
@@ -142,6 +146,9 @@ homework = {
 
     utils: require("./utils.js")
 };
+
+homework.utils.onify(homework);
+homework._initOns();
 
 Console.init(homework);
 Console.on("shutdown", () => {

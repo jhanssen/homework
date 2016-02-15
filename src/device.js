@@ -130,6 +130,7 @@ Device.Value.prototype = {
             return;
         this._value = v;
         data.homework.Console.log("device value", this.name, "changed to", this._value, "for device", (this.device ? this.device.name : "(not set)"));
+        data.homework.valueUpdated(this);
         this._emit("changed", this.value);
     }
 };
