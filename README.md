@@ -23,7 +23,7 @@ Home automation system
     "zwave": {
         "port": "/dev/ttyAMA0"
     },
-    "location" {
+    "location": {
         "latitude": 37.7833,
         "longitude": -122.4167
     }
