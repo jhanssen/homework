@@ -3,18 +3,22 @@
 var homework = undefined;
 var utils = undefined;
 
-function Event(name, value)
+function Event(name, cmp, value)
 {
-    if (arguments.length != 2) {
-        throw "Variable event needs two arguments, name and value";
+    if (arguments.length != 3) {
+        throw "Variable event needs three arguments, name, comparator and value";
     }
 
     if (!(name in variables.variables)) {
         throw "Variable " + name + " does not exist";
     }
+    if (cmp !== "==" && cmp !== "!=") {
+        throw "Variable invalid comparator " + cmp;
+    }
 
     this._initOns();
     this._name = name;
+    this._cmp = cmp;
     this._value = value;
 
     variables.on("changed", (name) => {
@@ -33,9 +37,16 @@ function Event(name, value)
 Event.prototype = {
     _name: undefined,
     _value: undefined,
+    _cmp: undefined,
 
     check: function() {
-        return this._name in variables.variables && variables.variables[this._name] == this._value;
+        if (this._name in variables.variables) {
+            if (this._cmp == "==")
+                return variables.variables[this._name] == this._value;
+            else
+                return variables.variables[this._name] != this._value;
+        }
+        return false;
     },
     serialize: function() {
         return { type: "VariableEvent", name: this._name, value: this._value };
@@ -77,6 +88,8 @@ function eventCompleter()
 {
     if (!arguments.length) {
         return Object.keys(variables.variables);
+    } else if (arguments.length === 1 || arguments.length === 2) {
+        return ["==", "!="];
     }
     return [];
 }
