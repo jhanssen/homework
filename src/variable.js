@@ -49,7 +49,7 @@ Event.prototype = {
         return false;
     },
     serialize: function() {
-        return { type: "VariableEvent", name: this._name, value: this._value };
+        return { type: "VariableEvent", name: this._name, cmp: this._cmp, value: this._value };
     }
 };
 
@@ -105,7 +105,7 @@ function eventDeserializer(e)
     var event;
     try {
         variables.create(e.name);
-        event = new Event(e.name, e.value);
+        event = new Event(e.name, e.cmp, e.value);
     } catch (e) {
         return null;
     }
