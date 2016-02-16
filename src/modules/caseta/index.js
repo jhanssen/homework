@@ -14,6 +14,10 @@ const functions = {
         },
         check: function(value) {
             return value >= 0 && value <= 100;
+        },
+
+        get hwtype() {
+            return caseta.homework.Device.Dimmer;
         }
     }
 };
@@ -47,6 +51,7 @@ const caseta = {
     _hwdevices: Object.create(null),
 
     get name() { return "caseta"; },
+    get homework() { return this._homework; },
 
     init: function(cfg, data, homework) {
         if (!cfg || !cfg.devices || !cfg.connection)
@@ -92,11 +97,11 @@ const caseta = {
             var uuid = "caseta:" + id;
             // if (typeof this._data === "object" && id in this._data)
             //     uuid = this._data[id];
-            let hwdev = new this._homework.Device(uuid);
+            let func = functions[dev.type];
+            let hwdev = new this._homework.Device(func.hwtype, uuid);
             if (!hwdev.name)
                 hwdev.name = fullName(dev);
             let hwval = new this._homework.Device.Value("level", { off: 0, on: 100 }, [0, 100]);
-            let func = functions[dev.type];
             hwval._valueUpdated = function(v) {
                 if (func.check(v)) {
                     func.set(id, v);

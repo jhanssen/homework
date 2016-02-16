@@ -79,8 +79,8 @@ Generic.prototype = {
     },
     _removeValue: function(value) {
     },
-    createHomeworkDevice: function(uuid, devices) {
-        var hwdev = new data.homework.Device(uuid);
+    createHomeworkDevice: function(type, uuid, devices) {
+        var hwdev = new data.homework.Device(type, uuid);
         if (!hwdev.name) {
             var n = this.type;
             if (!(typeof n === "string") || !n.length)

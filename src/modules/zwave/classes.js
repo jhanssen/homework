@@ -57,6 +57,8 @@ const devices = {
     get homework() { return this._homework; },
     get zwave() { return this._zwave; },
 
+    get deviceName(nodeid) { return "zwave:" + nodeid; },
+
     init: function(hw, zw) {
         devices._homework = hw;
         devices._zwave = zw;
@@ -193,7 +195,7 @@ const devices = {
         }
         clock.fixup(device, this.homework);
     },
-    create: function(nodeid, nodeinfo, values) {
+    create: function(type, nodeid, nodeinfo, values) {
         for (var i = 0; i < this._devices.length; ++i) {
             var dev = this._devices[i](nodeid, nodeinfo);
             if (dev) {
@@ -205,7 +207,7 @@ const devices = {
                 // if (typeof data === "object" && dev.nodeid in data)
                 //     uuid = data[dev.nodeid];
 
-                dev.createHomeworkDevice("zwave:" + dev.nodeid, this);
+                dev.createHomeworkDevice(type, "zwave:" + dev.nodeid, this);
                 return dev;
             }
         }
@@ -225,8 +227,8 @@ const Classes = {
         require("./multisensor6.js").init(devices);
         require("./generic.js").init(devices);
     },
-    createDevice: function(nodeid, nodeinfo, values) {
-        return devices.create(nodeid, nodeinfo, values);
+    createDevice: function(type, nodeid, nodeinfo, values) {
+        return devices.create(type, nodeid, nodeinfo, values);
     }
 };
 

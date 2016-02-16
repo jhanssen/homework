@@ -25,9 +25,13 @@ function stringAsType(a) {
     return a;
 }
 
-function Device(u)
+function Device(t, u)
 {
+    if (typeof t !== "number") {
+        throw "Device type needs to be a number";
+    }
     this._name = undefined;
+    this._type = t;
     this._values = Object.create(null);
     if (u) {
         this._uuid = u;
@@ -39,9 +43,12 @@ function Device(u)
     }
 }
 
+Device.Types = { Dimmer: 0, Light: 1, Fan: 2, Thermostat: 3, Unknown: 99 };
+
 Device.prototype = {
     _name: undefined,
     _values: undefined,
+    _type: undefined,
 
     set name(name) {
         this._name = name;
@@ -54,6 +61,9 @@ Device.prototype = {
     },
     get uuid() {
         return this._uuid;
+    },
+    get type() {
+        return this._type;
     },
 
     addValue: function(v) {

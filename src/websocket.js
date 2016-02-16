@@ -68,8 +68,10 @@ const types = {
     devices: (ws, msg) => {
         const devs = homework.devices;
         if (devs instanceof Array) {
-            const ret = devs.map((e) => { return { name: e.name, uuid: e.uuid }; });
+            const ret = devs.map((e) => { return { type: e.type, name: e.name, uuid: e.uuid }; });
             send(ws, msg.id, ret);
+        } else {
+            error(ws, msg.id, "no devices");
         }
     },
     values: (ws, msg) => {
@@ -89,7 +91,13 @@ const types = {
             error(ws, msg.id, "unknown device");
             return;
         }
-        send(ws, msg.id, Object.keys(dev.values));
+        var ret = [];
+        for (var v in dev.values) {
+            const val = dev.values[v];
+            ret.push({ name: val.name, value: val.value, raw: val.raw,
+                       values: val.values, range: val.range });
+        }
+        send(ws, msg.id, ret);
     },
     getValue: (ws, msg) => {
         const devs = homework.devices;
@@ -152,6 +160,8 @@ const types = {
         }
         const val = dev.values[msg.valname];
         val.value = msg.value;
+
+        send(ws, msg.id, "ok");
     }
 };
 

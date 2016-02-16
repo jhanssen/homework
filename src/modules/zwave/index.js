@@ -3,10 +3,27 @@
 var ozwshared = undefined;
 var ozw = undefined;
 var homework = undefined;
+var types = undefined;
 var Console = undefined;
 const values = Object.create(null);
 const devices = Object.create(null);
 const classes = require("./classes.js");
+
+function toDeviceType(t)
+{
+    if (typeof t === "string") {
+        switch (t) {
+        case "dimmer":
+            return homework.Device.Dimmer;
+        case "light":
+            return homework.Device.Light;
+        case "fan":
+            return homework.Device.Fan;
+        }
+    }
+    Console.log("Unknown device type", t);
+    return homework.Device.Unknown;
+};
 
 const zwave = {
     _pendingData: undefined,
@@ -19,6 +36,8 @@ const zwave = {
         if (typeof cfg === "object" && cfg.port) {
             homework = hw;
             Console = hw.Console;
+
+            types = cfg.types || Object.create(null);
 
             Console.registerCommand("default", "zwave", this._console);
 
@@ -43,7 +62,8 @@ const zwave = {
             });
             ozw.on('node available', (nodeid, nodeinfo) => {
                 Console.log("node available", nodeid, nodeinfo);
-                var dev = classes.createDevice(nodeid, nodeinfo, values[nodeid]);
+                const name = classes.deviceName(nodeid);
+                const dev = classes.createDevice(toDeviceType(types[name]), nodeid, nodeinfo, values[nodeid]);
                 if (dev) {
                     devices[nodeid] = dev;
                     delete values[nodeid];
