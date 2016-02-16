@@ -14,15 +14,15 @@ function toDeviceType(t)
     if (typeof t === "string") {
         switch (t) {
         case "dimmer":
-            return homework.Device.Dimmer;
+            return homework.Types.Dimmer;
         case "light":
-            return homework.Device.Light;
+            return homework.Types.Light;
         case "fan":
-            return homework.Device.Fan;
+            return homework.Types.Fan;
         }
     }
     Console.log("Unknown device type", t);
-    return homework.Device.Unknown;
+    return homework.Types.Unknown;
 };
 
 const zwave = {

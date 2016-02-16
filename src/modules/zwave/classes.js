@@ -57,8 +57,6 @@ const devices = {
     get homework() { return this._homework; },
     get zwave() { return this._zwave; },
 
-    get deviceName(nodeid) { return "zwave:" + nodeid; },
-
     init: function(hw, zw) {
         devices._homework = hw;
         devices._zwave = zw;
@@ -227,6 +225,7 @@ const Classes = {
         require("./multisensor6.js").init(devices);
         require("./generic.js").init(devices);
     },
+    deviceName: function(nodeid) { return "zwave:" + nodeid; },
     createDevice: function(type, nodeid, nodeinfo, values) {
         return devices.create(type, nodeid, nodeinfo, values);
     }

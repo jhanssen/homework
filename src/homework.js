@@ -19,7 +19,8 @@ homework = {
     _rules: [],
     _pendingRules: [],
     _cfg: undefined,
-    _Device: Device,
+    _Device: Device.Device,
+    _Types: Device.Types,
     _Console: Console,
     _Timer: Timer,
     _Variable: Variable,
@@ -77,6 +78,9 @@ homework = {
     get Device() {
         return this._Device;
     },
+    get Types() {
+        return this._Types;
+    },
     get Timer() {
         return this._Timer;
     },
@@ -121,7 +125,7 @@ homework = {
         Config.load(this, () => {
             db.readFile("devices.json", (err, obj) => {
                 this._deviceinfo = obj;
-                Device.init(this, obj);
+                Device.Device.init(this, obj);
                 Timer.init(this);
                 Variable.init(this);
                 WebSocket.init(this);

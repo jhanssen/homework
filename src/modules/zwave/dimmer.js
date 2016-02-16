@@ -57,7 +57,7 @@ Dimmer.prototype = {
     _removeValue: function(value) {
     },
     createHomeworkDevice: function(type, uuid) {
-        var hwdev = new data.homework.Device(data.homework.Device.Dimmer, uuid);
+        var hwdev = new data.homework.Device(data.homework.Types.Dimmer, uuid);
         if (!hwdev.name)
             hwdev.name = "Multilevel Scene Switch " + (++Dimmer.cnt);
         for (var k in this._values) {

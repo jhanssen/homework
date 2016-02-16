@@ -28,6 +28,7 @@ function stringAsType(a) {
 function Device(t, u)
 {
     if (typeof t !== "number") {
+        console.trace("invalid type", t);
         throw "Device type needs to be a number";
     }
     this._name = undefined;
@@ -348,4 +349,4 @@ Device.init = function(homework, d)
     homework.registerAction("Device", Device.Action, actionCompleter, actionDeserializer);
 };
 
-module.exports = Device;
+module.exports = { Device: Device, Types: Device.Types };

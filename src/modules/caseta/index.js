@@ -17,7 +17,7 @@ const functions = {
         },
 
         get hwtype() {
-            return caseta.homework.Device.Dimmer;
+            return caseta.homework.Types.Dimmer;
         }
     }
 };
