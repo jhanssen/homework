@@ -166,14 +166,26 @@ const types = {
 };
 
 const WebSocket = {
+    _ready: undefined,
+
     init: function(hw) {
+        this._ready = false;
         homework = hw;
         homework.on("valueUpdated", (value) => {
-            sendToAll({ valueUpdated: { devuuid: value.device ? value.device.uuid : null, valname: value.name, value: value.value, raw: value.raw }});
+            sendToAll({ type: "valueUpdated", valueUpdated: { devuuid: value.device ? value.device.uuid : null, valname: value.name, value: value.value, raw: value.raw }});
+        });
+        homework.on("ready", () => {
+            this._ready = true;
+            sendToAll({ type: "ready", ready: true });
         });
         wss = new WebSocketServer({ port: 8093 });
         wss.on("connection", (ws) => {
             connections.push(ws);
+
+            if (this._ready) {
+                ws.send(JSON.stringify({ type: "ready", ready: true }));
+            }
+
             ws.on("message", (data, flags) => {
                 // we only support rpc for now
                 try {

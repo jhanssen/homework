@@ -28,12 +28,18 @@ function toDeviceType(t)
 const zwave = {
     _pendingData: undefined,
     _port: undefined,
+    _ready: undefined,
 
     get name() { return "zwave"; },
+    get ready() { return this._ready; },
 
     init: function(cfg, data, hw) {
         this._pendingData = data;
         if (typeof cfg === "object" && cfg.port) {
+            hw.utils.onify(this);
+            this._initOns();
+            this._ready = false;
+
             homework = hw;
             Console = hw.Console;
 
@@ -53,6 +59,10 @@ const zwave = {
             ozw.on('scan complete', () => {
                 Console.log("scan complete");
                 homework.loadRules();
+                if (!this._ready) {
+                    this._ready = true;
+                    this._emit("ready");
+                }
             });
             ozw.on('node added', (nodeid) => {
                 Console.log("node added", nodeid);
@@ -138,7 +148,10 @@ const zwave = {
             Console.log("initing zwave", cfg.port);
             ozw.connect(cfg.port);
             this._port = cfg.port;
+
+            return true;
         }
+        return false;
     },
     shutdown: function(cb) {
         // write node_id to uuid map

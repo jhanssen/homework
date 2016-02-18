@@ -51,7 +51,7 @@ const modules = {
         return this._modules;
     },
 
-    _loadModule: function(module) {
+    _loadModule: function(module, done) {
         //Console.log("loading module", module);
         // load index.json with the appropriate config section
         var idx = module.path + path.sep + "index.js";
@@ -61,13 +61,24 @@ const modules = {
                 if (typeof m === "object" && "init" in m && "name" in m) {
                     var data = this._moduledata ? this._moduledata[m.name] : {};
                     var cfg = this._homework.config ? this._homework.config[m.name] : {};
-                    m.init(cfg, data, this._homework);
-                    this._modules.push(m);
+                    if (m.init(cfg, data, this._homework)) {
+                        this._modules.push(m);
+                        if (m.ready) {
+                            done();
+                        } else {
+                            m.on("ready", done);
+                        }
+                    } else {
+                        Console.error("failed to init module", module.section);
+                        done();
+                    }
                 } else {
                     Console.error("unable to load module", module.section);
+                    done();
                 }
             } else {
                 Console.error("no module at", idx);
+                done();
             }
         });
     },
@@ -85,8 +96,15 @@ const modules = {
             var total = files.length;
             var dirs = [];
             const done = () => {
+                var rem = dirs.length;
+                const done = () => {
+                    if (!--rem) {
+                        this._homework.modulesReady();
+                    }
+                };
+
                 for (var i = 0; i < dirs.length; ++i) {
-                    this._loadModule(dirs[i]);
+                    this._loadModule(dirs[i], done);
                 }
             };
             for (var i = 0; i < files.length; ++i) {

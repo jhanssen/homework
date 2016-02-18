@@ -53,8 +53,11 @@ homework = {
         this._rules.remove((el) => { return Object.is(rule, el); });
     },
 
-    valueUpdated(value) {
+    valueUpdated: function(value) {
         this._emit("valueUpdated", value);
+    },
+    modulesReady: function() {
+        this._emit("ready");
     },
 
     get events() {

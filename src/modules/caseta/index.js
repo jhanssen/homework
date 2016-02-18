@@ -48,14 +48,19 @@ const caseta = {
     _homework: undefined,
     _console: undefined,
     _data: undefined,
+    _ready: undefined,
     _hwdevices: Object.create(null),
 
     get name() { return "caseta"; },
     get homework() { return this._homework; },
+    get ready() { return this._ready; },
 
     init: function(cfg, data, homework) {
         if (!cfg || !cfg.devices || !cfg.connection)
-            return;
+            return false;
+        homework.utils.onify(this);
+        this._initOns();
+        this._ready = false;
         this._data = data;
         this._devices = fixup(cfg.devices);
         this._homework = homework;
@@ -75,10 +80,13 @@ const caseta = {
         bridge.on("ready", () => {
             if (!this._created) {
                 this._create();
+                this._ready = true;
+                this._emit("ready");
             }
         });
         bridge.connect(cfg.connection);
         //Console.log("caseta", cfg);
+        return true;
     },
     shutdown: function(cb) {
         if (this._homework)
