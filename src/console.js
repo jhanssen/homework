@@ -9,6 +9,31 @@ const rl = readline.createInterface({
     completer: completer
 });
 
+var currentPrompt;
+
+function promptify(p)
+{
+    const zeroify = (s) => {
+        const str = s + "";
+        return "00".substr(0, 2 - str.length) + str;
+    };
+    const d = new Date();
+    const fmt = zeroify(d.getHours()) + ":" + zeroify(d.getMinutes()) + "." + zeroify(d.getSeconds());
+    return fmt + " " + p;
+}
+
+function prompt()
+{
+    rl.setPrompt(promptify(currentPrompt));
+    rl.prompt();
+}
+
+function setPrompt(p)
+{
+    currentPrompt = p;
+    rl.setPrompt(promptify(p));
+}
+
 function lineFixup(line) {
     // replace all consecutive spaces with one space
     return line.replace(/\s+/g, " ");
@@ -42,12 +67,12 @@ const data = {
     set prompt(p) {
         var s = this.currentState;
         s.prompt = p;
-        rl.setPrompt(s.prompt);
+        setPrompt(s.prompt);
     },
 
     applyState: function() {
         var s = this.currentState;
-        rl.setPrompt(s.prompt);
+        setPrompt(s.prompt);
     },
     gotoState: function(pos) {
         while (this.state.length > pos)
@@ -613,7 +638,7 @@ Console.init = function(homework)
     rl.on("line", (line) => {
         // console.log(`hey ${line}`);
         data.currentState.apply(line);
-        rl.prompt();
+        prompt();
     });
     rl.on("SIGINT", () => {
         data._emit("shutdown");
@@ -622,19 +647,19 @@ Console.init = function(homework)
     data.state.push(states.default);
     data.applyState();
 
-    rl.prompt();
+    prompt();
 };
 
 Console.log = function()
 {
     console.log.apply(console, arguments);
-    rl.prompt();
+    prompt();
 };
 
 Console.error = function()
 {
     console.error.apply(console, arguments);
-    rl.prompt();
+    prompt();
 };
 
 Console.registerCommand = function(parent, name, section)
