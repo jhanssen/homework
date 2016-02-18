@@ -154,12 +154,15 @@ const zwave = {
 
     _console: {
         prompt: "zwave> ",
-        completions: ["pair ", "depair", "stop", "home", "back"],
+        completions: ["pair ", "depair", "stop", "home", "back", "heal "],
         apply: function(line) {
             var elems = line.split(' ').filter((e) => { return e.length > 0; });
             switch (elems[0]) {
             case "pair":
                 ozw.addNode((elems.length > 1 && elems[1]) ? true : false);
+                break;
+            case "heal":
+                ozw.healNetwork((elems.length > 1 && elems[1]) ? true : false);
                 break;
             case "depair":
                 ozw.removeNode();
