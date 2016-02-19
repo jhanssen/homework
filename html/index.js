@@ -52,9 +52,9 @@ module.controller('mainController', function($scope) {
                         var ret = Math.floor(v / dev.max * max).toString(16);
                         return "00".substr(0, 2 - ret.length) + ret;
                     };
-                    const hc = "#" + tohex(r, 200) + tohex(g, 200) + "00";
+                    const hc = "#" + tohex(r, 210) + tohex(g, 210) + "00";
                     $("#slider-" + dev.safeuuid + " .slider-handle").css("background", hc);
-                    const tc = "#" + tohex(r, 140) + tohex(g, 140) + "00";
+                    const tc = "#" + tohex(r, 110) + tohex(g, 110) + "00";
                     $("#slider-" + dev.safeuuid + " .slider-track").css("background", tc);
                 };
 
