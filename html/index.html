@@ -24,12 +24,14 @@
       <div class="container-fluid">
 	<div class="row">
 	  <div class="col-xs-6 col-sm-6 col-md-6 col-lg-6 center-block text-center" ng-repeat="(uuid, dev) in devices">
-	    <div>{{dev.name}}</div>
-	    <div ng-if="dev.type == Type.Dimmer" class="hw-margin center-block">
-	      <slider ng-attr-id="{{'slider-'+dev.safeuuid}}" ng-model="dev.level" min="0" step="1" max="dev.max"></slider>
-	    </div>
-	    <div ng-if="dev.type == Type.Light" class="hw-margin center-block">
-	      <input bs-switch ng-model="dev.value" type="checkbox"></input>
+	    <div class="hw-frame">
+	      <div>{{dev.name}}</div>
+	      <div ng-if="dev.type == Type.Dimmer" class="hw-margin center-block">
+		<slider ng-attr-id="{{'slider-'+dev.safeuuid}}" ng-model="dev.level" min="0" step="1" max="dev.max"></slider>
+	      </div>
+	      <div ng-if="dev.type == Type.Light" class="hw-margin center-block">
+		<input bs-switch ng-model="dev.value" type="checkbox"></input>
+	      </div>
 	    </div>
 	  </div>
 	</div>

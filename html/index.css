@@ -1,2 +1,9 @@
 .bootstrap-switch { height: 2.5em }
 .hw-margin { max-width: 90% }
+.hw-frame {
+    -moz-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.75);
+    -webkit-box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.75);
+    box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.75);
+    padding: 0.8em;
+    margin: 0.5em;
+}
