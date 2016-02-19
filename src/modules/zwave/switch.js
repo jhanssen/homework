@@ -44,6 +44,8 @@ Switch.prototype = {
                         data.zwave.setValue(v.node_id, v.class_id, v.instance, v.index, val);
                     } else if (typeof val === "number") {
                         data.zwave.setValue(v.node_id, v.class_id, v.instance, v.index, (val != 0));
+                    } else {
+                        data.homework.Console.error("unknown value type", typeof val);
                     }
                 } catch (e) {
                     data.homework.Console.error("error updating value", e);
@@ -65,11 +67,14 @@ Switch.prototype = {
             let v = this._values[k];
             let hwval = new data.homework.Device.Value("value", { off: false, on: true });
             hwval._valueUpdated = function(val) {
+                data.homework.Console.log("1 GOT VALUE", val);
                 try {
                     if (typeof val === "boolean") {
                         data.zwave.setValue(v.node_id, v.class_id, v.instance, v.index, val);
                     } else if (typeof val === "number") {
                         data.zwave.setValue(v.node_id, v.class_id, v.instance, v.index, (val != 0));
+                    } else {
+                        data.homework.Console.error("unknown value type", typeof val);
                     }
                 } catch (e) {
                     data.homework.Console.error("error updating value", e);
