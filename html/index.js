@@ -56,6 +56,7 @@ module.controller('mainController', function($scope) {
                     $("#slider-" + dev.safeuuid + " .slider-handle").css("background", hc);
                     const tc = "#" + tohex(r, 110) + tohex(g, 110) + "00";
                     $("#slider-" + dev.safeuuid + " .slider-track").css("background", tc);
+                    $("#slider-" + dev.safeuuid + " .slider-selection").css("background", tc);
                 };
 
                 // fixup devices
