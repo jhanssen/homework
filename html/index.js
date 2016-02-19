@@ -84,6 +84,7 @@ module.controller('mainController', function($scope) {
                         });
                         break;
                     case $scope.Type.Light:
+                    case $scope.Type.Fan:
                         Object.defineProperty(dev, "value", {
                             get: function() {
                                 return dev.values.value.raw != 0;

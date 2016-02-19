@@ -29,7 +29,7 @@
 	      <div ng-if="dev.type == Type.Dimmer" class="hw-margin center-block">
 		<slider ng-attr-id="{{'slider-'+dev.safeuuid}}" ng-model="dev.level" min="0" step="1" max="dev.max"></slider>
 	      </div>
-	      <div ng-if="dev.type == Type.Light" class="hw-margin center-block">
+	      <div ng-if="dev.type == Type.Light || dev.type == Type.Fan" class="hw-margin center-block">
 		<input bs-switch ng-model="dev.value" type="checkbox"></input>
 	      </div>
 	    </div>
