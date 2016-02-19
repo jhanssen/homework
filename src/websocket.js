@@ -1,5 +1,7 @@
 /*global module,require,global*/
 
+"use strict";
+
 const WebSocketServer = require("ws").Server;
 
 var wss = undefined;
@@ -93,7 +95,7 @@ const types = {
         }
         var ret = [];
         for (var v in dev.values) {
-            const val = dev.values[v];
+            let val = dev.values[v];
             ret.push({ name: val.name, value: val.value, raw: val.raw,
                        values: val.values, range: val.range });
         }
@@ -188,8 +190,9 @@ const WebSocket = {
 
             ws.on("message", (data, flags) => {
                 // we only support rpc for now
+                var msg;
                 try {
-                    const msg = JSON.parse(data);
+                    msg = JSON.parse(data);
                 } catch (e) {
                     console.log("invalid ws message:", data);
                     ws.send(JSON.stringify({ error: "invalid message" }));
