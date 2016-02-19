@@ -20,6 +20,9 @@ module.controller('mainController', function($scope) {
 
     $scope.listener = new EventEmitter();
     $scope.id = 0;
+    $scope.listener.on("valueUpdated", () => {
+        $scope.$apply();
+    });
     $scope.request = (req) => {
         const p = new Promise((resolve, reject) => {
             let id = ++$scope.id;
