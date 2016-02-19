@@ -1,59 +1,40 @@
 <html>
   <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1"></meta>
     <script src="../node_modules/jquery/dist/jquery.min.js"></script>
     <script src="../node_modules/angular/angular.min.js"></script>
     <script src="../node_modules/bootstrap/dist/js/bootstrap.min.js"></script>
-    <script src="../node_modules/angular-ui-bootstrap/dist/ui-bootstrap.js"></script>
+    <script src="../node_modules/angular-ui-bootstrap/dist/ui-bootstrap.min.js"></script>
     <script src="../node_modules/wolfy87-eventemitter/EventEmitter.min.js"></script>
+    <script src="../node_modules/bootstrap-switch/dist/js/bootstrap-switch.min.js"></script>
+    <script src="../node_modules/angular-bootstrap-switch/dist/angular-bootstrap-switch.min.js"></script>
+    <script src="../node_modules/bootstrap-slider/dist/bootstrap-slider.min.js"></script>
+    <script src="../sub/angular-bootstrap-slider/slider.js"></script>
     <script src="index.js"></script>
     <link type="text/css" rel="stylesheet" href="../node_modules/bootstrap/dist/css/bootstrap.min.css"></link>
     <link type="text/css" rel="stylesheet" href="../node_modules/bootstrap/dist/css/bootstrap-theme.min.css"></link>
-  </head>
+    <link type="text/css" rel="stylesheet" href="../node_modules/flexboxgrid/dist/flexboxgrid.min.css"></link>
+    <link type="text/css" rel="stylesheet" href="../node_modules/bootstrap-toggle/css/bootstrap-toggle.min.css"></link>
+    <link type="text/css" rel="stylesheet" href="../node_modules/bootstrap-slider/dist/css/bootstrap-slider.min.css"></link>
+    <link type="text/css" rel="stylesheet" href="../node_modules/bootstrap-switch/dist/css/bootstrap3/bootstrap-switch.min.css"></link>
+    <link type="text/css" rel="stylesheet" href="index.css"></link>
+ </head>
   <body>
     <div class="container" ng-app="app" ng-controller="mainController">
-
-      <div class="text-center">
-	<p>Example of Angular and the normal Bootstrap hey JavaScript components</p>
-	<p class="text-success">This will work</p>
-      </div>
-
-      <h2>Buttons</h2>
-      <div class="btn-group" data-toggle="buttons">
-	<label class="btn btn-primary" ng-model="bigData.breakfast" btn-checkbox>
-	  Breakfast
-	</label>
-	<label class="btn btn-primary" ng-model="bigData.lunch" btn-checkbox>
-	  Lunch
-	</label>
-	<label class="btn btn-primary" ng-model="bigData.dinner" btn-checkbox>
-	  Dinner
-	</label>
-      </div>
-
-      <pre><code>{{ bigData | json }}</code></pre>
-
-      <h2>Collapse</h2>
-
-      <a href="#" class="btn btn-primary" ng-click="isCollapsed = !isCollapsed">
-	Toggle Panel
-      </a>
-
-      <div class="panel panel-default">
-	<div class="panel-heading">
-	  <h4 class="panel-title">
-	    <a href="#" ng-click="isCollapsed = !isCollapsed">
-	      Collapsible Group Item #1
-	    </a>
-	  </h4>
-	</div>
-	<div collapse="isCollapsed">
-	  <div class="panel-body">Ad vegan excepteur butcher vice lomo. Leggings occaecat craft beer farm-to-table, raw denim aesthetic synth nesciunt you probably haven't heard of them accusamus labore sustainable VHS.
+      <h2>Devices</h2>
+      <div class="container-fluid">
+	<div class="row">
+	  <div class="col-xs-6 col-sm-6 col-md-6 col-lg-6 center-block text-center" ng-repeat="(uuid, dev) in devices">
+	    <div>{{dev.name}}</div>
+	    <div ng-if="dev.type == Type.Dimmer">
+	      <slider ng-model="dev.level" min="0" step="1" max="99"></slider>
+	    </div>
+	    <div ng-if="dev.type == Type.Light">
+	      <input bs-switch ng-model="dev.value" type="checkbox"></input>
+	    </div>
 	  </div>
 	</div>
       </div>
-
-      <pre><code>{{ isCollapsed }}</code></pre>
-
     </div>
   </body>
 </html>

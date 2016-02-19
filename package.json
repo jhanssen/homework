@@ -7,8 +7,12 @@
   },
   "dependencies": {
     "angular": "~1.5.0",
+    "angular-bootstrap-switch": "~0.4.1",
     "angular-ui-bootstrap": "~1.1.2",
     "bootstrap": "~3.3.6",
+    "bootstrap-slider": "~6.0.16",
+    "bootstrap-switch": "~3.3.2",
+    "flexboxgrid": "~6.3.0",
     "jquery": "~2.2.0",
     "jsonfile": "~2.2.3",
     "minimist": "~1.2.0",
