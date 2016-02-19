@@ -4,18 +4,6 @@
 
 var module = angular.module('app', ['ui.bootstrap', 'ui.bootstrap-slider', 'frapontillo.bootstrap-switch']);
 module.controller('mainController', function($scope) {
-    // // BUTTONS ======================
-
-    // // define some random object
-    // $scope.bigData = {};
-
-    // $scope.bigData.breakfast = false;
-    // $scope.bigData.lunch = false;
-    // $scope.bigData.dinner = false;
-
-    // // COLLAPSE =====================
-    // $scope.isCollapsed = false;
-
     $scope.Type = { Dimmer: 0, Light: 1, Fan: 2 };
 
     $scope.listener = new EventEmitter();
