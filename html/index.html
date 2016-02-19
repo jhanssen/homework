@@ -26,7 +26,7 @@
 	  <div class="col-xs-6 col-sm-6 col-md-6 col-lg-6 center-block text-center" ng-repeat="(uuid, dev) in devices">
 	    <div>{{dev.name}}</div>
 	    <div ng-if="dev.type == Type.Dimmer">
-	      <slider ng-model="dev.level" min="0" step="1" max="99"></slider>
+	      <slider ng-attr-id="{{'slider-'+dev.safeuuid}}" ng-model="dev.level" min="0" step="1" max="99"></slider>
 	    </div>
 	    <div ng-if="dev.type == Type.Light">
 	      <input bs-switch ng-model="dev.value" type="checkbox"></input>

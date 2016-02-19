@@ -1,4 +1,4 @@
-/*global angular,WebSocket,EventEmitter,clearTimeout,setTimeout*/
+/*global $,angular,WebSocket,EventEmitter,clearTimeout,setTimeout*/
 
 "use strict";
 
@@ -57,14 +57,27 @@ module.controller('mainController', function($scope) {
             var done = () => {
                 console.log("got all device values");
 
+                var updateColor = (dev) => {
+                    const r = 99 - dev.values.level.raw;
+                    const g = dev.values.level.raw;
+                    const tohex = (v) => {
+                        var ret = Math.floor(v / 99 * 255).toString(16);
+                        return "00".substr(0, 2 - ret.length) + ret;
+                    };
+                    const c = "#" + tohex(r) + tohex(g) + "00";
+                    $("#slider-" + dev.safeuuid + " .slider-handle").css("background", c);
+                };
+
                 // fixup devices
                 for (var k in devs) {
                     let dev = devs[k];
+                    dev.safeuuid = dev.uuid.replace(":", "_");
                     switch (dev.type) {
                     case $scope.Type.Dimmer:
                         dev._timeout = undefined;
                         Object.defineProperty(dev, "level", {
                             get: function() {
+                                updateColor(dev);
                                 return dev.values.level.raw;
                             },
                             set: function(v) {
