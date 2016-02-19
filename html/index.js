@@ -48,12 +48,14 @@ module.controller('mainController', function($scope) {
                 var updateColor = (dev) => {
                     const r = dev.max - dev.values.level.raw;
                     const g = dev.values.level.raw;
-                    const tohex = (v) => {
-                        var ret = Math.floor(v / dev.max * 200).toString(16);
+                    const tohex = (v, max) => {
+                        var ret = Math.floor(v / dev.max * max).toString(16);
                         return "00".substr(0, 2 - ret.length) + ret;
                     };
-                    const c = "#" + tohex(r) + tohex(g) + "00";
-                    $("#slider-" + dev.safeuuid + " .slider-handle").css("background", c);
+                    const hc = "#" + tohex(r, 200) + tohex(g, 200) + "00";
+                    $("#slider-" + dev.safeuuid + " .slider-handle").css("background", hc);
+                    const tc = "#" + tohex(r, 140) + tohex(g, 140) + "00";
+                    $("#slider-" + dev.safeuuid + " .slider-track").css("background", tc);
                 };
 
                 // fixup devices
