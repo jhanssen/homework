@@ -61,7 +61,7 @@ module.controller('mainController', function($scope) {
                     const r = dev.max - dev.values.level.raw;
                     const g = dev.values.level.raw;
                     const tohex = (v) => {
-                        var ret = Math.floor(v / dev.max * 255).toString(16);
+                        var ret = Math.floor(v / dev.max * 200).toString(16);
                         return "00".substr(0, 2 - ret.length) + ret;
                     };
                     const c = "#" + tohex(r) + tohex(g) + "00";
