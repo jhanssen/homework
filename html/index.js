@@ -137,8 +137,6 @@ module.controller('mainController', function($scope) {
             }
         }
     };
-    $scope.handleResponse = () => {
-    };
 
     $scope.socket = new WebSocket(`ws://${window.location.hostname}:8093/`);
     $scope.socket.onmessage = (evt) => {
