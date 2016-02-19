@@ -58,10 +58,10 @@ module.controller('mainController', function($scope) {
                 console.log("got all device values");
 
                 var updateColor = (dev) => {
-                    const r = 99 - dev.values.level.raw;
+                    const r = dev.max - dev.values.level.raw;
                     const g = dev.values.level.raw;
                     const tohex = (v) => {
-                        var ret = Math.floor(v / 99 * 255).toString(16);
+                        var ret = Math.floor(v / dev.max * 255).toString(16);
                         return "00".substr(0, 2 - ret.length) + ret;
                     };
                     const c = "#" + tohex(r) + tohex(g) + "00";
@@ -74,6 +74,7 @@ module.controller('mainController', function($scope) {
                     dev.safeuuid = dev.uuid.replace(":", "_");
                     switch (dev.type) {
                     case $scope.Type.Dimmer:
+                        dev.max = dev.values.level.range[1];
                         dev._timeout = undefined;
                         Object.defineProperty(dev, "level", {
                             get: function() {
