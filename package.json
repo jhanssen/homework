@@ -12,6 +12,7 @@
     "bootstrap": "~3.3.6",
     "bootstrap-slider": "~6.0.16",
     "bootstrap-switch": "~3.3.2",
+    "clap-detector": "^0.4.0",
     "flexboxgrid": "~6.3.0",
     "jquery": "~2.2.0",
     "jsonfile": "~2.2.3",

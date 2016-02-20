@@ -44,7 +44,14 @@ function Device(t, u)
     }
 }
 
-Device.Types = { Dimmer: 0, Light: 1, Fan: 2, Thermostat: 3, Unknown: 99 };
+Device.Type = {
+    Dimmer: 0,
+    Light: 1,
+    Fan: 2,
+    Thermostat: 3,
+    Clapper: 4,
+    Unknown: 99
+};
 
 Device.prototype = {
     _name: undefined,
@@ -134,6 +141,10 @@ Device.Value.prototype = {
             this._valueUpdated(v);
         else
             this._value = v;
+    },
+    trigger: function() {
+        this.update(true);
+        this._value = false;
     },
 
     update: function(v) {
@@ -349,4 +360,4 @@ Device.init = function(homework, d)
     homework.registerAction("Device", Device.Action, actionCompleter, actionDeserializer);
 };
 
-module.exports = { Device: Device, Types: Device.Types };
+module.exports = { Device: Device, Type: Device.Type };
