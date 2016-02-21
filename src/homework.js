@@ -97,7 +97,8 @@ homework = {
     save: function() {
         var rules = [], i;
         for (i = 0; i < this._rules.length; ++i) {
-            rules.push(this._rules[i].serialize());
+            // true = overwrite
+            rules.push(this._rules[i].serialize(true));
         }
         // merge with pendingRules if we still have any
         for (i = 0; i < this._pendingRules.length; ++i) {

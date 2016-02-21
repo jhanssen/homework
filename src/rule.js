@@ -101,20 +101,29 @@ Rule.prototype = {
         this._actions.push.apply(this._actions, arguments);
     },
 
-    serialize: function() {
+    serialize: function(overwrite) {
         var events = this._events.slice(0), i;
+        var actions = this._actions.slice(0);
+        var outs = {};
+        if (overwrite) {
+            outs.events = events;
+            outs.actions = actions;
+        } else {
+            outs.events = events.map((s) => { return s.map(() => { return null; }); });
+            outs.actions = actions.map(() => { return null; });
+        }
         for (i = 0; i < events.length; ++i) {
+            var out = outs.events[i];
             var a = events[i];
             var ok = true;
             for (var j = 0; j < a.length; ++j) {
-                a[j] = a[j].serialize();
+                out[j] = a[j].serialize();
             }
         }
-        var actions = this._actions.slice(0);
         for (i = 0; i < actions.length; ++i) {
-            actions[i] = actions[i].serialize();
+            outs.actions[i] = actions[i].serialize();
         }
-        return { name: this._name, events: events, actions: actions };
+        return { name: this._name, events: outs.events, actions: outs.actions };
     },
 
     _check: function() {

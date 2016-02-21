@@ -212,6 +212,19 @@ module.controller('deviceController', function($scope) {
 });
 
 module.controller('ruleController', function($scope) {
+    const ruleReady = () => {
+        $scope.request({ type: "rules" }).then((rules) => {
+            console.log("got rules", rules);
+        });
+    };
+
+    if ($scope.ready) {
+        ruleReady();
+    } else {
+        $scope.listener.on("ready", () => {
+            ruleReady();
+        });
+    }
 });
 
 $(document).ready(function() {
