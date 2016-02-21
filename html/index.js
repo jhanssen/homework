@@ -186,12 +186,10 @@ module.controller('deviceController', function($scope) {
     if ($scope.ready) {
         deviceReady();
     } else {
-        $scope.listener.on("ready", () => {
-            deviceReady();
-        });
+        $scope.listener.on("ready", deviceReady);
     }
 
-    $scope.listener.on("valueUpdated", (updated) => {
+    const valueUpdated = (updated) => {
         if (typeof $scope.devices === "object") {
             if (updated.devuuid in $scope.devices) {
                 const dev = $scope.devices[updated.devuuid];
@@ -212,6 +210,11 @@ module.controller('deviceController', function($scope) {
                 console.log("value for unknown device, discarding", updated.devuuid, updated.valname);
             }
         }
+    };
+    $scope.listener.on("valueUpdated", valueUpdated);
+    $scope.$on("$destroy", () => {
+        $scope.listener.off("valueUpdated", valueUpdated);
+        $scope.listener.off("ready", deviceReady);
     });
 });
 
@@ -226,22 +229,25 @@ module.controller('ruleController', function($scope) {
     if ($scope.ready) {
         ruleReady();
     } else {
-        $scope.listener.on("ready", () => {
-            ruleReady();
-        });
+        $scope.listener.on("ready", ruleReady);
     }
 
     $scope.activeRule = (r) => {
         return $scope.nav.length > 0 && $scope.nav[0] == r;
     };
 
-    $scope.listener.on("navigationChanged", () => {
+    const nav = () => {
         if ($scope.active !== "rules")
             return;
         if ($scope.nav.length > 0) {
             // we have a rule selected
             console.log("rule", $scope.nav[0]);
         }
+    };
+    $scope.listener.on("navigationChanged", nav);
+    $scope.$on("$destroy", () => {
+        $scope.listener.off("navigationChanged", nav);
+        $scope.listener.off("ready", ruleReady);
     });
 });
 
