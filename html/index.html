@@ -39,7 +39,7 @@
       </div>
     </div>
     <div id="page-content">
-      <div ng-if="isActive('devices')" class="container">
+      <div ng-if="isActive('devices')" class="container" ng-controller="deviceController">
 	<h2>Devices</h2>
 	<div class="container-fluid">
 	  <div class="row">
@@ -54,6 +54,13 @@
 		</div>
 	      </div>
 	    </div>
+	  </div>
+	</div>
+      </div>
+      <div ng-if="isActive('rules')" class="container" ng-controller="ruleController">
+	<h2>Rules</h2>
+	<div class="container-fluid">
+	  <div class="row" ng-repeat="rule in rules">
 	  </div>
 	</div>
       </div>

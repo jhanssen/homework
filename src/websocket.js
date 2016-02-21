@@ -76,6 +76,15 @@ const types = {
             error(ws, msg.id, "no devices");
         }
     },
+    rules: (ws, msg) => {
+        const rs = homework.rules;
+        if (rs instanceof Array) {
+            const ret = rs.map((r) => { return r.serialize(); });
+            send(ws, msg.id, ret);
+        } else {
+            error(ws, msg.id, "no devices");
+        }
+    },
     values: (ws, msg) => {
         const devs = homework.devices;
         if (!("devuuid" in msg)) {

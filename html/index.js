@@ -7,11 +7,9 @@ module.controller('mainController', function($scope) {
     $scope.Type = { Dimmer: 0, Light: 1, Fan: 2 };
     $scope.active = "devices";
 
+    $scope.ready = false;
     $scope.listener = new EventEmitter();
     $scope.id = 0;
-    $scope.listener.on("valueUpdated", () => {
-        $scope.$apply();
-    });
     $scope.isActive = (section) => {
         return section == $scope.active;
     };
@@ -41,8 +39,59 @@ module.controller('mainController', function($scope) {
         });
         return p;
     };
-    $scope.ready = () => {
-        // request devices
+    $scope.socket = new WebSocket(`ws://${window.location.hostname}:8093/`);
+    $scope.socket.onmessage = (evt) => {
+        var msg;
+        try {
+            msg = JSON.parse(evt.data);
+        } catch (e) {
+            console.error("can't JSON parse", evt.data);
+            return;
+        }
+        if ("type" in msg) {
+            switch (msg.type) {
+            case "ready":
+                if (msg.ready) {
+                    $scope.ready = true;
+                    $scope.listener.emitEvent("ready");
+                }
+                break;
+            case "valueUpdated":
+                $scope.listener.emitEvent("valueUpdated", [msg.valueUpdated]);
+                break;
+            default:
+                console.log("unrecognized message", msg);
+                break;
+            }
+        } else {
+            // might be a response?
+            if ("id" in msg) {
+                $scope.listener.emitEvent("response", [msg]);
+            } else {
+                console.log("unrecognized message", msg);
+            }
+        }
+    };
+    $scope.socket.onclose = () => {
+        $scope.listener.emitEvent("close");
+    };
+
+    $(window).on("hashchange", () => {
+        const changeLocation = (l) => {
+            $scope.active = l;
+            $scope.$apply();
+        };
+        if (!location.hash.length) {
+            changeLocation("devices");
+        } else {
+            changeLocation(location.hash.substr(1));
+        }
+    });
+});
+
+module.controller('deviceController', function($scope) {
+    // request devices
+    const deviceReady = () => {
         $scope.request({ type: "devices" }).then((response) => {
             console.log("got devices", response);
             if (!(response instanceof Array))
@@ -127,7 +176,16 @@ module.controller('mainController', function($scope) {
             }
         });
     };
-    $scope.updateValue = (updated) => {
+
+    if ($scope.ready) {
+        deviceReady();
+    } else {
+        $scope.listener.on("ready", () => {
+            deviceReady();
+        });
+    }
+
+    $scope.listener.on("valueUpdated", (updated) => {
         if (typeof $scope.devices === "object") {
             if (updated.devuuid in $scope.devices) {
                 const dev = $scope.devices[updated.devuuid];
@@ -139,7 +197,8 @@ module.controller('mainController', function($scope) {
                     };
                     val.value = updated.value;
                     val.raw = updated.raw;
-                    $scope.listener.emitEvent("valueUpdated", [val, old, dev]);
+
+                    $scope.$apply();
                 } else {
                     console.log("value updated but value not known", updated.devuuid, updated.valname);
                 }
@@ -147,55 +206,10 @@ module.controller('mainController', function($scope) {
                 console.log("value for unknown device, discarding", updated.devuuid, updated.valname);
             }
         }
-    };
-
-    $scope.socket = new WebSocket(`ws://${window.location.hostname}:8093/`);
-    $scope.socket.onmessage = (evt) => {
-        var msg;
-        try {
-            msg = JSON.parse(evt.data);
-        } catch (e) {
-            console.error("can't JSON parse", evt.data);
-            return;
-        }
-        if ("type" in msg) {
-            switch (msg.type) {
-            case "ready":
-                if (msg.ready) {
-                    $scope.ready();
-                }
-                break;
-            case "valueUpdated":
-                $scope.updateValue(msg.valueUpdated);
-                break;
-            default:
-                console.log("unrecognized message", msg);
-                break;
-            }
-        } else {
-            // might be a response?
-            if ("id" in msg) {
-                $scope.listener.emitEvent("response", [msg]);
-            } else {
-                console.log("unrecognized message", msg);
-            }
-        }
-    };
-    $scope.socket.onclose = () => {
-        $scope.listener.emitEvent("close");
-    };
-
-    $(window).on("hashchange", () => {
-        const changeLocation = (l) => {
-            $scope.active = l;
-            $scope.$apply();
-        };
-        if (!location.hash.length) {
-            changeLocation("devices");
-        } else {
-            changeLocation(location.hash.substr(1));
-        }
     });
+});
+
+module.controller('ruleController', function($scope) {
 });
 
 $(document).ready(function() {
