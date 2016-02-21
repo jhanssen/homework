@@ -10,6 +10,9 @@
 .hw-spacer {
     margin-bottom: 1em
 }
+.hw-expand-horizontal {
+    width: 100%;
+}
 
 /* adjust body when menu is open */
 body.slide-active {

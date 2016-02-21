@@ -59,8 +59,14 @@
       </div>
       <div ng-if="isActive('rules')" class="container" ng-controller="ruleController">
 	<h2>Rules</h2>
-	<div class="container-fluid">
-	  <div class="row" ng-repeat="rule in rules">
+	<div class="btn-group-vertical hw-expand-horizontal" role="group">
+	  <div ng-repeat="rule in rules" class="btn-group" role="group">
+	    <a type="button" class="btn btn-default" ng-href="#rules/{{rule.safename}}">
+	      {{rule.name}}
+	    </a>
+	    <div ng-if="activeRule(rule.safename)">
+	      hello
+	    </div>
 	  </div>
 	</div>
       </div>

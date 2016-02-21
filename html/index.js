@@ -8,6 +8,7 @@ module.controller('mainController', function($scope) {
 
     $scope.Type = { Dimmer: 0, Light: 1, Fan: 2 };
     $scope.active = "devices";
+    $scope.nav = [];
 
     $scope.ready = false;
     $scope.listener = new EventEmitter();
@@ -80,7 +81,10 @@ module.controller('mainController', function($scope) {
 
     $(window).on("hashchange", () => {
         const changeLocation = (l) => {
-            $scope.active = l;
+            const split = l.split("/");
+            $scope.active = split[0];
+            $scope.nav = split.slice(1);
+            $scope.listener.emitEvent("navigationChanged");
             $scope.$apply();
         };
         if (!location.hash.length) {
@@ -120,7 +124,7 @@ module.controller('deviceController', function($scope) {
                 // fixup devices
                 for (var k in devs) {
                     let dev = devs[k];
-                    dev.safeuuid = dev.uuid.replace(":", "_");
+                    dev.safeuuid = dev.uuid.replace(/:/g, "_");
                     switch (dev.type) {
                     case $scope.Type.Dimmer:
                         dev.max = dev.values.level.range[1];
@@ -214,7 +218,8 @@ module.controller('deviceController', function($scope) {
 module.controller('ruleController', function($scope) {
     const ruleReady = () => {
         $scope.request({ type: "rules" }).then((rules) => {
-            console.log("got rules", rules);
+            $scope.rules = rules.map((r) => { r.safename = r.name.replace(/ /g, "_"); return r; });
+            $scope.$apply();
         });
     };
 
@@ -225,6 +230,19 @@ module.controller('ruleController', function($scope) {
             ruleReady();
         });
     }
+
+    $scope.activeRule = (r) => {
+        return $scope.nav.length > 0 && $scope.nav[0] == r;
+    };
+
+    $scope.listener.on("navigationChanged", () => {
+        if ($scope.active !== "rules")
+            return;
+        if ($scope.nav.length > 0) {
+            // we have a rule selected
+            console.log("rule", $scope.nav[0]);
+        }
+    });
 });
 
 $(document).ready(function() {
