@@ -13,24 +13,50 @@
     <script src="index.js"></script>
     <link type="text/css" rel="stylesheet" href="../node_modules/bootstrap/dist/css/bootstrap.min.css"></link>
     <link type="text/css" rel="stylesheet" href="../node_modules/bootstrap/dist/css/bootstrap-theme.min.css"></link>
-    <link type="text/css" rel="stylesheet" href="../node_modules/flexboxgrid/dist/flexboxgrid.min.css"></link>
     <link type="text/css" rel="stylesheet" href="../node_modules/bootstrap-slider/dist/css/bootstrap-slider.min.css"></link>
     <link type="text/css" rel="stylesheet" href="../node_modules/bootstrap-switch/dist/css/bootstrap3/bootstrap-switch.min.css"></link>
     <link type="text/css" rel="stylesheet" href="index.css"></link>
  </head>
-  <body>
-    <div class="container" ng-app="app" ng-controller="mainController">
-      <h2>Devices</h2>
-      <div class="container-fluid">
-	<div class="row">
-	  <div class="col-xs-6 col-sm-6 col-md-6 col-lg-4 center-block text-center" ng-repeat="(uuid, dev) in devices">
-	    <div class="hw-frame">
-	      <div>{{dev.name}}</div>
-	      <div ng-if="dev.type == Type.Dimmer" class="hw-margin center-block">
-		<slider ng-attr-id="{{'slider-'+dev.safeuuid}}" ng-model="dev.level" min="0" step="1" max="dev.max"></slider>
-	      </div>
-	      <div ng-if="dev.type == Type.Light || dev.type == Type.Fan" class="hw-margin center-block">
-		<input bs-switch ng-model="dev.value" type="checkbox"></input>
+  <body ng-app="app" ng-controller="mainController">
+    <div class="navbar navbar-inverse navbar-fixed-top" role="navigation" id="slide-nav">
+      <div class="container">
+	<div class="navbar-header">
+	  <a class="navbar-toggle">
+	    <span class="sr-only">Toggle navigation</span>
+	    <span class="icon-bar"></span>
+	    <span class="icon-bar"></span>
+	    <span class="icon-bar"></span>
+	  </a>
+	  <a class="navbar-brand" href="#">Homework</a>
+	</div>
+	<div id="slidemenu">
+	  <form class="navbar-form navbar-right" role="form">
+	    <div class="form-group">
+	      <input type="search" placeholder="search" class="form-control">
+	    </div>
+	    <button type="submit" class="btn btn-primary">Search</button>
+	  </form>
+	  <ul class="nav navbar-nav">
+	    <li ng-class="activeClass('devices')"><a href="#devices">Devices</a></li>
+	    <li ng-class="activeClass('rules')"><a href="#rules">Rules</a></li>
+	  </ul>
+	</div>
+      </div>
+    </div>
+    <div id="page-content">
+      <div ng-if="isActive('devices')" class="container">
+	<h2>Devices</h2>
+	<div class="container-fluid">
+	  <div class="row">
+	    <div class="col-xs-6 col-sm-6 col-md-6 col-lg-4 center-block text-center" ng-repeat="(uuid, dev) in devices">
+	      <div class="hw-frame">
+		<div>{{dev.name}}</div>
+		<div ng-if="dev.type == Type.Dimmer" class="hw-margin center-block">
+		  <slider ng-attr-id="{{'slider-'+dev.safeuuid}}" ng-model="dev.level" min="0" step="1" max="dev.max"></slider>
+		</div>
+		<div ng-if="dev.type == Type.Light || dev.type == Type.Fan" class="hw-margin center-block">
+		  <input bs-switch ng-model="dev.value" type="checkbox"></input>
+		</div>
 	      </div>
 	    </div>
 	  </div>
