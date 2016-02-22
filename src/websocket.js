@@ -92,9 +92,6 @@ const types = {
         };
         send(ws, msg.id, ret);
     },
-    eventArguments: (ws, msg) => {
-        send(ws, msg.id, ["string"]);
-    },
     eventCompletions: (ws, msg) => {
         const args = msg.args;
         if (!(args instanceof Array)) {

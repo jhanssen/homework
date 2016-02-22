@@ -305,22 +305,10 @@ module.controller('addRuleController', function($scope) {
     });
     $scope.setEventValue = (idx, evt) => {
         $scope.ruleSelections.events[idx] = evt;
-        switch (idx) {
-        case 0:
-            $scope.request({ type: "eventArguments", event: evt }).then((args) => {
-                $scope.ruleArgumentTypes.events = args;
-                return $scope.request({ type: "eventCompletions", args: [evt] });
-            }).then((comp) => {
-                $scope.ruleAlternatives.events[1] = comp;
-                $scope.$apply();
-            });
-            break;
-        default:
-            $scope.request({ type: "eventCompletions", args: $scope.ruleSelections.events }).then((comp) => {
-                $scope.ruleAlternatives.events[idx + 1] = comp;
-                $scope.$apply();
-            });
-        }
+        $scope.request({ type: "eventCompletions", args: $scope.ruleSelections.events }).then((comp) => {
+            $scope.ruleAlternatives.events[idx + 1] = comp;
+            $scope.$apply();
+        });
     };
     $scope.generate = () => {
         const dropdown = (list, def, func, idx) => {
