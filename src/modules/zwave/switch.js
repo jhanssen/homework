@@ -92,7 +92,6 @@ Switch.prototype = {
             let v = this._values[k];
             let hwval = new data.homework.Device.Value("value", { off: false, on: true });
             hwval._valueUpdated = (val) => {
-                data.homework.Console.log("1 GOT VALUE", val);
                 try {
                     if (typeof val === "boolean") {
                         this._pending = { value: val };
