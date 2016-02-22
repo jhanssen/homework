@@ -95,6 +95,34 @@ module.controller('mainController', function($scope) {
     });
 });
 
+// module.filter("sanitize", ['$sce', function($sce) {
+//     return function(htmlCode){
+//         return $sce.trustAsHtml(htmlCode);
+//     };
+// }]);
+
+module.directive('compile', ['$compile', function ($compile) {
+    return function(scope, element, attrs) {
+        scope.$watch(
+            function(scope) {
+                // watch the 'compile' expression for changes
+                return scope.$eval(attrs.compile);
+            },
+            function(value) {
+                // when the 'compile' expression changes
+                // assign it into the current DOM
+                element.html(value);
+
+                // compile the new DOM and link it to the current
+                // scope.
+                // NOTE: we only compile .childNodes so that
+                // we don't get into infinite loop compiling ourselves
+                $compile(element.contents())(scope);
+            }
+        );
+    };
+}]);
+
 module.controller('deviceController', function($scope) {
     // request devices
     const deviceReady = () => {
@@ -226,6 +254,8 @@ module.controller('ruleController', function($scope) {
         });
     };
 
+    $scope.adding = false;
+
     if ($scope.ready) {
         ruleReady();
     } else {
@@ -235,6 +265,18 @@ module.controller('ruleController', function($scope) {
     $scope.activeRule = (r) => {
         return $scope.nav.length > 0 && $scope.nav[0] == r;
     };
+
+    $scope.addRule = () => {
+        $scope.adding = true;
+        $('#addRuleModal').modal('show');
+    };
+    $scope.ruleClass = () => {
+        return $scope.adding ? "hw-blur" : "";
+    };
+    $("#addRuleModal").on('hidden.bs.modal', () => {
+        $scope.adding = false;
+        $scope.$apply();
+    });
 
     const nav = () => {
         if ($scope.active !== "rules")
@@ -249,6 +291,58 @@ module.controller('ruleController', function($scope) {
         $scope.listener.off("navigationChanged", nav);
         $scope.listener.off("ready", ruleReady);
     });
+});
+
+module.controller('addRuleController', function($scope) {
+    $scope.ruleSelections = { events: [], actions: [] };
+    $scope.ruleAlternatives = { events: [], actions: [] };
+    $scope.ruleNames = { events: ["Events"], actions: ["Actions"] };
+    $scope.ruleArgumentTypes = { };
+    $scope.request({ type: "ruleTypes" }).then((types) => {
+        $scope.ruleAlternatives.events[0] = { type: "array", values: types.events };
+        $scope.ruleAlternatives.actions[0] = { type: "array", values: types.actions };
+        $scope.$apply();
+    });
+    $scope.setEventValue = (idx, evt) => {
+        $scope.ruleSelections.events[idx] = evt;
+        switch (idx) {
+        case 0:
+            $scope.request({ type: "eventArguments", event: evt }).then((args) => {
+                $scope.ruleArgumentTypes.events = args;
+                return $scope.request({ type: "eventCompletions", args: [evt] });
+            }).then((comp) => {
+                $scope.ruleAlternatives.events[1] = comp;
+                $scope.$apply();
+            });
+            break;
+        default:
+            $scope.request({ type: "eventCompletions", args: $scope.ruleSelections.events }).then((comp) => {
+                $scope.ruleAlternatives.events[idx + 1] = comp;
+                $scope.$apply();
+            });
+        }
+    };
+    $scope.generate = () => {
+        const dropdown = (list, def, func, idx) => {
+            var ret = `<div class="dropdown pull-left"><button class="btn btn-default dropdown-toggle" type="button" id="eventDropDownMenu" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">${def}<span class="caret"></span></button><ul class="dropdown-menu" aria-labelledby="eventDropDownMenu">`;
+            for (var i in list) {
+                ret += `<li><a href="" class="btn default" ng-click="${func}(${eidx}, '${list[i]}')">${list[i]}</a></li>`;
+            }
+            ret += "</ul></div>";
+            return ret;
+        };
+
+        var ret = "";
+        for (var eidx = 0; eidx < $scope.ruleAlternatives.events.length; ++eidx) {
+            // console.log("hey", $scope.ruleAlternatives.events[eidx]);
+            if ("type" in $scope.ruleAlternatives.events[eidx]) {
+                ret += dropdown($scope.ruleAlternatives.events[eidx].values,
+                                $scope.ruleSelections.events[eidx] || $scope.ruleNames.events[eidx] || "",
+                                "setEventValue", eidx);
+            }
+        }
+        return ret + '<div style="clear: both;"></div>';
+    };
 });
 
 $(document).ready(function() {

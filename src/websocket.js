@@ -85,6 +85,32 @@ const types = {
             error(ws, msg.id, "no devices");
         }
     },
+    ruleTypes: (ws, msg) => {
+        const ret = {
+            events: Object.keys(homework.events),
+            actions: Object.keys(homework.actions)
+        };
+        send(ws, msg.id, ret);
+    },
+    eventArguments: (ws, msg) => {
+        send(ws, msg.id, ["string"]);
+    },
+    eventCompletions: (ws, msg) => {
+        const args = msg.args;
+        if (!(args instanceof Array)) {
+            error(ws, msg.id, "args needs to be an array");
+        } else {
+            const evt = homework.events[args[0]];
+            if (!(typeof evt === "object") || !("completion" in evt)) {
+                error(ws, msg.id, "no event");
+            } else {
+                // console.log("asking for completions", args.slice(1));
+                const ret = evt.completion.apply(null, args.slice(1));
+                // console.log("got", ret);
+                send(ws, msg.id, ret);
+            }
+        }
+    },
     values: (ws, msg) => {
         const devs = homework.devices;
         if (!("devuuid" in msg)) {

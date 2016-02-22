@@ -27,6 +27,7 @@ module.exports = {
             if (!dev.name)
                 dev.name = clap.name || dev.uuid;
             let val = new homework.Device.Value("clap");
+            val._valueType = "boolean";
             val.update(false);
             dev.addValue(val);
             homework.addDevice(dev);

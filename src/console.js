@@ -204,7 +204,7 @@ const states = {
                     if (args.length === 1 || (args.length > 1 && args[args.length - 1] !== ""))
                         args.splice(args.length - 1, 1);
                     args = args.map((e) => { return e.replace(/_/g, " "); });
-                    var eventcomps = event.completion.apply(null, args).map((e) => { return e.replace(/ /g, "_") + " "; });
+                    var eventcomps = event.completion.apply(null, args).values.map((e) => { return e.replace(/ /g, "_") + " "; });
                     if (!(eventcomps instanceof Array))
                         return eventcomps;
                     if (elems.length === 1) {
@@ -298,7 +298,7 @@ const states = {
                     if (args.length === 1 || (args.length > 1 && args[args.length - 1] !== ""))
                         args.splice(args.length - 1, 1);
                     args = args.map((e) => { return e.replace(/_/g, " "); });
-                    var actioncomps = action.completion.apply(null, args).map((e) => { return e.replace(/ /g, "_") + " "; });
+                    var actioncomps = action.completion.apply(null, args).values.map((e) => { return e.replace(/ /g, "_") + " "; });
                     if (!(actioncomps instanceof Array))
                         return actioncomps;
                     if (elems.length === 1) {

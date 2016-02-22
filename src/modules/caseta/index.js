@@ -117,6 +117,7 @@ const caseta = {
                     Console.error("caseta: value out of range", hwval.raw);
                 }
             };
+            hwval._valueType = "number";
             hwdev.addValue(hwval);
             func.query(id);
 

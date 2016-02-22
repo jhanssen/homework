@@ -72,6 +72,7 @@ Dimmer.prototype = {
                     data.homework.Console.error("error updating value", e);
                 }
             };
+            hwval._valueType = "number";
             hwval.update(v.value);
             this._hwvalues[k] = hwval;
             hwdev.addValue(hwval);
@@ -96,6 +97,7 @@ Dimmer.prototype = {
                     data.homework.Console.error("error updating value", e);
                 }
             };
+            hwval._valueType = "number";
             hwval.update(v.value);
             this._hwvalues[k] = hwval;
             this._hwdevice.addValue(hwval);

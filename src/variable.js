@@ -87,11 +87,13 @@ Action.prototype = {
 function eventCompleter()
 {
     if (!arguments.length) {
-        return Object.keys(variables.variables);
-    } else if (arguments.length === 1 || arguments.length === 2) {
-        return ["==", "!="];
+        return { type: "list", values: Object.keys(variables.variables) };
+    } else if (arguments.length === 1 || (arguments.length === 2 && arguments[1].length < 2)) {
+        return { type: "list", values: ["==", "!="] };
+    } else if (arguments.length === 2) {
+        return { type: "string" };
     }
-    return [];
+    return { values: [] };
 }
 
 function eventDeserializer(e)

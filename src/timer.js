@@ -411,7 +411,7 @@ IntervalAction.prototype._type = "interval";
 function rangeEventCompleter()
 {
     // ### complete on dates?
-    return ["sunrise", "sunset"];
+    return { type: "string", values: ["sunrise", "sunset"] };
 }
 
 function rangeEventDeserializer(e)
@@ -434,39 +434,39 @@ function rangeEventDeserializer(e)
 function eventCompleter(items)
 {
     if (!items)
-        return [];
+        return { values: [] };
 
     if (arguments.length === 1) {
-        return Object.keys(items);
+        return { type: "array", values: Object.keys(items) };
     }
     // see if this timer exists
     if (!(arguments[1] in items)) {
-        return [];
+        return { values: [] };
     }
     var args = utils.strip(arguments).slice(1);
     if (args.length === 1) {
-        return ["fires"];
+        return { type: "array", values: ["fires"] };
     }
-    return [];
+    return { values: [] };
 }
 
 function actionCompleter(items)
 {
     if (!items)
-        return [];
+        return { values: [] };
 
     if (arguments.length === 1) {
-        return Object.keys(items);
+        return { type: "array", values: Object.keys(items) };
     }
     // see if this timer exists
     if (!(arguments[1] in items)) {
-        return [];
+        return { values: [] };
     }
     var args = utils.strip(arguments).slice(1);
     if (args.length === 1) {
-        return ["start", "stop"];
+        return { type: "array", values: ["start", "stop"] };
     }
-    return [];
+    return { values: [] };
 }
 
 function eventDeserializer(type, e)

@@ -117,6 +117,9 @@ Device.Value.prototype = {
     get device() {
         return this._device;
     },
+    get type() {
+        return (typeof this._valueType === "function") ? this._valueType() : this._valueType;
+    },
     get value() {
         // see if our value maps to one of our values
         if (typeof this._values === "object") {
@@ -154,7 +157,9 @@ Device.Value.prototype = {
         data.homework.Console.log("device value", this.name, "changed to", this._value, "for device", (this.device ? this.device.name : "(not set)"));
         data.homework.valueUpdated(this);
         this._emit("changed", this.value);
-    }
+    },
+
+    _valueType: "array"
 };
 
 utils.onify(Device.Value.prototype);
@@ -288,11 +293,12 @@ utils.onify(Device.Action.prototype);
 
 function eventCompleter()
 {
-    var ret = [], i;
+    var ret = { type: undefined, values: [] }, i;
     const devs = data.homework.devices;
     if (arguments.length === 0) {
+        ret.type = "array";
         for (i = 0; i < devs.length; ++i) {
-            ret.push(devs[i].name);
+            ret.values.push(devs[i].name);
         }
     } else {
         // find the device in question
@@ -304,13 +310,13 @@ function eventCompleter()
         if (dev !== undefined) {
             var args = utils.strip(arguments);
             if (args.length === 1) {
-                return Object.keys(dev.values);
+                return { type: "array", values: Object.keys(dev.values) };
             } else if (args.length === 2) {
                 // find the value
                 var valname = args[1];
                 if (valname in dev.values) {
                     var val = dev.values[valname];
-                    return val.values ? Object.keys(val.values) : [];
+                    return { type: val.type, values: val.values ? Object.keys(val.values) : [] };
                 }
             }
         }
