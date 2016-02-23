@@ -154,6 +154,7 @@ const types = {
             return;
         }
         var rule = new Rule(desc.name);
+        var andCount = 0;
         for (var es = 0; es < events.length; ++es) {
             if (!(events[es] instanceof Array)) {
                 error(ws, msg.id, `Event is not an array: ${es}`);
@@ -173,12 +174,17 @@ const types = {
                 }
                 try {
                     ands.push(construct(ector.ctor, event.slice(1)));
+                    ++andCount;
                 } catch (e) {
                     error(ws, msg.id, `Error in event ctor ${event[0]}: ${JSON.stringify(e)}`);
                     return;
                 }
             }
             rule.and.apply(rule, ands);
+        }
+        if (!andCount) {
+            error(ws, msg.id, `No events for rule`);
+            return;
         }
 
         var thens = [];
@@ -199,6 +205,10 @@ const types = {
                 error(ws, msg.id, `Error in action ctor ${action[0]}: ${JSON.stringify(e)}`);
                 return;
             }
+        }
+        if (!thens.length) {
+            error(ws, msg.id, `No actions for rule`);
+            return;
         }
         rule.then.apply(rule, thens);
         homework.addRule(rule);
