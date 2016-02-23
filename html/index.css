@@ -22,6 +22,12 @@
     filter: blur(5px);
 }
 
+@media screen and (min-width: 768px) {
+    .hw-dialog {
+	width: 70%; /* either % (e.g. 60%) or px (400px) */
+    }
+}
+
 /* adjust body when menu is open */
 body.slide-active {
     overflow-x: hidden
@@ -156,4 +162,38 @@ body.slide-active {
     .navbar-header {
 	left: 0!important
     }
+}
+
+.btn-outline {
+    background-color: transparent;
+    color: inherit;
+    transition: all .5s;
+}
+
+.btn-primary.btn-outline {
+    color: #428bca;
+}
+
+.btn-success.btn-outline {
+    color: #5cb85c;
+}
+
+.btn-info.btn-outline {
+    color: #5bc0de;
+}
+
+.btn-warning.btn-outline {
+    color: #f0ad4e;
+}
+
+.btn-danger.btn-outline {
+    color: #d9534f;
+}
+
+.btn-primary.btn-outline:hover,
+.btn-success.btn-outline:hover,
+.btn-info.btn-outline:hover,
+.btn-warning.btn-outline:hover,
+.btn-danger.btn-outline:hover {
+    color: #fff;
 }
