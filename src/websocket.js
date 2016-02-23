@@ -3,6 +3,7 @@
 "use strict";
 
 const WebSocketServer = require("ws").Server;
+const Rule = require("./rule.js");
 
 var wss = undefined;
 var homework = undefined;
@@ -24,6 +25,14 @@ function sendToAll(result)
     for (var i = 0; i < connections.length; ++i) {
         connections[i].send(data);
     }
+}
+
+function construct(constructor, args) {
+    function F() {
+        return constructor.apply(this, args);
+    }
+    F.prototype = constructor.prototype;
+    return new F();
 }
 
 const types = {
@@ -123,6 +132,77 @@ const types = {
                 send(ws, msg.id, ret);
             }
         }
+    },
+    createRule: (ws, msg) => {
+        if (typeof msg.rule !== "object") {
+            error(ws, msg.id, "No rule");
+            return;
+        }
+        const desc = msg.rule;
+        if (typeof desc.name !== "string" || !desc.name.length) {
+            error(ws, msg.id, "No name");
+            return;
+        }
+        const events = desc.events;
+        const actions = desc.actions;
+        if (!(events instanceof Array)) {
+            error(ws, msg.id, "Events is not an array");
+            return;
+        }
+        if (!(actions instanceof Array)) {
+            error(ws, msg.id, "Actions is not an array");
+            return;
+        }
+        var rule = new Rule(desc.name);
+        for (var es = 0; es < events.length; ++es) {
+            if (!(events[es] instanceof Array)) {
+                error(ws, msg.id, `Event is not an array: ${es}`);
+                return;
+            }
+            var ands = [];
+            for (var e = 0; e < events[es].length; ++e) {
+                var event = events[es][e];
+                if (!(event instanceof Array) || !event.length) {
+                    error(ws, msg.id, `Sub event is not an array: ${es}:${e}`);
+                    return;
+                }
+                const ector = homework.events[event[0]];
+                if (typeof ector !== "object" || !("ctor" in ector)) {
+                    error(ws, msg.id, `Sub event doesn't have a constructor ${event[0]}`);
+                    return;
+                }
+                try {
+                    ands.push(construct(ector.ctor, event.slice(1)));
+                } catch (e) {
+                    error(ws, msg.id, `Error in event ctor ${event[0]}: ${JSON.stringify(e)}`);
+                    return;
+                }
+            }
+            rule.and.apply(rule, ands);
+        }
+
+        var thens = [];
+        for (var as = 0; as < actions.length; ++as) {
+            var action = actions[as];
+            if (!(action instanceof Array) || !action.length) {
+                error(ws, msg.id, `Action is not an array: ${as}`);
+                return;
+            }
+            const actor = homework.actions[action[0]];
+            if (typeof actor !== "object" || !("ctor" in actor)) {
+                error(ws, msg.id, `Sub action doesn't have a constructor ${action[0]}`);
+                return;
+            }
+            try {
+                thens.push(construct(actor.ctor, action.slice(1)));
+            } catch (e) {
+                error(ws, msg.id, `Error in action ctor ${action[0]}: ${JSON.stringify(e)}`);
+                return;
+            }
+        }
+        rule.then.apply(rule, thens);
+        homework.addRule(rule);
+        send(ws, msg.id, { name: desc.name, success: true });
     },
     values: (ws, msg) => {
         const devs = homework.devices;

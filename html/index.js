@@ -312,6 +312,7 @@ module.controller('addRuleController', function($scope) {
     };
 
     var reset = () => {
+        $scope.error = undefined;
         $scope.events = [];
         $scope.eventNexts = [];
         $scope.actions = [];
@@ -415,8 +416,11 @@ module.controller('addRuleController', function($scope) {
             return ret;
         };
 
-        var ret, row, item, eidx, label, last;
-        ret = `<div><input type="text" placeholder="Name" ng-model="name" class="form-control"></input></div>`;
+        var ret = "", row, item, eidx, label, last;
+        if ($scope.error) {
+            ret += `<div class="alert alert-danger"><strong>Rule error!</strong> ${$scope.error}</div>`;
+        }
+        ret += `<div><input type="text" placeholder="Name" ng-model="name" class="form-control"></input></div>`;
         for (row = 0; row < $scope.events.length; ++row) {
             item = $scope.events[row];
             for (eidx = 0; eidx < item.ruleAlternatives.length; ++eidx) {
@@ -462,7 +466,64 @@ module.controller('addRuleController', function($scope) {
     };
 
     $scope.save = () => {
-        console.log(`save me ${$scope.name}`);
+        $scope.error = undefined;
+
+        var events = [[]];
+        var event = events[0], cur, sel, ex, s;
+        for (var e = 0; e < $scope.events.length; ++e) {
+            cur = [];
+            sel = $scope.events[e].ruleSelections;
+            ex = $scope.events[e].ruleExtra;
+            var nx = $scope.eventNexts[e];
+            if (nx === undefined) {
+                $scope.error = `No next for event:${e}`;
+                return;
+            }
+            for (s = 0; s < sel.length; ++s) {
+                if (sel[s] === undefined) {
+                    $scope.error = `No selection for event:${e}:${s}`;
+                    return;
+                }
+
+                cur.push(ex[s] || sel[s]);
+            }
+            event.push(cur);
+            if (nx === "Or") {
+                events.push([]);
+                event = events[events.length - 1];
+            }
+            if (nx === "Then" && e + 1 < $scope.events.length) {
+                $scope.error = `Event condition after then for event:${e}`;
+                return;
+            }
+        }
+        var actions = [];
+        for (var a = 0; a < $scope.actions.length; ++a) {
+            cur = [];
+            sel = $scope.actions[a].ruleSelections;
+            ex = $scope.actions[a].ruleExtra;
+            for (s = 0; s < sel.length; ++s) {
+                if (sel[s] === undefined) {
+                    $scope.error = `No selection for action:${a}:${s}`;
+                    return;
+                }
+
+                cur.push(ex[s] || sel[s]);
+            }
+            actions.push(cur);
+        }
+
+        console.log(events);
+        console.log(actions);
+        $scope
+            .request({ type: "createRule", rule: { name: $scope.name, events: events, actions: actions } })
+            .then((result) => {
+                console.log("rule created", result);
+                $("#addRuleModal").modal("hide");
+            }).catch((error) => {
+                $scope.error = error;
+                $scope.$apply();
+            });
     };
 
     $("#addRuleModal").on('hidden.bs.modal', () => {
