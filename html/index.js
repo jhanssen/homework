@@ -302,10 +302,19 @@ module.controller('addRuleController', function($scope) {
             ruleNames: ["Events"]
         });
     };
+    const newAction = () => {
+        $scope.actions.push({
+            ruleAlternatives: [$scope.initialRuleAlternatives.actions],
+            ruleSelections: [],
+            ruleExtra: [],
+            ruleNames: ["Actions"]
+        });
+    };
 
     var reset = () => {
         $scope.events = [];
         $scope.eventNexts = [];
+        $scope.actions = [];
         $scope.initialRuleAlternatives = { events: undefined, actions: undefined };
 
         $scope.request({ type: "ruleTypes" }).then((types) => {
@@ -318,44 +327,73 @@ module.controller('addRuleController', function($scope) {
     };
     reset();
 
-    $scope.setEventValue = (row, idx, evt) => {
-        $scope.events[row].ruleSelections[idx] = evt;
-        $scope.events[row].ruleSelections.splice(idx + 1);
-        $scope.events[row].ruleAlternatives.splice(idx + 1);
-        $scope.events[row].ruleExtra.splice(idx + 1);
+    const setScopeValue = function(type, row, idx, evt) {
+        this[row].ruleSelections[idx] = evt;
+        this[row].ruleSelections.splice(idx + 1);
+        this[row].ruleAlternatives.splice(idx + 1);
+        this[row].ruleExtra.splice(idx + 1);
         if (evt !== "(enter value)") {
-            $scope.request({ type: "eventCompletions", args: $scope.events[row].ruleSelections }).then((comp) => {
-                $scope.events[row].ruleAlternatives[idx + 1] = comp;
+            $scope.request({ type: type, args: this[row].ruleSelections }).then((comp) => {
+                this[row].ruleAlternatives[idx + 1] = comp;
                 $scope.$apply();
             });
         }
     };
-    $scope.extraEvents = (row, idx) => {
+    const extraScope = function(item, row, idx) {
         return {
-            get value() { return $scope.events[row].ruleExtra[idx]; },
-            set value(v) { $scope.events[row].ruleExtra[idx] = v; }
+            get value() { return item[row].ruleExtra[idx]; },
+            set value(v) { item[row].ruleExtra[idx] = v; }
         };
-    },
-    $scope.extraEventContinue = (row, idx) => {
-        $scope.request({ type: "eventCompletions", args: $scope.events[row].ruleSelections }).then((comp) => {
-            $scope.events[row].ruleAlternatives[idx + 1] = comp;
+    };
+    const extraScopeContinue = function(type, row, idx) {
+        $scope.request({ type: type, args: this[row].ruleSelections }).then((comp) => {
+            this[row].ruleAlternatives[idx + 1] = comp;
             $scope.$apply();
         });
     };
+
+    $scope.setEventValue = setScopeValue.bind($scope.events, "eventCompletions");
+    $scope.extraEventContinue = extraScopeContinue.bind($scope.events, "eventCompletions");
+    $scope.extraEvents = extraScope.bind(null, $scope.events);
+
+    $scope.setActionValue = setScopeValue.bind($scope.actions, "actionCompletions");
+    $scope.extraActionContinue = extraScopeContinue.bind($scope.actions, "actionCompletions");
+    $scope.extraActions = extraScope.bind(null, $scope.actions);
+
     $scope.eventNext = (row, val) => {
-        while (row + 1 >= $scope.events.length)
-            newEvent();
+        if (val === "Then") {
+            if (!$scope.actions.length)
+                newAction();
+        } else {
+            while (row + 1 >= $scope.events.length)
+                newEvent();
+        }
         $scope.eventNexts[row] = val;
     };
+    $scope.actionNext = (row) => {
+        newAction();
+    };
+
     $scope.removeEvent = (row) => {
         $scope.events.splice(row, 1);
+        var then = false;
+        if (row + 1 === $scope.eventNexts.length && $scope.eventNexts[row] === "Then")
+            then = true;
+        $scope.eventNexts.splice(row, 1);
+        if (then)
+            $scope.eventNexts[row - 1] = "Then";
     },
+    $scope.removeAction = (row) => {
+        $scope.actions.splice(row, 1);
+    },
+
     $scope.generate = () => {
-        const createInput = (row, val, def, extra, func, idx) => {
+        const createInput = (key, row, val, def, extra, func, idx) => {
             var list = val.values;
+            const isarray = list instanceof Array;
             var ret = "";
-            if (list instanceof Array) {
-                ret += `<div class="dropdown pull-left"><button class="btn btn-default dropdown-toggle" type="button" id="eventDropDownMenu-${row}-${idx}" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">${def}<span class="caret"></span></button><ul class="dropdown-menu" aria-labelledby="eventDropDownMenu-${row}-${idx}">`;
+            if (isarray) {
+                ret += `<div class="dropdown pull-left"><button class="btn btn-default dropdown-toggle" type="button" id="${key}DropDownMenu-${row}-${idx}" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">${def}<span class="caret"></span></button><ul class="dropdown-menu" aria-labelledby="${key}DropDownMenu-${row}-${idx}">`;
                 if (val.type !== "array") {
                     ret += `<li><a href="" class="btn default" ng-click="${func}(${row}, ${idx}, '(enter value)')">(enter value)</a></li>`;
                 }
@@ -364,40 +402,65 @@ module.controller('addRuleController', function($scope) {
                 }
                 ret += "</ul></div>";
             }
-            if (def === "(enter value)") {
+            if (!isarray || def === "(enter value)") {
                 var pattern = "";
                 switch (val.type) {
                 case "number":
                     pattern = "[0-9]+";
                 case "string":
-                    ret += `<div class="pull-left"><input ng-keydown="$event.which === 13 && extraEventContinue(${row}, ${idx})" type="text" ng-model="extraEvents(${row}, ${idx}).value" class="form-control"></input></div>`;
+                    ret += `<div class="pull-left"><input ng-keydown="$event.which === 13 && extra${key}Continue(${row}, ${idx})" type="text" ng-model="extra${key}s(${row}, ${idx}).value" class="form-control"></input></div>`;
                 }
             }
             return ret;
         };
 
-        var ret = "";
-        for (var row = 0; row < $scope.events.length; ++row) {
-            var item = $scope.events[row];
-            for (var eidx = 0; eidx < item.ruleAlternatives.length; ++eidx) {
+        var ret = "", row, item, eidx, label, last;
+        for (row = 0; row < $scope.events.length; ++row) {
+            item = $scope.events[row];
+            for (eidx = 0; eidx < item.ruleAlternatives.length; ++eidx) {
                 // console.log("hey", item.ruleAlternatives[eidx]);
                 if ("type" in item.ruleAlternatives[eidx]) {
-                    ret += createInput(row, item.ruleAlternatives[eidx],
+                    ret += createInput("Event", row, item.ruleAlternatives[eidx],
                                        item.ruleSelections[eidx] || item.ruleNames[eidx] || "",
                                        item.ruleExtra[eidx] || "",
                                        "setEventValue", eidx);
                 }
             }
-            var label = $scope.eventNexts[row] || "More";
+            label = $scope.eventNexts[row] || "More";
+            last = row + 1 === $scope.events.length;
             ret += `<div class="dropdown pull-right"><button class="btn btn-default dropdown-toggle" type="button" id="eventDropDownNext-${row}" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">${label}<span class="caret"></span></button><ul class="dropdown-menu" aria-labelledby="eventDropDownNext-${row}">`;
             ret += `<li><a href="" class="btn default" ng-click="eventNext(${row},'And')">And</a></li>`;
             ret += `<li><a href="" class="btn default" ng-click="eventNext(${row},'Or')">Or</a></li>`;
-            ret += `<li><a href="" class="btn default" ng-click="eventNext(${row},'Then')">Then</a></li>`;
+            if (last)
+                ret += `<li><a href="" class="btn default" ng-click="eventNext(${row},'Then')">Then</a></li>`;
             ret += `<li><a href="" class="btn btn-danger" ng-click="removeEvent(${row})">Delete</a></li>`;
             ret += "</ul></div>";
             ret += '<div style="clear: both;"></div>';
         }
+        for (row = 0; row < $scope.actions.length; ++row) {
+            item = $scope.actions[row];
+            for (eidx = 0; eidx < item.ruleAlternatives.length; ++eidx) {
+                // console.log("hey", item.ruleAlternatives[eidx]);
+                if ("type" in item.ruleAlternatives[eidx]) {
+                    ret += createInput("Action", row, item.ruleAlternatives[eidx],
+                                       item.ruleSelections[eidx] || item.ruleNames[eidx] || "",
+                                       item.ruleExtra[eidx] || "",
+                                       "setActionValue", eidx);
+                }
+            }
+            last = row + 1 === $scope.actions.length;
+            label = last ? "More" : "And";
+            ret += `<div class="dropdown pull-right"><button class="btn btn-default dropdown-toggle" type="button" id="actionDropDownNext-${row}" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">${label}<span class="caret"></span></button><ul class="dropdown-menu" aria-labelledby="actionDropDownNext-${row}">`;
+            ret += `<li><a href="" class="btn default" ng-click="actionNext(${row})">And</a></li>`;
+            ret += `<li><a href="" class="btn btn-danger" ng-click="removeAction(${row})">Delete</a></li>`;
+            ret += "</ul></div>";
+            ret += '<div style="clear: both;"></div>';
+        }
         return ret;
+    };
+
+    $scope.save = () => {
+        console.log("save me");
     };
 
     $("#addRuleModal").on('hidden.bs.modal', () => {

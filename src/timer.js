@@ -466,6 +466,9 @@ function actionCompleter(items)
     if (args.length === 1) {
         return { type: "array", values: ["start", "stop"] };
     }
+    if (args.length === 2 && args[1] === "start") {
+        return { type: "number" };
+    }
     return { values: [] };
 }
 

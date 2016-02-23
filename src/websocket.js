@@ -108,6 +108,22 @@ const types = {
             }
         }
     },
+    actionCompletions: (ws, msg) => {
+        const args = msg.args;
+        if (!(args instanceof Array)) {
+            error(ws, msg.id, "args needs to be an array");
+        } else {
+            const act = homework.actions[args[0]];
+            if (!(typeof act === "object") || !("completion" in act)) {
+                error(ws, msg.id, "no action");
+            } else {
+                // console.log("asking for completions", args.slice(1));
+                const ret = act.completion.apply(null, args.slice(1));
+                // console.log("got", ret);
+                send(ws, msg.id, ret);
+            }
+        }
+    },
     values: (ws, msg) => {
         const devs = homework.devices;
         if (!("devuuid" in msg)) {
