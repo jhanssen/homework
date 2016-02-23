@@ -21,7 +21,11 @@ Home automation system
         }
     },
     "zwave": {
-        "port": "/dev/ttyAMA0"
+        "port": "/dev/ttyAMA0",
+        "types": {
+            "zwave:20": "fan",
+            "zwave:14": "light"
+        }
     },
     "location": {
         "latitude": 37.7833,
