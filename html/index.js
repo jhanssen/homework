@@ -316,6 +316,7 @@ module.controller('addRuleController', function($scope) {
         $scope.eventNexts = [];
         $scope.actions = [];
         $scope.initialRuleAlternatives = { events: undefined, actions: undefined };
+        $scope.name = "";
 
         $scope.request({ type: "ruleTypes" }).then((types) => {
             $scope.initialRuleAlternatives.events = { type: "array", values: types.events };
@@ -414,7 +415,8 @@ module.controller('addRuleController', function($scope) {
             return ret;
         };
 
-        var ret = "", row, item, eidx, label, last;
+        var ret, row, item, eidx, label, last;
+        ret = `<div><input type="text" placeholder="Name" ng-model="name" class="form-control"></input></div>`;
         for (row = 0; row < $scope.events.length; ++row) {
             item = $scope.events[row];
             for (eidx = 0; eidx < item.ruleAlternatives.length; ++eidx) {
@@ -460,7 +462,7 @@ module.controller('addRuleController', function($scope) {
     };
 
     $scope.save = () => {
-        console.log("save me");
+        console.log(`save me ${$scope.name}`);
     };
 
     $("#addRuleModal").on('hidden.bs.modal', () => {
