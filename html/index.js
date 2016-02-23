@@ -320,6 +320,9 @@ module.controller('addRuleController', function($scope) {
 
     $scope.setEventValue = (row, idx, evt) => {
         $scope.events[row].ruleSelections[idx] = evt;
+        $scope.events[row].ruleSelections.splice(idx + 1);
+        $scope.events[row].ruleAlternatives.splice(idx + 1);
+        $scope.events[row].ruleExtra.splice(idx + 1);
         if (evt !== "(enter value)") {
             $scope.request({ type: "eventCompletions", args: $scope.events[row].ruleSelections }).then((comp) => {
                 $scope.events[row].ruleAlternatives[idx + 1] = comp;
