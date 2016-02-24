@@ -101,7 +101,7 @@ Rule.prototype = {
         this._actions.push.apply(this._actions, arguments);
     },
 
-    serialize: function(overwrite) {
+    _invoke: function(overwrite, call) {
         var events = this._events.slice(0), i;
         var actions = this._actions.slice(0);
         var outs = {};
@@ -117,13 +117,19 @@ Rule.prototype = {
             var a = events[i];
             var ok = true;
             for (var j = 0; j < a.length; ++j) {
-                out[j] = a[j].serialize();
+                out[j] = a[j][call]();
             }
         }
         for (i = 0; i < actions.length; ++i) {
-            outs.actions[i] = actions[i].serialize();
+            outs.actions[i] = actions[i][call]();
         }
         return { name: this._name, events: outs.events, actions: outs.actions };
+    },
+    serialize: function(overwrite) {
+        return this._invoke(overwrite, "serialize");
+    },
+    format: function() {
+        return this._invoke(false, "format");
     },
 
     _check: function() {

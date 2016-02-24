@@ -51,10 +51,12 @@ Sensor.prototype = {
         case 49:
         case 128:
             hwval = new data.homework.Device.Value(v.label);
+            hwval._valueType = "number";
             hwval.update(v.value);
             break;
         case 113:
             hwval = new data.homework.Device.Value("Motion");
+            hwval._valueType = "boolean";
             hwval.update(v.value > 0);
             break;
         }

@@ -10,6 +10,13 @@ var location = {
     longitude: undefined
 };
 
+function caseify(s)
+{
+    if (typeof s !== "string" || s.length < 2)
+        return s;
+    return s[0].toUpperCase() + s.substr(1).toLowerCase();
+}
+
 function clone(obj)
 {
     var ret = Object.create(null);
@@ -228,6 +235,12 @@ Event.prototype = {
     },
     serialize: function() {
         return { type: "TimerEvent" + this._type, name: this._name, date: this._date };
+    },
+    format: function() {
+        var ret = [caseify(this._type), this._name];
+        if (this._type == "schedule")
+            ret.push(this._date);
+        return ret;
     }
 };
 
@@ -345,6 +358,9 @@ RangeEvent.prototype = {
     },
     serialize: function() {
         return { type: "TimeRangeEvent", start: this._start, end: this._end };
+    },
+    format: function() {
+        return ["TimeRange", this._start, this._end];
     }
 };
 
@@ -389,6 +405,12 @@ Action.prototype = {
     },
     serialize: function() {
         return { type: "TimerAction" + this._type, name: this._name, action: this._action, arg: this._timeout };
+    },
+    format: function() {
+        var ret = [caseify(this._type), this._name, this._action];
+        if (this._timeout !== undefined)
+            ret.push(this._timeout);
+        return ret;
     }
 };
 
@@ -450,6 +472,25 @@ function eventCompleter(items)
     return { values: [] };
 }
 
+function scheduleEventCompleter()
+{
+    if (!timers.schedule)
+        return { values: [] };
+
+    if (arguments.length === 0) {
+        return { type: "array", values: Object.keys(timers.schedule) };
+    }
+    // see if this timer exists
+    if (!(arguments[0] in timers.schedule)) {
+        return { values: [] };
+    }
+    var args = utils.strip(arguments).slice(1);
+    if (args.length === 0) {
+        return { type: "string", values: ["sunrise", "sunset"] };
+    }
+    return { values: [] };
+}
+
 function actionCompleter(items)
 {
     if (!items)
@@ -467,7 +508,7 @@ function actionCompleter(items)
         return { type: "array", values: ["start", "stop"] };
     }
     if (args.length === 2 && args[1] === "start") {
-        return { type: "number" };
+        return { type: "number", values: [] };
     }
     return { values: [] };
 }
@@ -551,7 +592,7 @@ const timers = {
         homework.registerEvent("Interval", IntervalEvent, eventCompleter.bind(null, timers.interval), eventDeserializer.bind(null, "interval"));
         homework.registerAction("Interval", IntervalAction, actionCompleter.bind(null, timers.interval), actionDeserializer.bind(null, "interval"));
 
-        homework.registerEvent("Schedule", ScheduleEvent, eventCompleter.bind(null, timers.schedule), eventDeserializer.bind(null, "schedule"));
+        homework.registerEvent("Schedule", ScheduleEvent, scheduleEventCompleter, eventDeserializer.bind(null, "schedule"));
 
         homework.registerEvent("TimeRange", RangeEvent, rangeEventCompleter, rangeEventDeserializer);
 

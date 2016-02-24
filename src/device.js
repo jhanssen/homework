@@ -225,6 +225,9 @@ Device.Event.prototype = {
     },
     serialize: function() {
         return { type: "DeviceEvent", deviceUuid: this._device.uuid, valueName: this._value.name, value: this._equals };
+    },
+    format: function() {
+        return ["Device", this._device.name, this._value.name, this._equals];
     }
 };
 
@@ -286,6 +289,9 @@ Device.Action.prototype = {
     },
     serialize: function() {
         return { type: "DeviceAction", deviceUuid: this._device.uuid, valueName: this._value.name, value: this._equals };
+    },
+    format: function() {
+        return ["Device", this._device.name, this._value.name, this._equals];
     }
 };
 

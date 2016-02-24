@@ -50,6 +50,9 @@ Event.prototype = {
     },
     serialize: function() {
         return { type: "VariableEvent", name: this._name, cmp: this._cmp, value: this._value };
+    },
+    format: function() {
+        return ["Variable", this._name, this._cmp, this._value];
     }
 };
 
@@ -81,17 +84,20 @@ Action.prototype = {
     },
     serialize: function() {
         return { type: "VariableAction", name: this._name, value: this._value };
+    },
+    format: function() {
+        return ["Variable", this._name, this._value];
     }
 };
 
 function eventCompleter()
 {
     if (!arguments.length) {
-        return { type: "list", values: Object.keys(variables.variables) };
+        return { type: "array", values: Object.keys(variables.variables) };
     } else if (arguments.length === 1 || (arguments.length === 2 && arguments[1].length < 2)) {
-        return { type: "list", values: ["==", "!="] };
+        return { type: "array", values: ["==", "!="] };
     } else if (arguments.length === 2) {
-        return { type: "string" };
+        return { type: "string", values: [] };
     }
     return { values: [] };
 }
@@ -117,9 +123,11 @@ function eventDeserializer(e)
 function actionCompleter()
 {
     if (!arguments.length) {
-        return Object.keys(variables.variables);
+        return { type: "array", values: Object.keys(variables.variables) };
+    } else if (arguments.length === 1) {
+        return { type: "string", values: [] };
     }
-    return [];
+    return { values: [] };
 }
 
 function actionDeserializer(e)

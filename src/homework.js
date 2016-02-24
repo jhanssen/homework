@@ -52,6 +52,9 @@ homework = {
     removeRule: function(rule) {
         this._rules.remove((el) => { return Object.is(rule, el); });
     },
+    removeRuleByName: function(name) {
+        this._rules.remove((el) => { return el.name == name; });
+    },
 
     valueUpdated: function(value) {
         this._emit("valueUpdated", value);

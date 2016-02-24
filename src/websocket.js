@@ -88,8 +88,49 @@ const types = {
     rules: (ws, msg) => {
         const rs = homework.rules;
         if (rs instanceof Array) {
-            const ret = rs.map((r) => { return r.serialize(); });
-            send(ws, msg.id, ret);
+            var complete = (from, array) => {
+                // first element of the array is the key in 'from'
+                var f = from[array[0]];
+                if (f === undefined) {
+                    throw `No event/action named '${array[0]}' registered`;
+                }
+                // console.log(`--${array[0]}--`);
+                // call consecutive complete with the rest of the array
+                var ret = { name: array[0], steps: [] };
+                var len = array.length - 1;
+                for (var i = 0; i < len; ++i) {
+                    var rest = array.slice(1);
+                    rest.splice(i);
+                    var comps = f.completion.apply(null, rest);
+                    // console.log("comps for " + JSON.stringify(rest) + ": " + JSON.stringify(comps) + "(val: " + array[i + 1] + ")");
+                    ret.steps.push({ alternatives: comps, value: array[i + 1] });
+                }
+                return ret;
+            };
+
+            try {
+                const ret = rs.map((r) => {
+                    var fmt = r.format();
+                    var acts = fmt.actions;
+
+                    // actions is an array of arrays
+                    for (var a = 0; a < acts.length; ++a) {
+                        acts[a] = complete(homework.actions, acts[a]);
+                    }
+
+                    var evts = fmt.events;
+                    // events is an arary of arrays of arrays
+                    for (var es = 0; es < evts.length; ++es) {
+                        for (var e = 0; e < evts[es].length; ++e) {
+                            evts[es][e] = complete(homework.events, evts[es][e]);
+                        }
+                    }
+                    return fmt;
+                });
+                send(ws, msg.id, ret);
+            } catch (e) {
+                error(ws, msg.id, `Exception mapping rule: ${JSON.stringify(e)}`);
+            }
         } else {
             error(ws, msg.id, "no devices");
         }
@@ -211,6 +252,7 @@ const types = {
             return;
         }
         rule.then.apply(rule, thens);
+        homework.removeRuleByName(rule.name);
         homework.addRule(rule);
         send(ws, msg.id, { name: desc.name, success: true });
     },

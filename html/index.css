@@ -22,6 +22,14 @@
     filter: blur(5px);
 }
 
+.hw-modifyrule {
+    background: rgba(75, 75, 75, 1)
+}
+
+.hw-pad {
+    padding: 0.5em;
+}
+
 @media screen and (min-width: 768px) {
     .hw-dialog {
 	width: 70%; /* either % (e.g. 60%) or px (400px) */

@@ -67,8 +67,8 @@
 	      <a type="button" class="btn btn-default" ng-href="#rules/{{rule.safename}}">
 		{{rule.name}}
 	      </a>
-	      <div ng-if="activeRule(rule.safename)">
-		hello
+	      <div ng-if="activeRule(rule.safename)" ng-controller="editRuleController">
+		<div ng-attr-id="edit-{{rule.safename}}" class="hw-modifyrule hw-pad" compile="generate(rule)"></div>
 	      </div>
 	    </div>
 	  </div>
