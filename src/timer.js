@@ -100,6 +100,10 @@ function Timer(type)
     this._id = undefined;
     this._start = f.start;
     this._stop = f.stop;
+    this._single = f.single;
+    this._state = "idle";
+    this._started = undefined;
+    this._timeout = undefined;
     this._initOns();
 }
 
@@ -107,11 +111,13 @@ Timer.prototype = {
     _funcs: {
         timeout: {
             start: setTimeout,
-            stop: clearTimeout
+            stop: clearTimeout,
+            single: true
         },
         interval: {
             start: setInterval,
-            stop: clearInterval
+            stop: clearInterval,
+            single: false
         }
     },
 
@@ -119,21 +125,44 @@ Timer.prototype = {
     _type: undefined,
     _start: undefined,
     _stop: undefined,
+    _single: undefined,
+    _state: undefined,
+    _started: undefined,
+    _timeout: undefined,
+
     start: function(ms) {
         if (this._id !== undefined)
             this._stop(this._id);
-        this._id = this._start(() => { this._emit("fired"); }, ms);
+        this._state = "running";
+        this._started = Date.now();
+        this._timeout = ms;
+        this._id = this._start(() => {
+            this._emit("fired");
+            if (this._single) {
+                this._id = undefined;
+                this._state = "idle";
+                this._started = undefined;
+            } else {
+                this._started = Date.now();
+            }
+        }, ms);
     },
     stop: function() {
         if (this._id !== undefined) {
             this._stop(this._id);
+            this._state = "idle";
             this._id = undefined;
         }
     },
     destroy: function() {
         this.stop();
         this._emit("destroyed");
-    }
+    },
+
+    get state() { return this._state; },
+    get started() { return this._started; },
+    get single() { return this._single; },
+    get timeout() { return this._timeout; }
 };
 
 function Schedule(val)
@@ -141,22 +170,7 @@ function Schedule(val)
     if (arguments.length !== 1) {
         throw "Schedule needs one argument, spec";
     }
-    this._job = nodeschedule.scheduleJob(val, () => { this._emit("fired"); });
-    if (!this._job) {
-        if (typeof val === "string") {
-            var date = new Date(val);
-            // Fun fact, NaN === NaN returns false
-            if (date.getTime() === date.getTime()) {
-                this._job = nodeschedule.scheduleJob(date, () => { this._emit("fired"); });
-            } else {
-                // might be a sunset/sunrise thing
-                this._createSpecial(val);
-            }
-        }
-        if (!this._job)
-            throw "Couldn't schedule job " + JSON.stringify(val);
-    }
-    this._date = val;
+    this._init(val);
     this._initOns();
 }
 
@@ -165,6 +179,7 @@ Schedule.prototype = {
     _date: undefined,
 
     get date() { return this._date; },
+    set date(spec) { this.stop(); this._init(spec); },
 
     stop: function() {
         if (this._job) {
@@ -175,6 +190,25 @@ Schedule.prototype = {
     destroy: function() {
         this.stop();
         this._emit("destroyed");
+    },
+
+    _init: function(val) {
+        this._job = nodeschedule.scheduleJob(val, () => { this._emit("fired"); });
+        if (!this._job) {
+            if (typeof val === "string") {
+                var date = new Date(val);
+                // Fun fact, NaN === NaN returns false
+                if (date.getTime() === date.getTime()) {
+                    this._job = nodeschedule.scheduleJob(date, () => { this._emit("fired"); });
+                } else {
+                    // might be a sunset/sunrise thing
+                    this._createSpecial(val);
+                }
+            }
+            if (!this._job)
+                throw "Couldn't schedule job " + JSON.stringify(val);
+        }
+        this._date = val;
     },
 
     _createSpecial: function(val) {

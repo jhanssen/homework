@@ -5,6 +5,7 @@
 const WebSocketServer = require("ws").Server;
 const Rule = require("./rule.js");
 const Variable = require("./variable.js");
+const Timer = require("./timer.js");
 
 var wss = undefined;
 var homework = undefined;
@@ -380,6 +381,114 @@ const types = {
         }
         send(ws, msg.id, { success: true });
         sendToAll({ type: "variableUpdated", name: msg.name, value: null });
+    },
+    timers: (ws, msg) => {
+        const sub = msg.sub;
+        var ret = Object.create(null);
+
+        const serializeTimers = (timers, type, ret) => {
+            var out = Object.create(null);
+            for (var n in timers) {
+                var t = timers[n];
+                out[n] = {
+                    state: t.state,
+                    started: t.started,
+                    timeout: t.timeout
+                };
+            }
+            ret[type] = out;
+        };
+
+        if (sub == "timeout" || sub == "all") {
+            serializeTimers(Timer.timeout, "timeout", ret);
+        }
+        if (sub == "interval" || sub == "all") {
+            serializeTimers(Timer.interval, "interval", ret);
+        }
+        if (sub == "schedule" || sub == "all") {
+            var out = Object.create(null);
+            for (var k in Timer.schedule) {
+                out[k] = Timer.schedule[k].date;
+            }
+            ret.schedule = out;
+        }
+        ret["now"] = Date.now();
+        send(ws, msg.id, { timers: ret });
+    },
+    stopTimer: (ws, msg) => {
+        var err = "";
+        if (msg.sub in Timer) {
+            if (msg.name in Timer[msg.sub]) {
+                var t = Timer[msg.sub][msg.name];
+                if ("stop" in t) {
+                    t.stop();
+                } else {
+                    err = "No stop";
+                }
+            } else {
+                err = "Timer out found";
+            }
+        } else {
+            err = "Timer group not found";
+        }
+        if (err != "") {
+            error(ws, msg.id, `${err} for ${msg.name} in group ${msg.sub}`);
+        } else {
+            send(ws, msg.id, { success: true });
+        }
+    },
+    restartTimer: (ws, msg) => {
+        var err = "";
+        if (msg.sub in Timer) {
+            if (msg.name in Timer[msg.sub]) {
+                var t = Timer[msg.sub][msg.name];
+                if ("start" in t) {
+                    t.start(msg.value);
+                } else {
+                    err = "No start";
+                }
+            } else {
+                err = "Timer out found";
+            }
+        } else {
+            err = "Timer group not found";
+        }
+        if (err != "") {
+            error(ws, msg.id, `${err} for ${msg.name} in group ${msg.sub}`);
+        } else {
+            send(ws, msg.id, { success: true });
+        }
+    },
+    createTimer: (ws, msg) => {
+        try {
+            Timer.create(msg.sub, msg.name, msg.value);
+        } catch (e) {
+            error(ws, msg.id, `Couldn't create timer: ${JSON.stringify(e)}`);
+            return;
+        }
+        send(ws, msg.id, { success: true });
+    },
+    setSchedules: (ws, msg) => {
+        var name;
+        for (name in msg.schedules) {
+            if (!(name in Timer.schedule)) {
+                error(ws, msg.id, `schedule ${name} doesn't exist`);
+                return;
+            }
+        }
+        var err = "";
+        for (name in msg.schedules) {
+            try {
+                Timer.schedule[name].date = msg.schedules[name];
+            } catch (e) {
+                err += JSON.stringify(e) + "\n";
+            }
+        }
+        if (err != "") {
+            error(ws, msg.id, err);
+        } else {
+            send(ws, msg.id, { success: true });
+        }
     }
 };
 

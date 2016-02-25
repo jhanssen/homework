@@ -35,6 +35,7 @@
 	    <li ng-class="activeClass('devices')"><a href="#devices">Devices</a></li>
 	    <li ng-class="activeClass('rules')"><a href="#rules">Rules</a></li>
 	    <li ng-class="activeClass('variables')"><a href="#variables">Variables</a></li>
+	    <li ng-class="activeClass('timers')"><a href="#timers">Timers</a></li>
 	  </ul>
 	</div>
       </div>
@@ -140,6 +141,91 @@
 	      <div class="modal-footer">
 		<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
 		<button type="button" class="btn btn-default" ng-click="save()">Save</button>
+	      </div>
+	    </div>
+	  </div>
+	</div>
+      </div>
+      <div ng-if="isActive('timers')" class="container" ng-controller="timerController">
+	<h2>Timers</h2>
+	<div>
+	  <h4 class="pull-left">Timeouts</h4>
+	  <button class="pull-right btn btn-success h4" type="button" ng-click="add('timeout')">Add</button>
+	</div>
+	<div class="hw-clear container-fluid">
+	</div>
+	<div>
+	  <h4 class="pull-left">Intervals</h4>
+	  <button class="pull-right btn btn-success h4" type="button" ng-click="add('interval')">Add</button>
+	</div>
+	<div class="hw-clear container-fluid">
+	</div>
+	<div>
+	  <h4 class="pull-left">Schedules</h4>
+	  <button class="pull-right btn btn-success h4" type="button" ng-click="add('schedule')">Add</button>
+	</div>
+	<div class="hw-clear container-fluid">
+	</div>
+
+	<div id="addTimerModal" class="modal fade" role="dialog" ng-controller="addTimerController">
+	  <div class="modal-dialog hw-dialog">
+	    <div class="modal-content">
+	      <div class="modal-header">
+		<button type="button" class="close" data-dismiss="modal">&times;</button>
+		<h4 class="modal-title">Add {{adding}}</h4>
+	      </div>
+	      <div class="modal-body">
+		<div ng-if="error" class="alert alert-danger">
+		  <strong>Error</strong> {{error}}
+		</div>
+		<div class="hw-clear container-fluid">
+		  <div class="row">
+		    <div class="col-xs-6 col-sm-6 col-md-6 col-lg-6 center-block text-center">
+		      Name
+		    </div>
+		    <div class="col-xs-6 col-sm-6 col-md-6 col-lg-6">
+		      <input type="text" ng-model="name">
+		    </div>
+		  </div>
+		  <div class="row" ng-if="adding=='schedule'">
+		    <div class="col-xs-6 col-sm-6 col-md-6 col-lg-6 center-block text-center">
+		      Value
+		    </div>
+		    <div class="col-xs-6 col-sm-6 col-md-6 col-lg-6">
+		      <input type="text" ng-model="value">
+		    </div>
+		  </div>
+		</div>
+	      </div>
+	      <div class="modal-footer">
+		<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+		<button type="button" class="btn btn-default" ng-click="save()">Save</button>
+	      </div>
+	    </div>
+	  </div>
+	</div>
+	<div id="restartTimerModal" class="modal fade" role="dialog" ng-controller="addTimerController">
+	  <div class="modal-dialog hw-dialog">
+	    <div class="modal-content">
+	      <div class="modal-header">
+		<button type="button" class="close" data-dismiss="modal">&times;</button>
+		<h4 class="modal-title">Restart {{restart.name}}</h4>
+	      </div>
+	      <div class="modal-body">
+		<div class="hw-clear container-fluid">
+		  <div class="row">
+		    <div class="col-xs-6 col-sm-6 col-md-6 col-lg-6 center-block text-center">
+		      Value
+		    </div>
+		    <div class="col-xs-6 col-sm-6 col-md-6 col-lg-6">
+		      <input type="text" ng-model="restart.value">
+		    </div>
+		  </div>
+		</div>
+	      </div>
+	      <div class="modal-footer">
+		<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+		<button type="button" class="btn btn-default" ng-click="restart()">Save</button>
 	      </div>
 	    </div>
 	  </div>

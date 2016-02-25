@@ -733,6 +733,100 @@ module.controller('addVariableController', function($scope) {
     };
 });
 
+module.controller('timerController', function($scope) {
+    const timerReady = () => {
+        $scope.request({ type: "timers", sub: "all" }).then((response) => {
+            $scope.timeouts = response.timeouts;
+            $scope.intervals = response.intervals;
+            $scope.schedules = response.schedules;
+            console.log(response);
+            $scope.$apply();
+        });
+    };
+
+    if ($scope.ready) {
+        timerReady();
+    } else {
+        $scope.listener.on("ready", timerReady);
+    }
+
+    $scope.adding = undefined;
+    $scope.add = (type) => {
+        $scope.adding = type;
+        $('#addTimerModal').modal('show');
+    };
+    $scope.stop = (name, sub) => {
+        $scope
+            .request({ type: "stopTimer", name: name, sub: sub })
+            .then(() => {
+                $scope.success = "Stopped";
+                $scope.$apply();
+
+                setTimeout(() => {
+                    $scope.success = undefined;
+                    $scope.$apply();
+                }, 5000);
+            })
+            .catch((err) => {
+                $scope.error = err;
+                $scope.$apply();
+            });
+    };
+    $scope.restart = (name, sub) => {
+        if ($scope.restart) {
+            const r = $scope.restart;
+
+            $('#restartTimerModal').modal('hide');
+
+            if (parseInt(r.value) + "" != r.value) {
+                $scope.error = `${r.value} needs to be an integer`;
+                return;
+            }
+
+            $scope
+                .request({ type: "restartTimer", name: r.name, sub: r.sub, value: parseInt(r.value) })
+                .then(() => {
+                    $scope.success = "Restarted";
+                    $scope.$apply();
+
+                    setTimeout(() => {
+                        $scope.success = undefined;
+                        $scope.$apply();
+                    }, 5000);
+                })
+                .catch((err) => {
+                    $scope.error = err;
+                    $scope.$apply();
+                });
+
+            return;
+        }
+
+        $scope.restart = { name: name, sub: sub, value: undefined };
+        $('#restartTimerModal').modal('show');
+    };
+    $("#restartRuleModal").on('hidden.bs.modal', () => {
+        $scope.restart = undefined;
+    });
+});
+
+module.controller('addTimerController', function($scope) {
+    $scope.name = "";
+    $scope.value = "";
+    $scope.error = undefined;
+    $scope.save = () => {
+        $scope
+            .request({ type: "createTimer", sub: $scope.adding, name: $scope.name, value: $scope.value })
+            .then(() => {
+                $('#addTimerModal').modal('hide');
+            })
+            .catch((err) => {
+                $scope.error = err;
+                $scope.$apply();
+            });
+    };
+});
+
 $(document).ready(function() {
     //stick in the fixed 100% height behind the navbar but don't wrap it
     $('#slide-nav.navbar-inverse').after($('<div class="inverse" id="navbar-height-col"></div>'));
