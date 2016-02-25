@@ -4,6 +4,7 @@
 
 const WebSocketServer = require("ws").Server;
 const Rule = require("./rule.js");
+const Variable = require("./variable.js");
 
 var wss = undefined;
 var homework = undefined;
@@ -344,6 +345,41 @@ const types = {
         val.value = msg.value;
 
         send(ws, msg.id, "ok");
+    },
+    variables: (ws, msg) => {
+        // JSON.stringify screws me over
+        var ret = Object.create(null);
+        for (var k in Variable.variables) {
+            ret[k] = Variable.variables[k];
+            if (ret[k] === undefined)
+                ret[k] = null;
+        }
+        send(ws, msg.id, { variables: ret });
+    },
+    setVariables: (ws, msg) => {
+        var name;
+        for (name in msg.variables) {
+            if (!(name in Variable.variables)) {
+                error(ws, msg.id, `variable ${name} doesn't exist`);
+                return;
+            }
+        }
+        for (name in msg.variables) {
+            Variable.change(name, msg.variables[name]);
+        }
+        send(ws, msg.id, { success: true });
+    },
+    createVariable: (ws, msg) => {
+        if (typeof msg.name !== "string" || !msg.name.length) {
+            error(ws, msg.id, `no name for variable`);
+            return;
+        }
+        if (!Variable.create(msg.name)) {
+            error(ws, msg.id, `variable ${msg.name} already exists`);
+            return;
+        }
+        send(ws, msg.id, { success: true });
+        sendToAll({ type: "variableUpdated", name: msg.name, value: null });
     }
 };
 
@@ -351,6 +387,10 @@ const WebSocket = {
     _ready: undefined,
 
     init: function(hw) {
+        Variable.on("changed", (name) => {
+            sendToAll({ type: "variableUpdated", name: name, value: Variable.variables[name] });
+        });
+
         this._ready = false;
         homework = hw;
         homework.on("valueUpdated", (value) => {

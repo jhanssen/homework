@@ -2,6 +2,15 @@
 
 "use strict";
 
+$.fn.extend({
+    animateCss: function (animationName) {
+        var animationEnd = 'webkitAnimationEnd mozAnimationEnd MSAnimationEnd oanimationend animationend';
+        $(this).addClass('animated ' + animationName).one(animationEnd, function() {
+            $(this).removeClass('animated ' + animationName);
+        });
+    }
+});
+
 var module = angular.module('app', ['ui.bootstrap', 'ui.bootstrap-slider', 'frapontillo.bootstrap-switch']);
 module.controller('mainController', function($scope) {
     location.hash = "#";
@@ -61,6 +70,9 @@ module.controller('mainController', function($scope) {
                 break;
             case "valueUpdated":
                 $scope.listener.emitEvent("valueUpdated", [msg.valueUpdated]);
+                break;
+            case "variableUpdated":
+                $scope.listener.emitEvent("variableUpdated", [msg.name, msg.value]);
                 break;
             default:
                 console.log("unrecognized message", msg);
@@ -648,6 +660,77 @@ module.controller('addRuleController', function($scope, $compile) {
     $("#addRuleModal").on('hidden.bs.modal', () => {
         $scope._reset();
     });
+});
+
+module.controller('variableController', function($scope) {
+    const variableReady = () => {
+        $scope.request({ type: "variables" }).then((vars) => {
+            $scope.variables = vars.variables;
+            $scope.$apply();
+        });
+    };
+
+    $scope.error = undefined;
+    $scope.error = undefined;
+    if ($scope.ready) {
+        variableReady();
+    } else {
+        $scope.listener.on("ready", variableReady);
+    }
+
+    $scope.addVariable = () => {
+        $('#addVariableModal').modal('show');
+    };
+
+    $scope.clear = (name) => {
+        $scope.variables[name] = null;
+    };
+
+    $scope.save = () => {
+        $scope
+            .request({ type: "setVariables", variables: $scope.variables })
+            .then(() => {
+                $scope.success = "Saved";
+                $scope.$apply();
+
+                setTimeout(() => {
+                    $scope.success = undefined;
+                    $scope.$apply();
+                }, 5000);
+            })
+            .catch((err) => {
+                $scope.error = err;
+                $scope.$apply();
+            });
+    };
+
+    const variableUpdated = (name, val) => {
+        $scope.variables[name] = val;
+        $scope.$apply();
+
+        $(`#key-${name}`).animateCss("rubberBand");
+    };
+
+    $scope.listener.on("variableUpdated", variableUpdated);
+    $scope.$on("$destroy", () => {
+        $scope.listener.off("variableUpdated", variableUpdated);
+    });
+});
+
+module.controller('addVariableController', function($scope) {
+    $scope.name = "";
+    $scope.error = undefined;
+    $scope.save = () => {
+        $scope
+            .request({ type: "createVariable", name: $scope.name })
+            .then(() => {
+                $('#addVariableModal').modal('hide');
+            })
+            .catch((err) => {
+                $scope.error = err;
+                $scope.$apply();
+            });
+    };
 });
 
 $(document).ready(function() {
