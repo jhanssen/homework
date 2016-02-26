@@ -184,7 +184,12 @@ Schedule.prototype = {
     _date: undefined,
 
     get date() { return this._date; },
-    set date(spec) { this.stop(); this._init(spec); },
+    set date(spec) {
+        if (spec == this._date)
+            return;
+        this.stop();
+        this._init(spec);
+    },
 
     stop: function() {
         if (this._job) {
@@ -220,7 +225,11 @@ Schedule.prototype = {
                 throw "Couldn't schedule job " + JSON.stringify(val);
         }
         this._date = val;
-        homework.timerUpdated("schedule", this._name);
+
+        // we don't want this to happen as part of construction so delay it slightly
+        setTimeout(() => {
+            homework.timerUpdated("schedule", this._name);
+        }, 50);
     },
 
     _createSpecial: function(val) {

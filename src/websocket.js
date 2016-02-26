@@ -11,6 +11,15 @@ var wss = undefined;
 var homework = undefined;
 var connections = [];
 
+function isempty(v)
+{
+    if (v === undefined || v === null)
+        return true;
+    if (typeof v === "string" && !v.length)
+        return true;
+    return false;
+}
+
 function send(ws, id, result)
 {
     ws.send(JSON.stringify({ id: id, result: result }));
@@ -131,7 +140,7 @@ const types = {
                 });
                 send(ws, msg.id, ret);
             } catch (e) {
-                error(ws, msg.id, `Exception mapping rule: ${JSON.stringify(e)}`);
+                error(ws, msg.id, `Exception mapping rule: ${e}`);
             }
         } else {
             error(ws, msg.id, "no devices");
@@ -219,7 +228,7 @@ const types = {
                     ands.push(construct(ector.ctor, event.slice(1)));
                     ++andCount;
                 } catch (e) {
-                    error(ws, msg.id, `Error in event ctor ${event[0]}: ${JSON.stringify(e)}`);
+                    error(ws, msg.id, `Error in event ctor ${event[0]}: ${e}`);
                     return;
                 }
             }
@@ -245,7 +254,7 @@ const types = {
             try {
                 thens.push(construct(actor.ctor, action.slice(1)));
             } catch (e) {
-                error(ws, msg.id, `Error in action ctor ${action[0]}: ${JSON.stringify(e)}`);
+                error(ws, msg.id, `Error in action ctor ${action[0]}: ${e}`);
                 return;
             }
         }
@@ -460,10 +469,18 @@ const types = {
         }
     },
     createTimer: (ws, msg) => {
+        if (isempty(msg.name)) {
+            error(ws, msg.id, `No name for timer`);
+            return;
+        }
+        if (isempty(msg.value)) {
+            error(ws, msg.id, `No value for timer ${msg.name}`);
+            return;
+        }
         try {
             Timer.create(msg.sub, msg.name, msg.value);
         } catch (e) {
-            error(ws, msg.id, `Couldn't create timer: ${JSON.stringify(e)}`);
+            error(ws, msg.id, `Couldn't create timer: ${e}`);
             return;
         }
         send(ws, msg.id, { success: true });

@@ -843,6 +843,23 @@ module.controller('timerController', function($scope) {
         $scope.restarting = { name: name, sub: sub, value: undefined };
         $('#restartTimerModal').modal('show');
     };
+    $scope.saveSchedules = () => {
+        $scope
+            .request({ type: "setSchedules", schedules: $scope.schedule })
+            .then(() => {
+                $scope.success = "Saved";
+                $scope.$apply();
+
+                setTimeout(() => {
+                    $scope.success = undefined;
+                    $scope.$apply();
+                }, 5000);
+            })
+            .catch((err) => {
+                $scope.error = err;
+                $scope.$apply();
+            });
+    };
 
     const timerUpdated = (type, name, value) => {
         // $scope.variables[name] = val;
@@ -859,7 +876,8 @@ module.controller('timerController', function($scope) {
         case "schedule":
             // implement me
         }
-        $scope[type][name] = value;
+        if (type in $scope)
+            $scope[type][name] = value;
     };
 
     $scope.listener.on("timerUpdated", timerUpdated);
@@ -874,12 +892,12 @@ module.controller('timerController', function($scope) {
 });
 
 module.controller('addTimerController', function($scope) {
-    $scope.name = "";
-    $scope.value = "";
+    $scope.timername = "";
+    $scope.timervalue = "";
     $scope.error = undefined;
     $scope.save = () => {
         $scope
-            .request({ type: "createTimer", sub: $scope.adding, name: $scope.name, value: $scope.value })
+            .request({ type: "createTimer", sub: $scope.adding, name: $scope.timername, value: $scope.timervalue })
             .then(() => {
                 $('#addTimerModal').modal('hide');
             })
