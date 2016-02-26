@@ -30,8 +30,36 @@
     padding: 0.5em;
 }
 
+.hw-pad-1 {
+    padding: 1em;
+}
+
 .hw-clear {
     clear: both;
+}
+
+.hw-col {
+    position: relative;
+    min-height: 1px;
+    padding-right: 15px;
+    padding-left: 15px;
+    float: left;
+}
+
+.hw-col-3 {
+    width: 25%;
+}
+
+.hw-col-4 {
+    width: 33.33333333%;
+}
+
+.hw-col-6 {
+    width: 50%;
+}
+
+.hw-col-12 {
+    width: 100%;
 }
 
 @media screen and (min-width: 768px) {

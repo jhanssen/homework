@@ -505,6 +505,19 @@ const WebSocket = {
         homework.on("valueUpdated", (value) => {
             sendToAll({ type: "valueUpdated", valueUpdated: { devuuid: value.device ? value.device.uuid : null, valname: value.name, value: value.value, raw: value.raw }});
         });
+        homework.on("timerUpdated", (timer) => {
+            const t = Timer[timer.type][timer.name];
+            if (timer.type === "schedule") {
+                timer.value = t.date;
+            } else {
+                timer.value = {
+                    state: t.state,
+                    started: t.started,
+                    timeout: t.timeout
+                };
+            }
+            sendToAll({ type: "timerUpdated", timerUpdated: timer });
+        });
         homework.on("ready", () => {
             this._ready = true;
             sendToAll({ type: "ready", ready: true });

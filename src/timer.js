@@ -90,7 +90,7 @@ function createDate(d, adj, set)
     return undefined;
 }
 
-function Timer(type)
+function Timer(type, name)
 {
     var f = this._funcs[type];
     if (f === undefined) {
@@ -98,6 +98,7 @@ function Timer(type)
     }
     this._type = type;
     this._id = undefined;
+    this._name = name;
     this._start = f.start;
     this._stop = f.stop;
     this._single = f.single;
@@ -136,6 +137,7 @@ Timer.prototype = {
         this._state = "running";
         this._started = Date.now();
         this._timeout = ms;
+        homework.timerUpdated(this._type, this._name);
         this._id = this._start(() => {
             this._emit("fired");
             if (this._single) {
@@ -145,6 +147,7 @@ Timer.prototype = {
             } else {
                 this._started = Date.now();
             }
+            homework.timerUpdated(this._type, this._name);
         }, ms);
     },
     stop: function() {
@@ -152,6 +155,7 @@ Timer.prototype = {
             this._stop(this._id);
             this._state = "idle";
             this._id = undefined;
+            homework.timerUpdated(this._type, this._name);
         }
     },
     destroy: function() {
@@ -165,11 +169,12 @@ Timer.prototype = {
     get timeout() { return this._timeout; }
 };
 
-function Schedule(val)
+function Schedule(val, name)
 {
-    if (arguments.length !== 1) {
-        throw "Schedule needs one argument, spec";
+    if (arguments.length !== 2) {
+        throw "Schedule needs two argument, spec and name";
     }
+    this._name = name;
     this._init(val);
     this._initOns();
 }
@@ -185,6 +190,7 @@ Schedule.prototype = {
         if (this._job) {
             this._job.cancel();
             this._job = undefined;
+            homework.timerUpdated("schedule", this._name);
         }
     },
     destroy: function() {
@@ -192,14 +198,19 @@ Schedule.prototype = {
         this._emit("destroyed");
     },
 
+    _fire: function() {
+        this._emit("fired");
+        homework.timerUpdated("schedule", this._name);
+    },
+
     _init: function(val) {
-        this._job = nodeschedule.scheduleJob(val, () => { this._emit("fired"); });
+        this._job = nodeschedule.scheduleJob(val, () => { this._fire(); });
         if (!this._job) {
             if (typeof val === "string") {
                 var date = new Date(val);
                 // Fun fact, NaN === NaN returns false
                 if (date.getTime() === date.getTime()) {
-                    this._job = nodeschedule.scheduleJob(date, () => { this._emit("fired"); });
+                    this._job = nodeschedule.scheduleJob(date, () => { this._fire(); });
                 } else {
                     // might be a sunset/sunrise thing
                     this._createSpecial(val);
@@ -209,6 +220,7 @@ Schedule.prototype = {
                 throw "Couldn't schedule job " + JSON.stringify(val);
         }
         this._date = val;
+        homework.timerUpdated("schedule", this._name);
     },
 
     _createSpecial: function(val) {
@@ -221,13 +233,13 @@ Schedule.prototype = {
                 date = createDate(val, { day: 1 }, false);
                 if (date && now < date) {
                     this._job = nodeschedule.scheduleJob(date, () => {
-                        this._emit("fired");
+                        this._fire();
                         this._createSpecial(val);
                     });
                 }
             } else {
                 this._job = nodeschedule.scheduleJob(date, () => {
-                    this._emit("fired");
+                    this._fire();
                     this._createSpecial(val);
                 });
             }
@@ -648,10 +660,10 @@ const timers = {
         if (type === "schedule") {
             if (arguments.length < 3)
                 return null;
-            t = new Schedule([].slice.apply(arguments).slice(2).join(" "));
+            t = new Schedule([].slice.apply(arguments).slice(2).join(" "), name);
             this.schedule[name] = t;
         } else {
-            t = new Timer(type);
+            t = new Timer(type, name);
             this[type][name] = t;
         }
         return t;

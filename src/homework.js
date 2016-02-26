@@ -62,6 +62,9 @@ homework = {
     modulesReady: function() {
         this._emit("ready");
     },
+    timerUpdated: function(type, name) {
+        this._emit("timerUpdated", { type: type, name: name });
+    },
 
     get events() {
         return this._events;

@@ -1,4 +1,4 @@
-/*global $,angular,WebSocket,EventEmitter,clearTimeout,setTimeout,location*/
+/*global $,angular,WebSocket,EventEmitter,clearTimeout,setTimeout,clearInterval,setInterval,location*/
 
 "use strict";
 
@@ -70,6 +70,9 @@ module.controller('mainController', function($scope) {
                 break;
             case "valueUpdated":
                 $scope.listener.emitEvent("valueUpdated", [msg.valueUpdated]);
+                break;
+            case "timerUpdated":
+                $scope.listener.emitEvent("timerUpdated", [msg.timerUpdated.type, msg.timerUpdated.name, msg.timerUpdated.value]);
                 break;
             case "variableUpdated":
                 $scope.listener.emitEvent("variableUpdated", [msg.name, msg.value]);
@@ -736,10 +739,41 @@ module.controller('addVariableController', function($scope) {
 module.controller('timerController', function($scope) {
     const timerReady = () => {
         $scope.request({ type: "timers", sub: "all" }).then((response) => {
-            $scope.timeouts = response.timeouts;
-            $scope.intervals = response.intervals;
-            $scope.schedules = response.schedules;
+            $scope.timeout = response.timers.timeout;
+            $scope.interval = response.timers.interval;
+            $scope.schedule = response.timers.schedule;
+            $scope.serverReceived = (new Date()).getTime();
+            $scope.serverOffset = $scope.serverReceived - response.timers.now;
             console.log(response);
+
+            const updateTimers = () => {
+                const now = new Date().getTime();
+                // update all timeouts and intervals
+
+                var k, t, long;
+                for (k in $scope.timeout) {
+                    t = $scope.timeout[k];
+                    if (t.state === "running") {
+                        t.now = $scope.serverOffset + now - t.started;
+                    }
+                }
+                for (k in $scope.interval) {
+                    t = $scope.interval[k];
+                    if (t.state === "running") {
+                        t.now = $scope.serverOffset + now - t.started;
+                    }
+                }
+            };
+
+            updateTimers();
+            if ($scope._updater)
+                clearInterval($scope._updater);
+            $scope._updater = setInterval(() => {
+                // update and apply
+                updateTimers();
+                $scope.$apply();
+            }, 200);
+
             $scope.$apply();
         });
     };
@@ -756,6 +790,7 @@ module.controller('timerController', function($scope) {
         $('#addTimerModal').modal('show');
     };
     $scope.stop = (name, sub) => {
+        console.log("stop", name, sub);
         $scope
             .request({ type: "stopTimer", name: name, sub: sub })
             .then(() => {
@@ -773,18 +808,21 @@ module.controller('timerController', function($scope) {
             });
     };
     $scope.restart = (name, sub) => {
-        if ($scope.restart) {
-            const r = $scope.restart;
+        console.log("restart", name, sub);
+        if ($scope.restarting) {
+            const r = $scope.restarting;
+            console.log(r);
 
             $('#restartTimerModal').modal('hide');
 
-            if (parseInt(r.value) + "" != r.value) {
+            const val = parseInt(r.value);
+            if (val + "" != r.value) {
                 $scope.error = `${r.value} needs to be an integer`;
                 return;
             }
 
             $scope
-                .request({ type: "restartTimer", name: r.name, sub: r.sub, value: parseInt(r.value) })
+                .request({ type: "restartTimer", name: r.name, sub: r.sub, value: val })
                 .then(() => {
                     $scope.success = "Restarted";
                     $scope.$apply();
@@ -802,11 +840,36 @@ module.controller('timerController', function($scope) {
             return;
         }
 
-        $scope.restart = { name: name, sub: sub, value: undefined };
+        $scope.restarting = { name: name, sub: sub, value: undefined };
         $('#restartTimerModal').modal('show');
     };
-    $("#restartRuleModal").on('hidden.bs.modal', () => {
-        $scope.restart = undefined;
+
+    const timerUpdated = (type, name, value) => {
+        // $scope.variables[name] = val;
+        // $scope.$apply();
+        switch (type) {
+        case "timeout":
+        case "interval":
+            var prevstate = (name in $scope[type]) ? $scope[type][name].state : "idle";
+            var prevstarted = (name in $scope[type]) ? $scope[type][name].started : undefined;
+            if (value.state === "idle" && prevstate === "running")
+                $(`#${type}-${name}`).animateCss("rubberBand");
+            else if (prevstarted !== undefined && value.state === "running" && value.started > prevstarted)
+                $(`#${type}-${name}`).animateCss("rubberBand");
+        case "schedule":
+            // implement me
+        }
+        $scope[type][name] = value;
+    };
+
+    $scope.listener.on("timerUpdated", timerUpdated);
+    $scope.$on("$destroy", () => {
+        $scope.listener.off("timerUpdated", timerUpdated);
+        clearInterval($scope._updater);
+    });
+
+    $("#restartTimerModal").on('hidden.bs.modal', () => {
+        $scope.restarting = undefined;
     });
 });
 
