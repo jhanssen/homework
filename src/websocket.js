@@ -473,7 +473,11 @@ const types = {
             error(ws, msg.id, `No name for timer`);
             return;
         }
-        if (isempty(msg.value)) {
+        if (isempty(msg.sub)) {
+            error(ws, msg.id, `No type for timer ${msg.name}`);
+            return;
+        }
+        if (msg.sub === "schedule" && isempty(msg.value)) {
             error(ws, msg.id, `No value for timer ${msg.name}`);
             return;
         }
