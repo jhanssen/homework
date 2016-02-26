@@ -675,6 +675,9 @@ const timers = {
             t = new Timer(type, name);
             this[type][name] = t;
         }
+
+        if (type !== "schedule")
+            homework.timerUpdated(type, name);
         return t;
     },
     destroy: function(type, name)
