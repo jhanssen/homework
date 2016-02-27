@@ -264,7 +264,7 @@ Device.Event.prototype = {
             return true;
         } else if (this._eventType === "range") {
             const vt = stringAsType(this._value.raw);
-            if (vt >= this._value.rawValue(this._equals[0]) && this._value.rawValue(vt <= this._equals[1])) {
+            if (vt >= this._value.rawValue(this._equals[0]) && vt <= this._value.rawValue(this._equals[1])) {
                 return true;
             }
         }
