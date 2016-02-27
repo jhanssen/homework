@@ -221,7 +221,7 @@ Device.Event = function()
             this._equals = stringAsType(args[3]);
             this._eventType = "is";
         } else {
-            this._equals = [stringAsType(this._value.rawValue(args[3])), stringAsType(this._value.rawValue(args[4]))];
+            this._equals = [stringAsType(args[3]), stringAsType(args[4])];
             this._eventType = "range";
         }
 
@@ -230,7 +230,7 @@ Device.Event = function()
                 this._emit("triggered");
             } else if (this._eventType === "range") {
                 const vt = stringAsType(this._value.rawValue(v));
-                if (vt >= this._equals[0] && vt <= this._equals[1]) {
+                if (vt >= this._value.rawValue(this._equals[0]) && vt <= this._value.rawValue(this._equals[1])) {
                     this._emit("triggered");
                 }
             }
