@@ -145,6 +145,14 @@ Device.Value.prototype = {
         else
             this._value = v;
     },
+
+    rawValue: function(v) {
+        if (typeof this._values === "object" && v in this._values) {
+            return this._values[v];
+        }
+        return v;
+    },
+
     trigger: function() {
         this.update(true);
         this._value = false;
@@ -166,42 +174,69 @@ utils.onify(Device.Value.prototype);
 
 Device.Event = function()
 {
+    var args = [].slice.apply(arguments);
     //console.log("deviceevent ctor", arguments);
-    if (arguments.length < 3) {
-        throw "Device event needs at least three arguments";
+    if (args.length < 4) {
+        throw "Device event needs at least four arguments";
     }
+    if (args[2] === "range") {
+        if (args.length < 5) {
+            if (args.length == 4 && args[3] instanceof Array && args[3].length === 2) {
+                args.push(args[3][1]);
+                args[3] = args[3][0];
+            } else {
+                throw "Device range event needs at least five arguments";
+            }
+        }
+    } else if (args[2] !== "is") {
+        throw "Device event type needs to be either 'is' or 'range'";
+    }
+
     this._initOns();
 
     // find the device
     const devs = data.homework.devices;
     var dev, i;
     for (i = 0; i < devs.length; ++i) {
-        if (devs[i].uuid === arguments[0])
+        if (devs[i].uuid === args[0])
             dev = devs[i];
     }
     if (!dev) {
         for (i = 0; i < devs.length; ++i) {
-            if (devs[i].name === arguments[0])
+            if (devs[i].name === args[0])
                 dev = devs[i];
         }
     }
     if (dev == undefined) {
-        throw "No device named " + arguments[0];
+        throw "No device named " + args[0];
     }
     this._device = dev;
+    this._eventType = undefined;
 
     // find the device value
-    const valname = arguments[1];
+    const valname = args[1];
     if (valname in dev.values) {
         this._value = dev.values[valname];
-        this._equals = stringAsType(arguments[2]);
+        if (args[2] === "is") {
+            this._equals = stringAsType(args[3]);
+            this._eventType = "is";
+        } else {
+            this._equals = [stringAsType(this._value.rawValue(args[3])), stringAsType(this._value.rawValue(args[4]))];
+            this._eventType = "range";
+        }
 
         this._value.on("changed", (v) => {
-            if (this._equals == stringAsType(v))
+            if (this._eventType === "is" && stringAsType(v) == this._equals) {
                 this._emit("triggered");
+            } else if (this._eventType === "range") {
+                const vt = stringAsType(this._value.rawValue(v));
+                if (vt >= this._equals[0] && vt <= this._equals[1]) {
+                    this._emit("triggered");
+                }
+            }
         });
     } else {
-        throw "No device value named " + arguments[1] + " for device " + arguments[0];
+        throw "No device value named " + args[1] + " for device " + args[0];
     }
 };
 
@@ -209,6 +244,7 @@ Device.Event.prototype = {
     _device: undefined,
     _value: undefined,
     _equals: undefined,
+    _eventType: undefined,
 
     get device() {
         return this._device;
@@ -219,15 +255,29 @@ Device.Event.prototype = {
     get equals() {
         return this._equals;
     },
+    get eventType() {
+        return this._eventType;
+    },
 
     check: function() {
-        return stringAsType(this._value.value) == this._equals;
+        if (this._eventType === "is" && stringAsType(this._value.value) == this._equals) {
+            return true;
+        } else if (this._eventType === "range") {
+            const vt = stringAsType(this._value.raw);
+            if (vt >= this._equals[0] && vt <= this._equals[1]) {
+                return true;
+            }
+        }
+        return false;
     },
     serialize: function() {
-        return { type: "DeviceEvent", deviceUuid: this._device.uuid, valueName: this._value.name, value: this._equals };
+        return { type: "DeviceEvent", deviceUuid: this._device.uuid, valueName: this._value.name, eventType: this._eventType, value: this._equals };
     },
     format: function() {
-        return ["Device", this._device.name, this._value.name, this._equals];
+        if (this._eventType === "is")
+            return ["Device", this._device.name, this._value.name, "is", this._equals];
+        else
+            return ["Device", this._device.name, this._value.name, "range", this._equals[0], this._equals[1]];
     }
 };
 
@@ -318,6 +368,8 @@ function eventCompleter()
             if (args.length === 1) {
                 return { type: "array", values: Object.keys(dev.values) };
             } else if (args.length === 2) {
+                return { type: "array", values: ["is", "range"] };
+            } else if (args.length === 3 || (args.length === 4 && args[2] === "range")) {
                 // find the value
                 var valname = args[1];
                 if (valname in dev.values) {
@@ -330,7 +382,38 @@ function eventCompleter()
     return ret;
 }
 
-var actionCompleter = eventCompleter;
+function actionCompleter()
+{
+    var ret = { type: undefined, values: [] }, i;
+    const devs = data.homework.devices;
+    if (arguments.length === 0) {
+        ret.type = "array";
+        for (i = 0; i < devs.length; ++i) {
+            ret.values.push(devs[i].name);
+        }
+    } else {
+        // find the device in question
+        var dev;
+        for (i = 0; i < devs.length; ++i) {
+            if (devs[i].name === arguments[0])
+                dev = devs[i];
+        }
+        if (dev !== undefined) {
+            var args = utils.strip(arguments);
+            if (args.length === 1) {
+                return { type: "array", values: Object.keys(dev.values) };
+            } else if (args.length === 2) {
+                // find the value
+                var valname = args[1];
+                if (valname in dev.values) {
+                    var val = dev.values[valname];
+                    return { type: val.type, values: val.values ? Object.keys(val.values) : [] };
+                }
+            }
+        }
+    }
+    return ret;
+}
 
 function eventDeserializer(e)
 {
@@ -341,7 +424,7 @@ function eventDeserializer(e)
         return null;
 
     try {
-        var event = new Device.Event(e.deviceUuid, e.valueName, e.value);
+        var event = new Device.Event(e.deviceUuid, e.valueName, e.eventType, e.value);
     } catch (e) {
         return null;
     }
