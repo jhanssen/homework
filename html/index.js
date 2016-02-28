@@ -335,31 +335,6 @@ function applyEditRule($scope, $compile, applyName) {
         });
     };
 
-    $scope.pendingListener = new EventEmitter();
-    $scope._reset = () => {
-        $scope.generator = undefined;
-        $scope.error = undefined;
-        $scope.events = [];
-        $scope.eventNexts = [];
-        $scope.actions = [];
-        $scope.initialRuleAlternatives = { events: undefined, actions: undefined };
-        $scope.name = "";
-        $scope.pendingReset = true;
-
-        $scope.request({ type: "ruleTypes" }).then((types) => {
-            $scope.initialRuleAlternatives.events = { type: "array", values: types.events };
-            $scope.initialRuleAlternatives.actions = { type: "array", values: types.actions };
-
-            newEvent();
-
-            $scope.pendingReset = false;
-            $scope.pendingListener.emitEvent(`resetComplete${applyName}`);
-
-            $scope.$apply();
-        });
-    };
-    $scope._reset();
-
     const setScopeValue = function(type, row, idx, evt) {
         this[row].ruleSelections[idx] = evt;
         this[row].ruleSelections.splice(idx + 1);
@@ -385,13 +360,38 @@ function applyEditRule($scope, $compile, applyName) {
         });
     };
 
-    $scope.setEventValue = setScopeValue.bind($scope.events, "eventCompletions");
-    $scope.extraEventContinue = extraScopeContinue.bind($scope.events, "eventCompletions");
-    $scope.extraEvents = extraScope.bind(null, $scope.events);
+    $scope.pendingListener = new EventEmitter();
+    $scope._reset = () => {
+        $scope.generator = undefined;
+        $scope.error = undefined;
+        $scope.events = [];
+        $scope.eventNexts = [];
+        $scope.actions = [];
+        $scope.initialRuleAlternatives = { events: undefined, actions: undefined };
+        $scope.name = "";
+        $scope.pendingReset = true;
 
-    $scope.setActionValue = setScopeValue.bind($scope.actions, "actionCompletions");
-    $scope.extraActionContinue = extraScopeContinue.bind($scope.actions, "actionCompletions");
-    $scope.extraActions = extraScope.bind(null, $scope.actions);
+        $scope.setEventValue = setScopeValue.bind($scope.events, "eventCompletions");
+        $scope.extraEventContinue = extraScopeContinue.bind($scope.events, "eventCompletions");
+        $scope.extraEvents = extraScope.bind(null, $scope.events);
+
+        $scope.setActionValue = setScopeValue.bind($scope.actions, "actionCompletions");
+        $scope.extraActionContinue = extraScopeContinue.bind($scope.actions, "actionCompletions");
+        $scope.extraActions = extraScope.bind(null, $scope.actions);
+
+        $scope.request({ type: "ruleTypes" }).then((types) => {
+            $scope.initialRuleAlternatives.events = { type: "array", values: types.events };
+            $scope.initialRuleAlternatives.actions = { type: "array", values: types.actions };
+
+            newEvent();
+
+            $scope.pendingReset = false;
+            $scope.pendingListener.emitEvent(`resetComplete${applyName}`);
+
+            $scope.$apply();
+        });
+    };
+    $scope._reset();
 
     $scope.eventNext = (row, val) => {
         if (val === "Then") {
