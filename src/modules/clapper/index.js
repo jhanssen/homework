@@ -10,7 +10,6 @@ module.exports = {
 
     init: function(cfg, data, homework) {
         if (!cfg || !cfg.device || !(cfg.claps instanceof Array) || !cfg.claps.length) {
-            console.log(cfg);
             return false;
         }
 
