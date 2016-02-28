@@ -5,6 +5,7 @@ const Config = require("./config.js");
 const Device = require("./device.js");
 const Console = require("./console.js");
 const WebSocket = require("./websocket.js");
+const WebServer = require("./webserver.js");
 const Rule = require("./rule.js");
 const Modules = require("./modules.js");
 const Timer = require("./timer.js");
@@ -133,6 +134,8 @@ homework = {
             }
         });
         Config.load(this, () => {
+            WebServer.serve(homework, this.config.webserver);
+
             db.readFile("devices.json", (err, obj) => {
                 this._deviceinfo = obj;
                 Device.Device.init(this, obj);
