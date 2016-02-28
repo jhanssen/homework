@@ -25,6 +25,7 @@ homework = {
     _Console: Console,
     _Timer: Timer,
     _Variable: Variable,
+    _WebServer: WebServer,
     _restored: false,
 
     registerEvent: function(name, ctor, completion, deserialize) {
@@ -96,6 +97,9 @@ homework = {
     },
     get Variable() {
         return this._Variable;
+    },
+    get WebServer() {
+        return this._WebServer;
     },
     get restored() {
         return this._restored;
