@@ -24,6 +24,7 @@
     "suncalc": "~1.7.0",
     "tilde-expansion": "~0.0.0",
     "wolfy87-eventemitter": "~4.3.0",
-    "ws": "~1.0.1"
+    "ws": "~1.0.1",
+    "font-awesome": "*"
   }
 }
