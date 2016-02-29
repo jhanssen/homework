@@ -187,6 +187,8 @@ const devices = {
             }
         };
         for (var value in device.values) {
+            if (!device.values[value].handle)
+                continue;
             if (device.values[value].handle.class_id == 129) {
                 clock.add(value, device.values[value]);
             }
