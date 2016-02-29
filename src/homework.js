@@ -116,14 +116,14 @@ homework = {
             rules.push(Rule.SerializePending(this._pendingRules[i]));
         }
         Console.log(rules);
-        db.writeFileSync("rules.json", rules);
+        db.writeFileSync("rules.json", rules, { spaces: 4 });
 
         var devices = this._deviceinfo || Object.create(null);
         for (i = 0; i < this._devices.length; ++i) {
             var dev = this._devices[i];
             devices[dev.uuid] = { name: dev.name };
         }
-        db.writeFileSync("devices.json", devices);
+        db.writeFileSync("devices.json", devices, { spaces: 4 });
     },
     restore: function(args) {
         const modulePath = args.modulePath || args.M;
@@ -180,7 +180,7 @@ Console.on("shutdown", () => {
         Modules.shutdown((data) => {
             if (data) {
                 console.log("modules.json", data);
-                db.writeFileSync("modules.json", data);
+                db.writeFileSync("modules.json", data, { spaces: 4 });
             }
             process.exit();
         });
