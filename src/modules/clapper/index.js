@@ -20,8 +20,13 @@ module.exports = {
         // Start clap detection
         clapDetector.start(clapConfig);
 
+        let last = undefined;
         cfg.claps.forEach((clap) => {
             const count = clap.count || 1;
+            if (!clap.delay)
+                clap.delay = 2000;
+            if (!clap.throttle)
+                clap.throttle = clap.delay * 2;
             let dev = new homework.Device(homework.Device.Type.Clapper, `clapper:${count}`);
             if (!dev.name)
                 dev.name = clap.name || dev.uuid;
@@ -31,14 +36,20 @@ module.exports = {
             dev.addValue(val);
             homework.addDevice(dev);
 
+            var trigger = () => {
+                var now = Date.now();
+                if (last == undefined || (now - last) >= clap.throttle) {
+                    last = now;
+                    val.trigger();
+                } else {
+                    last = now; // set even if we're too close
+                }
+            };
+
             if (count == 1) {
-                clapDetector.onClap(() => {
-                    val.trigger();
-                });
+                clapDetector.onClap(trigger);
             } else {
-                clapDetector.onClaps(count, clap.delay || 2000, (delay) => {
-                    val.trigger();
-                });
+                clapDetector.onClaps(count, clap.delay, trigger);
             }
         });
 
