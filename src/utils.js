@@ -27,6 +27,20 @@ function onify(o) {
         else
             this._ons[type].push(cb);
     };
+    o.off = function(type, cb) {
+        if (type in this._ons) {
+            var arr = this._ons[type];
+            for (var i = 0; i < arr.length; ++i) {
+                if (Object.is(arr[i], cb)) {
+                    arr.splice(i, 1);
+                    break;
+                }
+            }
+            if (!arr.length) {
+                delete this._ons[type];
+            }
+        }
+    };
 }
 
 module.exports = {

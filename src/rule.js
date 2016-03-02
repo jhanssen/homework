@@ -1,10 +1,13 @@
 /*global module*/
 
+"use strict";
+
 function Rule(name)
 {
     this._name = name;
     this._events = [];
     this._actions = [];
+    this._maybeTriggerBound = this._maybeTrigger.bind(this);
 }
 
 Rule.SerializePending = function(rule) {
@@ -81,6 +84,10 @@ Rule.Deserialize = function(homework, rule) {
 
 Rule.prototype = {
     _name: undefined,
+    _maybeTrigger: function() {
+        if (this._check())
+            this._trigger();
+    },
 
     get name() {
         return this._name;
@@ -91,14 +98,21 @@ Rule.prototype = {
         this._events.push(as);
 
         for (var i = 0; i < as.length; ++i) {
-            as[i].on("triggered", () => {
-                if (this._check())
-                    this._trigger();
-            });
+            as[i].on("triggered", this._maybeTriggerBound);
         }
     },
     then: function() {
         this._actions.push.apply(this._actions, arguments);
+    },
+
+    destroy: function() {
+        // disconnect from everything
+        for (var e = 0; e < this._events.length; ++e) {
+            var as = this._events[e];
+            for (var i = 0; i < as.length; ++i) {
+                as[i].off("triggered", this._maybeTriggerBound);
+            }
+        }
     },
 
     _invoke: function(overwrite, call) {

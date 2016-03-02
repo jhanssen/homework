@@ -52,10 +52,10 @@ homework = {
         this._rules.push(rule);
     },
     removeRule: function(rule) {
-        this._rules.remove((el) => { return Object.is(rule, el); });
+        this._rules.remove((el) => { if (Object.is(rule, el)) { rule.destroy(); return true; } return false; });
     },
     removeRuleByName: function(name) {
-        this._rules.remove((el) => { return el.name == name; });
+        this._rules.remove((el) => { if (el.name == name) { el.destroy(); return true; } return false; });
     },
 
     valueUpdated: function(value) {
