@@ -81,7 +81,7 @@ Rule.Deserialize = function(homework, rule) {
         ret.and.apply(ret, events[i]);
     }
     if (rule.eventsTrigger) {
-        ret._eventsTrigger = rule.eventsTrigger;
+        ret._updateTriggers(rule.eventsTrigger);
     }
     return ret;
 };
@@ -183,6 +183,18 @@ Rule.prototype = {
     _trigger: function() {
         for (var i = 0; i < this._actions.length; ++i) {
             this._actions[i].trigger();
+        }
+    },
+
+    _updateTriggers: function(tr) {
+        this._eventsTrigger = tr;
+        for (var i = 0; i < tr.length; ++i) {
+            for (var j = 0; j < tr[i].length; ++j) {
+                var val = tr[i][j];
+                if (!val) {
+                    this._events[i][j].off("triggered", this._maybeTriggerBound);
+                }
+            }
         }
     }
 };
