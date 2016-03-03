@@ -80,6 +80,9 @@ Rule.Deserialize = function(homework, rule) {
     for (i = 0; i < events.length; ++i) {
         ret.and.apply(ret, events[i]);
     }
+    if (rule.eventsTrigger) {
+        ret._eventsTrigger = rule.eventsTrigger;
+    }
     return ret;
 };
 
