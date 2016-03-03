@@ -349,8 +349,17 @@ function applyEditRule($scope, $compile, applyName) {
     };
     const extraScope = function(item, row, idx) {
         return {
-            get value() { return item[row].ruleExtra[idx]; },
-            set value(v) { item[row].ruleExtra[idx] = v; }
+            get value() {
+                if (row >= 0 && row < item.length) {
+                    if (idx >= 0 && idx < item[row].ruleExtra.length)
+                        return item[row].ruleExtra[idx];
+                }
+                return undefined;
+            },
+            set value(v) {
+                if (row >= 0 && row < item.length)
+                    item[row].ruleExtra[idx] = v;
+            }
         };
     };
     const extraScopeContinue = function(type, row, idx) {
