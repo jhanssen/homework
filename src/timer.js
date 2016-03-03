@@ -256,7 +256,7 @@ Schedule.prototype = {
     }
 };
 
-function Event(keep)
+function Event()
 {
     if (arguments.length < 1) {
         throw "Timer event needs one arguments, name";
