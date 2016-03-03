@@ -227,11 +227,11 @@ Device.Event = function()
 
         this._value.on("changed", (v) => {
             if (this._eventType === "is" && stringAsType(v) == this._equals) {
-                this._emit("triggered");
+                this._emit("triggered", this);
             } else if (this._eventType === "range") {
                 const vt = stringAsType(this._value.rawValue(v));
                 if (vt >= this._value.rawValue(this._equals[0]) && vt <= this._value.rawValue(this._equals[1])) {
-                    this._emit("triggered");
+                    this._emit("triggered", this);
                 }
             }
         });

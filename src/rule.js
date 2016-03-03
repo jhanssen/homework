@@ -85,8 +85,8 @@ Rule.Deserialize = function(homework, rule) {
 
 Rule.prototype = {
     _name: undefined,
-    _maybeTrigger: function() {
-        if (this._check())
+    _maybeTrigger: function(evt) {
+        if (this._check(evt))
             this._trigger();
     },
 
@@ -162,12 +162,12 @@ Rule.prototype = {
         return this._invoke(false, "format");
     },
 
-    _check: function() {
+    _check: function(evt) {
         for (var i = 0; i < this._events.length; ++i) {
             var a = this._events[i];
             var ok = true;
             for (var j = 0; j < a.length; ++j) {
-                if (!a[j].check()) {
+                if (!Object.is(a[j], evt) && !a[j].check()) {
                     ok = false;
                     break;
                 }

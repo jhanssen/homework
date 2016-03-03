@@ -24,7 +24,7 @@ function Event(name, cmp, value)
     variables.on("changed", (name) => {
         if (this._name == name && variables.variables[name] == this._value) {
             homework.Console.log("triggering variable event", this._name, this._value);
-            this._emit("triggered");
+            this._emit("triggered", this);
         }
     });
     variables.on("destroyed", (name) => {

@@ -256,7 +256,7 @@ Schedule.prototype = {
     }
 };
 
-function Event()
+function Event(keep)
 {
     if (arguments.length < 1) {
         throw "Timer event needs one arguments, name";
@@ -271,6 +271,7 @@ function Event()
     this._initOns();
     this._fired = false;
     this._name = arguments[0];
+    this._keep = false;
 
     const tt = obj[arguments[0]];
     if (this._type === "schedule") {
@@ -278,7 +279,16 @@ function Event()
     } else {
         this._date = undefined;
     }
-    tt.on("fired", () => { homework.Console.log("triggering timer event", this._name); this._fired = true; this._emit("triggered"); });
+    tt.on("fired", () => {
+        homework.Console.log("triggering timer event", this._name);
+        this._fired = true;
+        this._emit("triggered", this);
+        if (!this._keep) {
+            setTimeout(() => {
+                this._fired = false;
+            }, 1000);
+        }
+    });
     tt.on("destroyed", () => { this._emit("cancel"); });
 }
 
@@ -302,6 +312,7 @@ Event.prototype = {
 function TimeoutEvent()
 {
     Event.apply(this, arguments);
+    this._keep = true;
 }
 
 TimeoutEvent.prototype = clone(Event.prototype);
