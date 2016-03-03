@@ -214,7 +214,8 @@ const types = {
             }
             var ands = [];
             for (var e = 0; e < events[es].length; ++e) {
-                var event = events[es][e];
+                var tr = events[es][e].trigger;
+                var event = events[es][e].event;
                 if (!(event instanceof Array) || !event.length) {
                     error(ws, msg.id, `Sub event is not an array: ${es}:${e}`);
                     return;
@@ -225,7 +226,7 @@ const types = {
                     return;
                 }
                 try {
-                    ands.push(construct(ector.ctor, event.slice(1)));
+                    ands.push({ trigger: tr, and: construct(ector.ctor, event.slice(1)) });
                     ++andCount;
                 } catch (e) {
                     error(ws, msg.id, `Error in event ctor ${event[0]}: ${e}`);

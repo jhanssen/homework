@@ -323,7 +323,8 @@ function applyEditRule($scope, $compile, applyName) {
             ruleAlternatives: [$scope.initialRuleAlternatives.events],
             ruleSelections: [],
             ruleExtra: [],
-            ruleNames: ["Events"]
+            ruleNames: ["Events"],
+            ruleTrigger: true
         });
     };
     const newAction = () => {
@@ -368,6 +369,19 @@ function applyEditRule($scope, $compile, applyName) {
             $scope.$apply();
         });
     };
+    const triggerScope = function(item, row) {
+        return {
+            get value() {
+                if (row >= 0 && row < item.length)
+                    return item[row].ruleTrigger;
+                return false;
+            },
+            set value(v) {
+                if (row >= 0 && row < item.length)
+                    item[row].ruleTrigger = v;
+            }
+        };
+    };
 
     $scope.pendingListener = new EventEmitter();
     $scope._reset = () => {
@@ -383,6 +397,7 @@ function applyEditRule($scope, $compile, applyName) {
         $scope.setEventValue = setScopeValue.bind($scope.events, "eventCompletions");
         $scope.extraEventContinue = extraScopeContinue.bind($scope.events, "eventCompletions");
         $scope.extraEvents = extraScope.bind(null, $scope.events);
+        $scope.triggerEvent = triggerScope.bind(null, $scope.events);
 
         $scope.setActionValue = setScopeValue.bind($scope.actions, "actionCompletions");
         $scope.extraActionContinue = extraScopeContinue.bind($scope.actions, "actionCompletions");
@@ -451,12 +466,13 @@ function applyEditRule($scope, $compile, applyName) {
                 }
             }
         };
-        const pushEvent = (evt) => {
+        const pushEvent = (evt, trg) => {
             var cur = $scope.events[$scope.events.length - 1];
             if (cur.ruleSelections.length !== 0) {
                 newEvent();
                 cur = $scope.events[$scope.events.length - 1];
             }
+            cur.ruleTrigger = trg;
             pushCommon(cur, evt);
         };
         const pushAction = (act) => {
@@ -471,11 +487,12 @@ function applyEditRule($scope, $compile, applyName) {
             return;
         $scope.name = $scope.generator.name;
         const evts = $scope.generator.events;
+        const trgs = $scope.generator.eventsTrigger;
         // each of the top-level events are ORs, each of the 2nd level events are ANDs.
         // the last event is THEN
         for (var ors = 0; ors < evts.length; ++ors) {
             for (var ands = 0; ands < evts[ors].length; ++ands) {
-                pushEvent(evts[ors][ands]);
+                pushEvent(evts[ors][ands], trgs[ors][ands]);
                 if (ands + 1 < evts[ors].length)
                     $scope.eventNexts.push("And");
             }
@@ -537,6 +554,7 @@ function applyEditRule($scope, $compile, applyName) {
                                            "setEventValue", eidx);
                     }
                 }
+                ret += `<div class="pull-left hw-pad"><input type="checkbox" ng-model="triggerEvent(${row}).value"></div>`;
                 label = $scope.eventNexts[row] || "More";
                 last = row + 1 === $scope.events.length;
                 ret += `<div class="dropdown pull-right"><button class="btn btn-default dropdown-toggle" type="button" id="eventDropDownNext-${row}" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">${label}<span class="caret"></span></button><ul class="dropdown-menu" aria-labelledby="eventDropDownNext-${row}">`;
@@ -595,11 +613,12 @@ function applyEditRule($scope, $compile, applyName) {
         $scope.error = undefined;
 
         var events = [[]];
-        var event = events[0], cur, sel, ex, s;
+        var event = events[0], cur, sel, ex, s, tr;
         for (var e = 0; e < $scope.events.length; ++e) {
             cur = [];
             sel = $scope.events[e].ruleSelections;
             ex = $scope.events[e].ruleExtra;
+            tr = $scope.events[e].ruleTrigger;
             var nx = $scope.eventNexts[e];
             if (nx === undefined) {
                 $scope.error = `No next for event:${e}`;
@@ -613,7 +632,7 @@ function applyEditRule($scope, $compile, applyName) {
 
                 cur.push(ex[s] || sel[s]);
             }
-            event.push(cur);
+            event.push({ trigger: tr, event: cur });
             if (nx === "Or") {
                 events.push([]);
                 event = events[events.length - 1];

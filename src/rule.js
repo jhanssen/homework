@@ -6,6 +6,7 @@ function Rule(name)
 {
     this._name = name;
     this._events = [];
+    this._eventsTrigger = [];
     this._actions = [];
     this._maybeTriggerBound = this._maybeTrigger.bind(this);
 }
@@ -95,11 +96,26 @@ Rule.prototype = {
 
     and: function() {
         var as = [].slice.apply(arguments);
-        this._events.push(as);
 
+        var events = [];
+        var triggers = [];
         for (var i = 0; i < as.length; ++i) {
-            as[i].on("triggered", this._maybeTriggerBound);
+            if ("on" in as[i]) {
+                as[i].on("triggered", this._maybeTriggerBound);
+                events.push(as[i]);
+                triggers.push(true);
+            } else if ("and" in as[i]) {
+                if (as[i].trigger) {
+                    as[i].and.on("triggered", this._maybeTriggerBound);
+                    triggers.push(true);
+                } else {
+                    triggers.push(false);
+                }
+                events.push(as[i].and);
+            }
         }
+        this._events.push(events);
+        this._eventsTrigger.push(triggers);
     },
     then: function() {
         this._actions.push.apply(this._actions, arguments);
@@ -137,7 +153,7 @@ Rule.prototype = {
         for (i = 0; i < actions.length; ++i) {
             outs.actions[i] = actions[i][call]();
         }
-        return { name: this._name, events: outs.events, actions: outs.actions };
+        return { name: this._name, events: outs.events, eventsTrigger: this._eventsTrigger, actions: outs.actions };
     },
     serialize: function(overwrite) {
         return this._invoke(overwrite, "serialize");
