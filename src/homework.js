@@ -121,13 +121,14 @@ homework = {
                 }, 0);
             }
         } else {
-            for (var pri = this.rulePriorities.High; pri <= this.rulePriorities.Low; ++pri) {
-                for (var k = 0; k < this._triggers.length; ++k) {
-                    this._triggers[k]._trigger(pri);
-                }
-            }
+            var tr = this._triggers;
             this._triggers = [];
             this._triggerTimer = undefined;
+            for (var pri = this.rulePriorities.High; pri <= this.rulePriorities.Low; ++pri) {
+                for (var k = 0; k < tr.length; ++k) {
+                    tr[k]._trigger(pri);
+                }
+            }
         }
     },
 
