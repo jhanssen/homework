@@ -121,7 +121,7 @@ homework = {
                 }, 0);
             }
         } else {
-            for (var pri = this.rulePriorities.High; pri < this.rulePriorities.Low; ++pri) {
+            for (var pri = this.rulePriorities.High; pri <= this.rulePriorities.Low; ++pri) {
                 for (var k = 0; k < this._triggers.length; ++k) {
                     this._triggers[k]._trigger(pri);
                 }
