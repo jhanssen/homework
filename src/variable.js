@@ -81,9 +81,11 @@ function Action(name, value)
 }
 
 Action.prototype = {
-    trigger: function() {
-        homework.Console.log("trigger variable action", this._name, this._value);
-        variables.change(this._name, this._value);
+    trigger: function(pri) {
+        if (pri === homework.rulePriorities.High) {
+            homework.Console.log("trigger variable action", this._name, this._value);
+            variables.change(this._name, this._value);
+        }
     },
     serialize: function() {
         return { type: "VariableAction", name: this._name, value: this._value };

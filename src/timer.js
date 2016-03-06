@@ -458,15 +458,17 @@ function Action()
 }
 
 Action.prototype = {
-    trigger: function() {
-        homework.Console.log("trigger timer action", this._action, this._timeout);
-        switch (this._action) {
-        case "stop":
-            this._timer.stop();
-            break;
-        case "start":
-            this._timer.start(parseInt(this._timeout));
-            break;
+    trigger: function(pri) {
+        if (pri === homework.rulePriorities.Medium) {
+            homework.Console.log("trigger timer action", this._action, this._timeout);
+            switch (this._action) {
+            case "stop":
+                this._timer.stop();
+                break;
+            case "start":
+                this._timer.start(parseInt(this._timeout));
+                break;
+            }
         }
     },
     serialize: function() {

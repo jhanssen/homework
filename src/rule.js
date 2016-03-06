@@ -2,6 +2,8 @@
 
 "use strict";
 
+var homework;
+
 function Rule(name)
 {
     this._name = name;
@@ -28,6 +30,10 @@ Rule.SerializePending = function(rule) {
         }
     }
     return rule;
+};
+
+Rule.init = function(hw) {
+    homework = hw;
 };
 
 Rule.Deserialize = function(homework, rule) {
@@ -89,8 +95,9 @@ Rule.Deserialize = function(homework, rule) {
 Rule.prototype = {
     _name: undefined,
     _maybeTrigger: function(evt) {
-        if (this._check(evt))
-            this._trigger();
+        if (this._check(evt)) {
+            homework.triggerRule(this);
+        }
     },
 
     get name() {
@@ -180,9 +187,9 @@ Rule.prototype = {
         }
         return false;
     },
-    _trigger: function() {
+    _trigger: function(pri) {
         for (var i = 0; i < this._actions.length; ++i) {
-            this._actions[i].trigger();
+            this._actions[i].trigger(pri);
         }
     },
 

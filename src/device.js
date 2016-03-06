@@ -334,8 +334,9 @@ Device.Action.prototype = {
         return this._equals;
     },
 
-    trigger: function() {
-        this._value.value = this._equals;
+    trigger: function(pri) {
+        if (pri === data.homework.rulePriorities.Medium)
+            this._value.value = this._equals;
     },
     serialize: function() {
         return { type: "DeviceAction", deviceUuid: this._device.uuid, valueName: this._value.name, value: this._equals };

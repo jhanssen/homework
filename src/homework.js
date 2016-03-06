@@ -1,4 +1,4 @@
-/*global require,process,homework*/
+/*global require,process,homework,setTimeout*/
 require("sugar");
 
 const Config = require("./config.js");
@@ -18,6 +18,8 @@ homework = {
     _devices: [],
     _deviceinfo: undefined,
     _rules: [],
+    _triggers: [],
+    _triggerTimer: undefined,
     _pendingRules: [],
     _cfg: undefined,
     _Device: Device.Device,
@@ -27,6 +29,11 @@ homework = {
     _Variable: Variable,
     _WebServer: WebServer,
     _restored: false,
+    _rulePriorities: { High: 0, Medium: 1, Low: 2 },
+
+    get rulePriorities() {
+        return this._rulePriorities;
+    },
 
     registerEvent: function(name, ctor, completion, deserialize) {
         if (name in this._events)
@@ -105,6 +112,25 @@ homework = {
         return this._restored;
     },
 
+    triggerRule: function(rule) {
+        if (rule) {
+            this._triggers.push(rule);
+            if (!this._triggerTimer) {
+                this._triggerTimer = setTimeout(() => {
+                    this.triggerRule();
+                }, 0);
+            }
+        } else {
+            for (var pri = this.rulePriorities.High; pri < this.rulePriorities.Low; ++pri) {
+                for (var k = 0; k < this._triggers.length; ++k) {
+                    this._triggers[k]._trigger(pri);
+                }
+            }
+            this._triggers = [];
+            this._triggerTimer = undefined;
+        }
+    },
+
     save: function() {
         var rules = [], i;
         for (i = 0; i < this._rules.length; ++i) {
@@ -170,6 +196,8 @@ homework = {
 
 homework.utils.onify(homework);
 homework._initOns();
+
+Rule.init(homework);
 
 Console.init(homework);
 Console.on("shutdown", () => {
