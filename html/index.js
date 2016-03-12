@@ -206,10 +206,10 @@ module.controller('deviceController', function($scope) {
                             set: function(v) {
                                 if (dev._timeout != undefined)
                                     clearTimeout(dev._timeout);
+                                if (v.length == 7)
+                                    v += dev._white || "00";
                                 dev._pending = v;
                                 dev._timeout = setTimeout(() => {
-                                    if (v.length == 7)
-                                        v += dev._white || "00";
                                     console.log("setting", v);
                                     $scope.request({ type: "setValue", devuuid: dev.uuid, valname: "Color", value: v });
                                     delete dev._timeout;
