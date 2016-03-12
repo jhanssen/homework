@@ -219,7 +219,10 @@ module.controller('deviceController', function($scope) {
                         });
                         Object.defineProperty(dev, "white", {
                             get: function() {
-                                return parseInt((dev._pending || dev.values.Color.raw).substr(7), 16);
+                                var wh = (dev._pending || dev.values.Color.raw).substr(7);
+                                if (dev._white === undefined)
+                                    dev._white = wh;
+                                return parseInt(wh, 16);
                             },
                             set: function(v) {
                                 dev._white = v.toString(16);
