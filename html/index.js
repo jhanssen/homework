@@ -11,11 +11,11 @@ $.fn.extend({
     }
 });
 
-var module = angular.module('app', ['ui.bootstrap', 'ui.bootstrap-slider', 'frapontillo.bootstrap-switch']);
+var module = angular.module('app', ['ui.bootstrap', 'ui.bootstrap-slider', 'frapontillo.bootstrap-switch', 'colorpicker.module']);
 module.controller('mainController', function($scope) {
     location.hash = "#";
 
-    $scope.Type = { Dimmer: 0, Light: 1, Fan: 2 };
+    $scope.Type = { Dimmer: 0, Light: 1, Fan: 2, RGBWLed: 5 };
     $scope.active = "devices";
     $scope.nav = [];
 
@@ -192,6 +192,49 @@ module.controller('deviceController', function($scope) {
                                 } else {
                                     throw "invalid value type for dimmer: " + (typeof v);
                                 }
+                            }
+                        });
+                        break;
+                    case $scope.Type.RGBWLed:
+                        dev._timeout = undefined;
+                        dev._pending = undefined;
+                        dev._white = undefined;
+                        Object.defineProperty(dev, "color", {
+                            get: function() {
+                                return (dev._pending || dev.values.Color.raw).substr(0, 7);
+                            },
+                            set: function(v) {
+                                if (dev._timeout != undefined)
+                                    clearTimeout(dev._timeout);
+                                dev._pending = v;
+                                dev._timeout = setTimeout(() => {
+                                    if (v.length == 7)
+                                        v += dev._white || "00";
+                                    console.log("setting", v);
+                                    $scope.request({ type: "setValue", devuuid: dev.uuid, valname: "Color", value: v });
+                                    delete dev._timeout;
+                                    delete dev._pending;
+                                }, 500);
+                            }
+                        });
+                        Object.defineProperty(dev, "white", {
+                            get: function() {
+                                return parseInt((dev._pending || dev.values.Color.raw).substr(0, 7), 16);
+                            },
+                            set: function(v) {
+                                dev._white = v.toString(16);
+                                while (dev._white.length < 2)
+                                    dev._white = "0" + dev._white;
+                                var c = dev.values.Color.raw.substr(0, 7) + dev._white;
+                                if (dev._timeout != undefined)
+                                    clearTimeout(dev._timeout);
+                                dev._pending = c;
+                                dev._timeout = setTimeout(() => {
+                                    $scope.request({ type: "setValue", devuuid: dev.uuid, valname: "Color", value: c });
+                                    console.log("setting white", c);
+                                    delete dev._timeout;
+                                    delete dev._pending;
+                                }, 500);
                             }
                         });
                         break;

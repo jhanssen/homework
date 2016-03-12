@@ -10,12 +10,14 @@
     <script src="/node_modules/bootstrap-switch/dist/js/bootstrap-switch.min.js"></script>
     <script src="/node_modules/angular-bootstrap-switch/dist/angular-bootstrap-switch.min.js"></script>
     <script src="/node_modules/bootstrap-slider/dist/bootstrap-slider.min.js"></script>
+    <script src="/node_modules/angular-bootstrap-colorpicker/js/bootstrap-colorpicker-module.min.js"></script>
     <script src="/sub/angular-bootstrap-slider/slider.js"></script>
     <script src="index.js"></script>
     <link type="text/css" rel="stylesheet" href="/node_modules/bootstrap/dist/css/bootstrap.min.css"></link>
     <link type="text/css" rel="stylesheet" href="/node_modules/bootstrap-slider/dist/css/bootstrap-slider.min.css"></link>
     <link type="text/css" rel="stylesheet" href="/node_modules/bootstrap-switch/dist/css/bootstrap3/bootstrap-switch.min.css"></link>
     <link type="text/css" rel="stylesheet" href="/node_modules/font-awesome/css/font-awesome.min.css"></link>
+    <link type="text/css" rel="stylesheet" href="/node_modules/angular-bootstrap-colorpicker/css/colorpicker.min.css"></link>
     <link type="text/css" rel="stylesheet" href="/sub/animate.css/animate.min.css"></link>
     <link type="text/css" rel="stylesheet" href="index.css"></link>
  </head>
@@ -55,6 +57,10 @@
 		</div>
 		<div ng-if="dev.type == Type.Light || dev.type == Type.Fan" class="hw-margin center-block">
 		  <input bs-switch ng-model="dev.value" type="checkbox"></input>
+		</div>
+		<div ng-if="dev.type == Type.RGBWLed" class="hw-margin center-block">
+		  <div colorpicker ng-model="dev.color"><i class="fa fa-tint hw-big" ng-style="{'color': dev.color}"></i></div>
+		  <slider ng-model="dev.white" min="0" step="1" max="255"></slider>
 		</div>
 	      </div>
 	    </div>

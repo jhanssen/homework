@@ -50,6 +50,7 @@ Device.Type = {
     Fan: 2,
     Thermostat: 3,
     Clapper: 4,
+    RGBWLed: 5,
     Unknown: 99
 };
 
@@ -74,8 +75,15 @@ Device.prototype = {
         return this._type;
     },
 
-    addValue: function(v) {
-        this._values[v.name] = v;
+    addValue: function(v, keep) {
+        if (keep && v.name in this._values) {
+            if (!(this._values[v.name] instanceof Array)) {
+                this._values[v.name] = [this._values[v.name]];
+            }
+            this._values[v.name].push(v);
+        } else {
+            this._values[v.name] = v;
+        }
         v._device = this;
     },
     removeValue: function(name) {
@@ -83,12 +91,13 @@ Device.prototype = {
     }
 };
 
-Device.Value = function(name, values, range, handle)
+Device.Value = function(name, values, range, handle, units)
 {
     this._name = name;
     this._values = values;
     this._range = range;
     this._handle = handle;
+    this._units = units;
     this._device = undefined;
     this._initOns();
 };
@@ -98,12 +107,19 @@ Device.Value.prototype = {
     _value: undefined,
     _values: undefined,
     _range: undefined,
+    _units: undefined,
     _valueUpdated: undefined,
     _handle: undefined,
     _device: undefined,
 
     get name() {
         return this._name;
+    },
+    set name(n) {
+        this._name = n;
+    },
+    get units() {
+        return this._units;
     },
     get values() {
         return this._values;

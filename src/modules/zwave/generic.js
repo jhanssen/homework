@@ -31,7 +31,7 @@ Generic.acceptable = function(val)
     return val.genre == "user" && !val.write_only;
 };
 
-Generic.createValue = function(v)
+Generic.createValue = function(v, type)
 {
     var name = v.label;
     if (!(typeof name === "string") || !name.length) {
@@ -49,7 +49,10 @@ Generic.createValue = function(v)
         if (v.max > v.min)
             range = [v.min, v.max];
     }
-    const hwv = new data.homework.Device.Value(name, values, range, v);
+    if (type == data.homework.Type.RGBWLed && name == "Color") {
+        data.zwave.setChangeVerified(v.node_id, v.class_id, v.instance, v.index, true);
+    }
+    const hwv = new data.homework.Device.Value(name, values, range, v, (v.units !== "" ? v.units : undefined));
     if (!v.read_only) {
         hwv._valueUpdated = function(val) {
             try {
@@ -65,6 +68,8 @@ Generic.createValue = function(v)
 };
 
 Generic.prototype = {
+    _typeOverride: undefined,
+
     _acceptValue: function(value) {
         if (Generic.acceptable(value))
             return true;
@@ -80,7 +85,7 @@ Generic.prototype = {
     _removeValue: function(value) {
     },
     createHomeworkDevice: function(type, uuid, devices) {
-        var hwdev = new data.homework.Device(type, uuid);
+        var hwdev = new data.homework.Device(this._typeOverride || type, uuid);
         if (!hwdev.name) {
             var n = this.type;
             if (!(typeof n === "string") || !n.length)
@@ -89,10 +94,10 @@ Generic.prototype = {
         }
         for (var k in this._values) {
             let v = this._values[k];
-            let hwval = Generic.createValue(v);
+            let hwval = Generic.createValue(v, hwdev.type);
             hwval.update(v.value);
             this._hwvalues[k] = hwval;
-            hwdev.addValue(hwval);
+            hwdev.addValue(hwval, true);
         }
 
         devices.fixupValues(hwdev);
@@ -106,10 +111,10 @@ Generic.prototype = {
             if (k in this._hwvalues)
                 continue;
             let v = this._values[k];
-            let hwval = Generic.createValue(v);
+            let hwval = Generic.createValue(v, this._hwdevice.type);
             hwval.update(v.value);
             this._hwvalues[k] = hwval;
-            this._hwdevice.addValue(hwval);
+            this._hwdevice.addValue(hwval, true);
         }
 
         devices.fixupValues(this._hwdevice);
@@ -122,7 +127,11 @@ module.exports = {
         data.zwave = devices.zwave;
 
         var ctor = function(nodeid, nodeinfo) {
-            return new Generic(nodeid, nodeinfo);
+            var d = new Generic(nodeid, nodeinfo);
+            if (nodeinfo.manufacturerid == "0x010f" && nodeinfo.producttype == "0x0900" && nodeinfo.productid == "0x2000") {
+                d._typeOverride = data.homework.Type.RGBWLed;
+            }
+            return d;
         };
         devices.registerDevice(ctor, Generic.prototype);
     }

@@ -289,7 +289,7 @@ const types = {
         for (var v in dev.values) {
             let val = dev.values[v];
             ret.push({ name: val.name, value: val.value, raw: val.raw,
-                       values: val.values, range: val.range });
+                       values: val.values, range: val.range, units: val.units });
         }
         send(ws, msg.id, ret);
     },
@@ -320,7 +320,7 @@ const types = {
         }
         const val = dev.values[msg.valname];
         const ret = { name: val.name, value: val.value, raw: val.raw,
-                      values: val.values, range: val.range };
+                      values: val.values, range: val.range, units: val.units };
         send(ws, msg.id, ret);
     },
     setValue: (ws, msg) => {

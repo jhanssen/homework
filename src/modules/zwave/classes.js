@@ -186,11 +186,24 @@ const devices = {
                 }
             }
         };
-        for (var value in device.values) {
-            if (!device.values[value].handle)
+        var vals = device.values;
+        for (var value in vals) {
+            var val = vals[value];
+            if (val instanceof Array) {
+                // rename and reinsert
+                device.removeValue(value);
+                for (var v = 0; v < val.length; ++v) {
+                    if (!val[v].handle)
+                        continue;
+                    val[v].name = value + "-" + val[v].handle.instance + "-" + val[v].handle.index;
+                    device.addValue(val[v]);
+                }
                 continue;
-            if (device.values[value].handle.class_id == 129) {
-                clock.add(value, device.values[value]);
+            }
+            if (!val.handle)
+                continue;
+            if (val.handle.class_id == 129) {
+                clock.add(value, val);
             }
         }
         clock.fixup(device, this.homework);

@@ -13,6 +13,9 @@
 .hw-expand-horizontal {
     width: 100%;
 }
+.hw-big {
+    font-size: 2em;
+}
 
 .hw-blur {
     -webkit-filter: blur(5px);
