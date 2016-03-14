@@ -64,6 +64,21 @@ Generic.createValue = function(v, type)
             }
         };
     }
+    hwv._valueType = (function() {
+        if (this.values instanceof Array && this.values.length > 0)
+            return "array";
+        switch (this.handle.type) {
+        case "list":
+            return "array";
+        case "string":
+            return "string";
+        case "bool":
+            return "boolean";
+        default:
+            break;
+        }
+        return "number";
+    }).bind(hwv);
     return hwv;
 };
 
