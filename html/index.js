@@ -217,6 +217,11 @@ module.controller('deviceController', function($scope) {
                                 }, 500);
                             }
                         });
+                        Object.defineProperty(dev, "colorRGBW", {
+                            get: function() {
+                                return dev._pending || dev.values.Color.raw;
+                            }
+                        });
                         Object.defineProperty(dev, "white", {
                             get: function() {
                                 var wh = (dev._pending || dev.values.Color.raw).substr(7);

@@ -59,7 +59,7 @@
 		  <input bs-switch ng-model="dev.value" type="checkbox"></input>
 		</div>
 		<div ng-if="dev.type == Type.RGBWLed" class="hw-margin center-block">
-		  <div colorpicker ng-model="dev.color"><i class="fa fa-tint hw-big" ng-style="{'color': dev.color}"></i></div>
+		  <div tooltip-placement="top" uib-tooltip="{{dev.colorRGBW}}"><i colorpicker ng-model="dev.color" class="fa fa-tint hw-big" ng-style="{'color': dev.color}"></i></div>
 		  <slider ng-model="dev.white" min="0" step="1" max="255"></slider>
 		</div>
 	      </div>

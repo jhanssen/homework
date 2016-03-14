@@ -73,6 +73,11 @@ const WebServer = {
                 if (pathname[0] === "node_modules" || pathname[0] === "sub") {
                     servePath(pathname, resp);
                     return;
+                } else if (pathname[0] === "uib") {
+                    pathname[0] = "angular-ui-bootstrap";
+                    pathname.splice(0, 0, "node_modules");
+                    servePath(pathname, resp);
+                    return;
                 }
             }
             pathname.splice(0, 0, "html");
