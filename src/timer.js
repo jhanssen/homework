@@ -540,25 +540,6 @@ function eventCompleter(items)
     return { values: [] };
 }
 
-function scheduleEventCompleter()
-{
-    if (!timers.schedule)
-        return { values: [] };
-
-    if (arguments.length === 0) {
-        return { type: "array", values: Object.keys(timers.schedule) };
-    }
-    // see if this timer exists
-    if (!(arguments[0] in timers.schedule)) {
-        return { values: [] };
-    }
-    var args = utils.strip(arguments).slice(1);
-    if (args.length === 0) {
-        return { type: "string", values: ["sunrise", "sunset"] };
-    }
-    return { values: [] };
-}
-
 function actionCompleter(items)
 {
     if (!items)
@@ -660,7 +641,7 @@ const timers = {
         homework.registerEvent("Interval", IntervalEvent, eventCompleter.bind(null, timers.interval), eventDeserializer.bind(null, "interval"));
         homework.registerAction("Interval", IntervalAction, actionCompleter.bind(null, timers.interval), actionDeserializer.bind(null, "interval"));
 
-        homework.registerEvent("Schedule", ScheduleEvent, scheduleEventCompleter, eventDeserializer.bind(null, "schedule"));
+        homework.registerEvent("Schedule", ScheduleEvent, eventCompleter.bind(null, timers.schedule), eventDeserializer.bind(null, "schedule"));
 
         homework.registerEvent("TimeRange", RangeEvent, rangeEventCompleter, rangeEventDeserializer);
 
