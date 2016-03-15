@@ -302,10 +302,7 @@ Event.prototype = {
         return { type: "TimerEvent" + this._type, name: this._name, date: this._date };
     },
     format: function() {
-        var ret = [caseify(this._type), this._name];
-        if (this._type == "schedule")
-            ret.push(this._date);
-        return ret;
+        return [caseify(this._type), this._name, "fires"];
     }
 };
 
