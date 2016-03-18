@@ -94,6 +94,8 @@ Generic.prototype = {
         // find the homework value
         if (value.value_id in this._hwvalues) {
             var hwval = this._hwvalues[value.value_id];
+            if (value.units !== "")
+                hwval.units = value.units;
             hwval.update(value.value);
         }
     },

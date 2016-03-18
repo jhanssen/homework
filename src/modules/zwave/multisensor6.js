@@ -35,6 +35,8 @@ Sensor.prototype = {
             switch (value.class_id) {
             case 49:
             case 128:
+                if (value.units !== "")
+                    hwval.units = value.units;
                 hwval.update(value.value);
                 break;
             case 113:

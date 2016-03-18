@@ -128,6 +128,9 @@ Device.Value.prototype = {
     get units() {
         return this._units;
     },
+    set units(u) {
+        this._units = u;
+    },
     get values() {
         return this._values;
     },
