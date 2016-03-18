@@ -86,10 +86,23 @@
 		{{val.value}} {{val.units}}
 	      </div>
 	      <div ng-if="!val.readOnly">
-		<form ng-submit="setValue(val)" style="float: left">
-		  <input type="text" ng-model="val.value">
-		</form>
-		<div style="float: left; clear: right; margin-left: 1em">
+		<div ng-if="val.type !== 'array'" style="float: left; margin-right: 1em">
+		  <form ng-submit="setValue(val)">
+		    <input type="text" ng-model="val.value">
+		  </form>
+		</div>
+		<div style="margin-right: 1em; float: left" ng-if="val.values">
+		  <div class="dropdown"><button ng-attr-id="drop-{{val.name}}" class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">{{val.value}}<span class="caret"></span></button>
+		    <ul class="dropdown-menu" aria-labelledby="drop-{{val.name}}">
+		      <li ng-repeat="(valn, valv) in val.values">
+			<a href="" class="btn default" ng-click="setValue(val, valv)">
+			  {{valn}}
+			</a>
+		      </li>
+		    </ul>
+		  </div>
+		</div>
+		<div style="float: left">
 		  {{val.units}}
 		</div>
 	      </div>

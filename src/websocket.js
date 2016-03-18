@@ -304,7 +304,7 @@ const types = {
             let val = dev.values[v];
             ret.push({ name: val.name, value: val.value, raw: val.raw,
                        values: val.values, range: val.range, units: val.units,
-                       readOnly: val.readOnly });
+                       readOnly: val.readOnly, type: val.type });
         }
         send(ws, msg.id, ret);
     },
@@ -336,7 +336,7 @@ const types = {
         const val = dev.values[msg.valname];
         const ret = { name: val.name, value: val.value, raw: val.raw,
                       values: val.values, range: val.range, units: val.units,
-                      readOnly: val.readOnly };
+                      readOnly: val.readOnly, type: val.type };
         send(ws, msg.id, ret);
     },
     setValue: (ws, msg) => {
