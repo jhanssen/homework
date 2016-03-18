@@ -17,6 +17,7 @@
     <link type="text/css" rel="stylesheet" href="/node_modules/bootstrap-slider/dist/css/bootstrap-slider.min.css"></link>
     <link type="text/css" rel="stylesheet" href="/node_modules/bootstrap-switch/dist/css/bootstrap3/bootstrap-switch.min.css"></link>
     <link type="text/css" rel="stylesheet" href="/node_modules/font-awesome/css/font-awesome.min.css"></link>
+    <link type="text/css" rel="stylesheet" href="/node_modules/font-awesome-animation/dist/font-awesome-animation.min.css"></link>
     <link type="text/css" rel="stylesheet" href="/node_modules/angular-bootstrap-colorpicker/css/colorpicker.min.css"></link>
     <link type="text/css" rel="stylesheet" href="/sub/animate.css/animate.min.css"></link>
     <link type="text/css" rel="stylesheet" href="index.css"></link>
@@ -61,6 +62,9 @@
 		<div ng-if="dev.type == Type.RGBWLed" class="hw-margin center-block">
 		  <div tooltip-placement="top" uib-tooltip="{{dev.colorRGBW}}"><i colorpicker ng-model="dev.color" class="fa fa-tint hw-big" ng-style="{'color': dev.color}"></i></div>
 		  <slider ng-model="dev.white" min="0" step="1" max="255"></slider>
+		</div>
+		<div ng-if="dev.type == Type.Sensor" class="hw-margin center-block">
+		  <div><i class="fa fa-hand-paper-o hw-big ng-class:{'faa-shake animated': dev.motion} "></i></div>
 		</div>
 	      </div>
 	    </div>

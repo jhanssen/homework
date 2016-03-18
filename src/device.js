@@ -51,6 +51,7 @@ Device.Type = {
     Thermostat: 3,
     Clapper: 4,
     RGBWLed: 5,
+    Sensor: 6,
     Unknown: 99
 };
 

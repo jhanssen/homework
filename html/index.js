@@ -15,7 +15,7 @@ var module = angular.module('app', ['ui.bootstrap', 'ui.bootstrap-slider', 'frap
 module.controller('mainController', function($scope) {
     location.hash = "#";
 
-    $scope.Type = { Dimmer: 0, Light: 1, Fan: 2, RGBWLed: 5 };
+    $scope.Type = { Dimmer: 0, Light: 1, Fan: 2, RGBWLed: 5, Sensor: 6 };
     $scope.active = "devices";
     $scope.nav = [];
 
@@ -256,6 +256,15 @@ module.controller('deviceController', function($scope) {
                                 $scope.request({ type: "setValue", devuuid: dev.uuid, valname: "value", value: a ? 1 : 0 });
                             }
                         });
+                        break;
+                    case $scope.Type.Sensor:
+                        if (dev.values.Motion instanceof Object) {
+                            Object.defineProperty(dev, "motion", {
+                                get: function() {
+                                    return dev.values.Motion.raw;
+                                }
+                            });
+                        }
                         break;
                     }
                 }
