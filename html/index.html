@@ -77,6 +77,14 @@
       <div ng-if="isActive('device')" class="container" ng-controller="deviceController">
 	<h2>{{dev.name}}</h2>
 	<div class="container">
+	  <div class="row">
+	    <div class="col-xs-4 col-sm-4 col-md-4 col-lg-4">
+	      uuid
+	    </div>
+	    <div class="col-xs-8 col-sm-8 col-md-8 col-lg-8">
+	      {{dev.uuid}}
+	    </div>
+	  </div>
 	  <div class="row" ng-repeat="val in vals">
 	    <div class="col-xs-4 col-sm-4 col-md-4 col-lg-4">
 	      {{val.name}}
