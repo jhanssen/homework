@@ -90,6 +90,29 @@ module.controller('mainController', function($scope) {
             }
         }
     };
+
+    const valueUpdated = (updated) => {
+        if (typeof $scope.devices === "object") {
+            if (updated.devuuid in $scope.devices) {
+                const dev = $scope.devices[updated.devuuid];
+                if (updated.valname in dev.values) {
+                    const val = dev.values[updated.valname];
+                    const old = {
+                        value: val.value,
+                        raw: val.raw
+                    };
+                    val.value = updated.value;
+                    val.raw = updated.raw;
+                } else {
+                    console.log("value updated but value not known", updated.devuuid, updated.valname);
+                }
+            } else {
+                console.log("value for unknown device, discarding", updated.devuuid, updated.valname);
+            }
+        }
+    };
+    $scope.listener.on("valueUpdated", valueUpdated);
+
     $scope.socket.onclose = () => {
         $scope.listener.emitEvent("close");
     };
@@ -142,7 +165,7 @@ module.directive('compile', ['$compile', function ($compile) {
     };
 }]);
 
-module.controller('deviceController', function($scope) {
+module.controller('devicesController', function($scope) {
     // request devices
     const deviceReady = () => {
         $scope.request({ type: "devices" }).then((response) => {
@@ -297,26 +320,44 @@ module.controller('deviceController', function($scope) {
     }
 
     const valueUpdated = (updated) => {
-        if (typeof $scope.devices === "object") {
-            if (updated.devuuid in $scope.devices) {
-                const dev = $scope.devices[updated.devuuid];
-                if (updated.valname in dev.values) {
-                    const val = dev.values[updated.valname];
-                    const old = {
-                        value: val.value,
-                        raw: val.raw
-                    };
-                    val.value = updated.value;
-                    val.raw = updated.raw;
+        $scope.$apply();
+    };
+    $scope.listener.on("valueUpdated", valueUpdated);
+    $scope.$on("$destroy", () => {
+        $scope.listener.off("valueUpdated", valueUpdated);
+        $scope.listener.off("ready", deviceReady);
+    });
+});
 
-                    $scope.$apply();
-                } else {
-                    console.log("value updated but value not known", updated.devuuid, updated.valname);
-                }
-            } else {
-                console.log("value for unknown device, discarding", updated.devuuid, updated.valname);
-            }
-        }
+module.controller('deviceController', function($scope) {
+    var deviceReady = function() {
+        var uuid = $scope.nav[0].replace(/_/g, ":");
+        console.log("asking for dev", uuid);
+        $scope.request({ type: "device", uuid: uuid }).then((response) => {
+            console.log("got device", uuid, response);
+            $scope.dev = response;
+
+            $scope.request({ type: "values", devuuid: uuid }).then((response) => {
+                console.log("all values", response);
+                $scope.vals = response;
+                $scope.$apply();
+            });
+        });
+    };
+
+    if ($scope.ready) {
+        deviceReady();
+    } else {
+        $scope.listener.on("ready", deviceReady);
+    }
+
+    $scope.setValue = (val) => {
+        console.log("set value?", val);
+        $scope.request({ type: "setValue", devuuid: $scope.dev.uuid, valname: val.name, value: val.value });
+    };
+
+    const valueUpdated = (updated) => {
+        $scope.$apply();
     };
     $scope.listener.on("valueUpdated", valueUpdated);
     $scope.$on("$destroy", () => {

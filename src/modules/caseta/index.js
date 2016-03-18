@@ -109,7 +109,7 @@ const caseta = {
             let hwdev = new this._homework.Device(func.hwtype, uuid);
             if (!hwdev.name)
                 hwdev.name = fullName(dev);
-            let hwval = new this._homework.Device.Value("level", { off: 0, on: 100 }, [0, 100]);
+            let hwval = new this._homework.Device.Value("level", { values: { off: 0, on: 100 }, range: [0, 100] });
             hwval._valueUpdated = function(v) {
                 if (func.check(v)) {
                     func.set(id, v);

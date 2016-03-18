@@ -46,13 +46,16 @@
       </div>
     </div>
     <div id="page-content">
-      <div ng-if="isActive('devices')" class="container" ng-controller="deviceController">
+      <div ng-if="isActive('devices')" class="container" ng-controller="devicesController">
 	<h2>Devices</h2>
 	<div class="container-fluid">
 	  <div class="row">
 	    <div class="col-xs-6 col-sm-4 col-md-4 col-lg-3 center-block text-center" ng-repeat="(uuid, dev) in devices">
 	      <div class="hw-frame">
-		<div>{{dev.name}}</div>
+		<div>
+		  {{dev.name}}
+		  <a href="#device/{{dev.safeuuid}}" class="btn btn-default btn-xs">...</a>
+		</div>
 		<div ng-if="dev.type == Type.Dimmer" class="hw-margin center-block">
 		  <slider ng-attr-id="{{'slider-'+dev.safeuuid}}" ng-model="dev.level" min="0" step="1" max="dev.max"></slider>
 		</div>
@@ -66,6 +69,27 @@
 		<div ng-if="dev.type == Type.Sensor" class="hw-margin center-block">
 		  <div><i class="fa fa-hand-paper-o hw-big ng-class:{'faa-shake animated': dev.motion} "></i></div>
 		</div>
+	      </div>
+	    </div>
+	  </div>
+	</div>
+      </div>
+      <div ng-if="isActive('device')" class="container" ng-controller="deviceController">
+	<h2>{{dev.name}}</h2>
+	<div class="container">
+	  <div class="row" ng-repeat="val in vals">
+	    <div class="col-xs-6 col-sm-6 col-md-6 col-lg-6">
+	      {{val.name}}
+	    </div>
+	    <div class="col-xs-6 col-sm-6 col-md-6 col-lg-6">
+	      <div ng-if="val.readOnly">
+		{{val.value}} {{val.units}}
+	      </div>
+	      <div ng-if="!val.readOnly">
+		<form ng-submit="setValue(val)">
+		  <input type="text" ng-model="val.value">
+		</form>
+		{{val.units}}
 	      </div>
 	    </div>
 	  </div>

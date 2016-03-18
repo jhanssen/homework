@@ -96,6 +96,20 @@ const types = {
             error(ws, msg.id, "no devices");
         }
     },
+    device: (ws, msg) => {
+        var uuid = msg.uuid;
+        var devs = homework.devices;
+        if (devs instanceof Array) {
+            for (var i = 0; i < devs.length; ++i) {
+                if (devs[i].uuid == uuid) {
+                    var d = devs[i];
+                    send(ws, msg.id, { type: d.type, name: d.name, uuid: d.uuid });
+                    return;
+                }
+            }
+        }
+        error(ws, msg.id, "no such device");
+    },
     rules: (ws, msg) => {
         const rs = homework.rules;
         if (rs instanceof Array) {
@@ -289,7 +303,8 @@ const types = {
         for (var v in dev.values) {
             let val = dev.values[v];
             ret.push({ name: val.name, value: val.value, raw: val.raw,
-                       values: val.values, range: val.range, units: val.units });
+                       values: val.values, range: val.range, units: val.units,
+                       readOnly: val.readOnly });
         }
         send(ws, msg.id, ret);
     },
@@ -320,7 +335,8 @@ const types = {
         }
         const val = dev.values[msg.valname];
         const ret = { name: val.name, value: val.value, raw: val.raw,
-                      values: val.values, range: val.range, units: val.units };
+                      values: val.values, range: val.range, units: val.units,
+                      readOnly: val.readOnly };
         send(ws, msg.id, ret);
     },
     setValue: (ws, msg) => {
@@ -353,6 +369,10 @@ const types = {
             return;
         }
         const val = dev.values[msg.valname];
+        if (val.readOnly) {
+            error(ws, msg.id, "read only value");
+            return;
+        }
         val.value = msg.value;
 
         send(ws, msg.id, "ok");

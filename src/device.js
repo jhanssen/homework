@@ -92,13 +92,18 @@ Device.prototype = {
     }
 };
 
-Device.Value = function(name, values, range, handle, units)
+Device.Value = function(name, data)
 {
     this._name = name;
-    this._values = values;
-    this._range = range;
-    this._handle = handle;
-    this._units = units;
+    if (data instanceof Object) {
+        this._values = data.values;
+        this._range = data.range;
+        this._handle = data.handle;
+        this._units = data.units;
+        this._readOnly = data.readOnly || false;
+    } else {
+        this._readOnly = false;
+    }
     this._device = undefined;
     this._initOns();
 };
@@ -110,6 +115,7 @@ Device.Value.prototype = {
     _range: undefined,
     _units: undefined,
     _valueUpdated: undefined,
+    _readOnly: undefined,
     _handle: undefined,
     _device: undefined,
 
@@ -133,6 +139,9 @@ Device.Value.prototype = {
     },
     get device() {
         return this._device;
+    },
+    get readOnly() {
+        return this._readOnly;
     },
     get type() {
         return (typeof this._valueType === "function") ? this._valueType() : this._valueType;

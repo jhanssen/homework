@@ -60,7 +60,7 @@ Switch.prototype = {
             hwdev.name = "Binary Scene Switch " + (++Switch.cnt);
         for (var k in this._values) {
             let v = this._values[k];
-            let hwval = new data.homework.Device.Value("value", { off: false, on: true });
+            let hwval = new data.homework.Device.Value("value", { values: { off: false, on: true } });
             hwval._valueUpdated = (val) => {
                 try {
                     if (typeof val === "boolean") {
@@ -90,7 +90,7 @@ Switch.prototype = {
             if (k in this._hwvalues)
                 continue;
             let v = this._values[k];
-            let hwval = new data.homework.Device.Value("value", { off: false, on: true });
+            let hwval = new data.homework.Device.Value("value", { values: { off: false, on: true } });
             hwval._valueUpdated = (val) => {
                 try {
                     if (typeof val === "boolean") {

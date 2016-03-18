@@ -52,7 +52,7 @@ Generic.createValue = function(v, type)
     if (type == data.homework.Type.RGBWLed && name == "Color") {
         data.zwave.setChangeVerified(v.node_id, v.class_id, v.instance, v.index, true);
     }
-    const hwv = new data.homework.Device.Value(name, values, range, v, (v.units !== "" ? v.units : undefined));
+    const hwv = new data.homework.Device.Value(name, { values: values, range: range, handle: v, units: (v.units !== "" ? v.units : undefined), readOnly: v.read_only });
     if (!v.read_only) {
         hwv._valueUpdated = function(val) {
             try {
