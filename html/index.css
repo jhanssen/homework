@@ -69,6 +69,18 @@
     cursor: pointer;
 }
 
+.hw-vcenter {
+    display: flex;
+    align-items: center;
+}
+
+div.hw-alternate > div:nth-child(even){
+  background-color: #cccccc;
+}
+div.hw-alternate > div:nth-child(odd){
+  background-color: #eeeeee;
+}
+
 @media screen and (min-width: 768px) {
     .hw-dialog {
 	width: 70%; /* either % (e.g. 60%) or px (400px) */
