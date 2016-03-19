@@ -318,6 +318,11 @@ module.controller('devicesController', function($scope) {
             }
         }
     };
+
+    $scope.setLocation = (loc) => {
+        location.href = loc;
+    };
+
     $scope.listener.on("valueUpdated", valueUpdated);
     $scope.$on("$destroy", () => {
         $scope.listener.off("valueUpdated", valueUpdated);
