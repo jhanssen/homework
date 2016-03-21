@@ -41,6 +41,7 @@
 	    <li ng-class="activeClass('rules')"><a href="#rules">Rules</a></li>
 	    <li ng-class="activeClass('variables')"><a href="#variables">Variables</a></li>
 	    <li ng-class="activeClass('timers')"><a href="#timers">Timers</a></li>
+	    <li ng-class="activeClass('zwave')"><a href="#zwave">Z-Wave</a></li>
 	  </ul>
 	</div>
       </div>
@@ -347,6 +348,29 @@
 	      <div class="modal-footer">
 		<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
 		<button type="button" class="btn btn-default" ng-click="restart()">Start</button>
+	      </div>
+	    </div>
+	  </div>
+	</div>
+      </div>
+      <div ng-if="isActive('zwave')" class="container" ng-controller="zwaveController">
+	<h2>Z-Wave</h2>
+	<div class="hw-clear container-fluid">
+	  <div ng-if="error" class="row alert alert-danger">
+	    <strong>Error</strong> {{error}}
+	  </div>
+	  <div ng-if="success" class="row alert alert-success">
+	    {{success}}
+	  </div>
+	  <div>
+	    <div class="row">
+	      <div class="col-xs-12 col-sm-8 col-md-4 col-lg-3">
+		<button type="button" ng-click="action('pair')" class="btn btn-default hw-expand-horizontal">Pair</button>
+	      </div>
+	    </div>
+	    <div class="row">
+	      <div class="col-xs-12 col-sm-8 col-md-4 col-lg-3">
+		<button type="button" ng-click="action('depair')" class="btn btn-default hw-expand-horizontal">Depair</button>
 	      </div>
 	    </div>
 	  </div>

@@ -5,6 +5,7 @@ var ozw = undefined;
 var homework = undefined;
 var types = undefined;
 var Console = undefined;
+var WebSocket = undefined;
 const values = Object.create(null);
 const devices = Object.create(null);
 const classes = require("./classes.js");
@@ -42,10 +43,12 @@ const zwave = {
 
             homework = hw;
             Console = hw.Console;
+            WebSocket = hw.WebSocket;
 
             types = cfg.types || Object.create(null);
 
             Console.registerCommand("default", "zwave", this._console);
+            WebSocket.registerCommand("zwaveAction", this._zwaveAction);
 
             ozwshared = require("openzwave-shared");
             ozw = new ozwshared({ ConsoleOutput: false });
@@ -165,26 +168,46 @@ const zwave = {
         cb(map);
     },
 
+    _cmds: {
+        pair: (args) => {
+            ozw.addNode((args.length > 0 && args[0]) ? true : false);
+        },
+        depair: () => {
+            ozw.removeNode();
+        },
+        heal: (args) => {
+            ozw.healNetwork((args.length > 0 && args[0]) ? true : false);
+        }
+    },
+
     _console: {
         prompt: "zwave> ",
         completions: ["pair ", "depair", "stop", "home", "back", "heal "],
         apply: function(line) {
             var elems = line.split(' ').filter((e) => { return e.length > 0; });
             switch (elems[0]) {
-            case "pair":
-                ozw.addNode((elems.length > 1 && elems[1]) ? true : false);
-                break;
-            case "heal":
-                ozw.healNetwork((elems.length > 1 && elems[1]) ? true : false);
-                break;
-            case "depair":
-                ozw.removeNode();
-                break;
             case "home":
             case "back":
                 Console.home();
                 break;
+            default:
+                var cmd = zwave._cmds[elems[0]];
+                if (typeof cmd === "function") {
+                    Console.log(`zwave: ${elems[0]}`);
+                    cmd(elems.slice(1));
+                }
             }
+        }
+    },
+
+    _zwaveAction: (ws, msg) => {
+        var cmd = zwave._cmds[msg.action];
+        if (typeof cmd === "function") {
+            Console.log(`zwave: ${msg.action}`);
+            cmd(msg.args || []);
+            WebSocket.send(ws, msg.id, "Ok");
+        } else {
+            WebSocket.error(ws, msg.id, `Unknown action ${msg.action}`);
         }
     }
 };

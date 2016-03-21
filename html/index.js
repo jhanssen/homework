@@ -1049,6 +1049,23 @@ module.controller('addTimerController', function($scope) {
     };
 });
 
+module.controller('zwaveController', function($scope) {
+    $scope.action = (act) => {
+        var actions = {
+            pair: () => {
+                $scope.request({ type: "zwaveAction", action: "pair" });
+            },
+            depair: () => {
+                $scope.request({ type: "zwaveAction", action: "depair" });
+            }
+        };
+        var fn = actions[act];
+        if (typeof fn === "function") {
+            fn();
+        }
+    };
+});
+
 $(document).ready(function() {
     //stick in the fixed 100% height behind the navbar but don't wrap it
     $('#slide-nav.navbar-inverse').after($('<div class="inverse" id="navbar-height-col"></div>'));

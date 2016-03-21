@@ -28,6 +28,7 @@ homework = {
     _Timer: Timer,
     _Variable: Variable,
     _WebServer: WebServer,
+    _WebSocket: WebSocket,
     _restored: false,
     _rulePriorities: { High: 0, Medium: 1, Low: 2 },
 
@@ -107,6 +108,9 @@ homework = {
     },
     get WebServer() {
         return this._WebServer;
+    },
+    get WebSocket() {
+        return this._WebSocket;
     },
     get restored() {
         return this._restored;

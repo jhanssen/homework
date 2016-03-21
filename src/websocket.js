@@ -534,6 +534,8 @@ const types = {
     }
 };
 
+var extraTypes = Object.create(null);
+
 const WebSocket = {
     _ready: undefined,
 
@@ -594,6 +596,8 @@ const WebSocket = {
                 }
                 if ("type" in msg && msg.type in types) {
                     types[msg.type](ws, msg);
+                } else if ("type" in msg && msg.type in extraTypes) {
+                    extraTypes[msg.type](ws, msg);
                 } else {
                     console.log("unhandled ws message:", msg);
                 }
@@ -605,7 +609,12 @@ const WebSocket = {
                 }
             });
         });
-    }
+    },
+    registerCommand: function(cmd, cb) {
+        extraTypes[cmd] = cb;
+    },
+    send: send,
+    error: error
 };
 
 module.exports = WebSocket;
