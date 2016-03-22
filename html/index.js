@@ -457,12 +457,13 @@ function applyEditRule($scope, $compile, applyName) {
         this[row].ruleAlternatives.splice(idx + 1);
         this[row].ruleExtra.splice(idx + 1);
         if (evt !== "(enter value)") {
-            $scope.request({ type: type, args: this[row].ruleSelections }).then(function(comp) {
-                this[row].ruleAlternatives[idx + 1] = comp;
+            var that = this;
+            $scope.request({ type: type, args: that[row].ruleSelections }).then(function(comp) {
+                that[row].ruleAlternatives[idx + 1] = comp;
                 $scope.$apply();
             });
         }
-    }.bind(this);
+    };
     var extraScope = function(item, row, idx) {
         return {
             get value() {
@@ -479,11 +480,12 @@ function applyEditRule($scope, $compile, applyName) {
         };
     };
     var extraScopeContinue = function(type, row, idx) {
-        $scope.request({ type: type, args: this[row].ruleSelections }).then(function(comp) {
-            this[row].ruleAlternatives[idx + 1] = comp;
+        var that = this;
+        $scope.request({ type: type, args: that[row].ruleSelections }).then(function(comp) {
+            that[row].ruleAlternatives[idx + 1] = comp;
             $scope.$apply();
         });
-    }.bind(this);
+    };
     var triggerScope = function(item, row) {
         return {
             get value() {
