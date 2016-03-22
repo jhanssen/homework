@@ -22,18 +22,18 @@ module.controller('mainController', function($scope) {
     $scope.ready = false;
     $scope.listener = new EventEmitter();
     $scope.id = 0;
-    $scope.isActive = (section) => {
+    $scope.isActive = function(section) {
         return section == $scope.active;
     };
-    $scope.activeClass = (section) => {
+    $scope.activeClass = function(section) {
         return $scope.isActive(section) ? "active" : "";
     };
-    $scope.request = (req) => {
-        const p = new Promise((resolve, reject) => {
-            let id = ++$scope.id;
+    $scope.request = function(req) {
+        var p = new Promise(function(resolve, reject) {
+            var id = ++$scope.id;
             req.id = id;
             // this.log("sending req", JSON.stringify(req));
-            $scope.listener.on("response", (resp) => {
+            $scope.listener.on("response", function(resp) {
                 if ("id" in resp && resp.id == id) {
                     if ("result" in resp) {
                         resolve(resp.result);
@@ -44,7 +44,7 @@ module.controller('mainController', function($scope) {
                     }
                 }
             });
-            $scope.listener.on("close", () => {
+            $scope.listener.on("close", function() {
                 reject("connection closed");
             });
             $scope.socket.send(JSON.stringify(req));
@@ -52,7 +52,7 @@ module.controller('mainController', function($scope) {
         return p;
     };
     $scope.socket = new WebSocket(`ws://${window.location.hostname}:8093/`);
-    $scope.socket.onmessage = (evt) => {
+    $scope.socket.onmessage = function(evt) {
         var msg;
         try {
             msg = JSON.parse(evt.data);
@@ -91,17 +91,17 @@ module.controller('mainController', function($scope) {
         }
     };
 
-    $scope.socket.onclose = () => {
+    $scope.socket.onclose = function() {
         $scope.listener.emitEvent("close");
     };
-    $scope.clearNavigation = () => {
+    $scope.clearNavigation = function() {
         $scope.nav = [];
         location.hash = $scope.active;
     };
 
-    $(window).on("hashchange", () => {
-        const changeLocation = (l) => {
-            const split = l.split("/");
+    $(window).on("hashchange", function() {
+        var changeLocation = function(l) {
+            var split = l.split("/");
             $scope.active = split[0];
             $scope.nav = split.slice(1);
             $scope.listener.emitEvent("navigationChanged");
@@ -145,148 +145,150 @@ module.directive('compile', ['$compile', function ($compile) {
 
 module.controller('devicesController', function($scope) {
     // request devices
-    const deviceReady = () => {
-        $scope.request({ type: "devices" }).then((response) => {
+    var deviceReady = function() {
+        $scope.request({ type: "devices" }).then(function(response) {
             console.log("got devices", response);
             if (!(response instanceof Array))
                 return;
             var devs = Object.create(null);
             var rem = response.length;
-            var done = () => {
+            var done = function() {
                 console.log("got all device values");
 
-                var updateColor = (dev) => {
-                    const r = dev.max - dev.values.level.raw;
-                    const g = dev.values.level.raw;
-                    const tohex = (v, max) => {
+                var updateColor = function(dev) {
+                    var r = dev.max - dev.values.level.raw;
+                    var g = dev.values.level.raw;
+                    var tohex = function(v, max) {
                         var ret = Math.floor(v / dev.max * max).toString(16);
                         return "00".substr(0, 2 - ret.length) + ret;
                     };
-                    const hc = "#" + tohex(r, 210) + tohex(g, 210) + "00";
+                    var hc = "#" + tohex(r, 210) + tohex(g, 210) + "00";
                     $("#slider-" + dev.safeuuid + " .slider-handle").css("background", hc);
-                    const tc = "#" + tohex(r, 110) + tohex(g, 110) + "00";
+                    var tc = "#" + tohex(r, 110) + tohex(g, 110) + "00";
                     $("#slider-" + dev.safeuuid + " .slider-track").css("background", tc);
                     $("#slider-" + dev.safeuuid + " .slider-selection").css("background", tc);
                 };
 
                 // fixup devices
                 for (var k in devs) {
-                    let dev = devs[k];
-                    dev.safeuuid = dev.uuid.replace(/:/g, "_");
-                    switch (dev.type) {
-                    case $scope.Type.Dimmer:
-                        dev.max = dev.values.level.range[1];
-                        dev._timeout = undefined;
-                        Object.defineProperty(dev, "level", {
-                            get: function() {
-                                updateColor(dev);
-                                return dev.values.level.raw;
-                            },
-                            set: function(v) {
-                                if (typeof v === "number") {
-                                    if (dev._timeout != undefined)
-                                        clearTimeout(dev._timeout);
-                                    dev._timeout = setTimeout(() => {
-                                        $scope.request({ type: "setValue", devuuid: dev.uuid, valname: "level", value: v });
-                                        delete dev._timeout;
-                                    }, 500);
-                                } else {
-                                    throw "invalid value type for dimmer: " + (typeof v);
-                                }
-                            }
-                        });
-                        break;
-                    case $scope.Type.RGBWLed:
-                        dev._timeout = undefined;
-                        dev._pending = undefined;
-                        dev._white = undefined;
-                        Object.defineProperty(dev, "color", {
-                            get: function() {
-                                return (dev._pending || dev.values.Color.raw).substr(0, 7);
-                            },
-                            set: function(v) {
-                                if (dev._timeout != undefined)
-                                    clearTimeout(dev._timeout);
-                                if (v.length == 7)
-                                    v += dev._white || "00";
-                                dev._pending = v;
-                                dev._timeout = setTimeout(() => {
-                                    console.log("setting", v);
-                                    $scope.request({ type: "setValue", devuuid: dev.uuid, valname: "Color", value: v });
-                                    delete dev._timeout;
-                                    delete dev._pending;
-                                }, 500);
-                            }
-                        });
-                        Object.defineProperty(dev, "colorRGBW", {
-                            get: function() {
-                                return dev._pending || dev.values.Color.raw;
-                            }
-                        });
-                        Object.defineProperty(dev, "white", {
-                            get: function() {
-                                var wh = (dev._pending || dev.values.Color.raw).substr(7);
-                                if (dev._white === undefined)
-                                    dev._white = wh;
-                                return parseInt(wh, 16);
-                            },
-                            set: function(v) {
-                                dev._white = v.toString(16);
-                                while (dev._white.length < 2)
-                                    dev._white = "0" + dev._white;
-                                var c = dev.values.Color.raw.substr(0, 7) + dev._white;
-                                if (dev._timeout != undefined)
-                                    clearTimeout(dev._timeout);
-                                dev._pending = c;
-                                dev._timeout = setTimeout(() => {
-                                    $scope.request({ type: "setValue", devuuid: dev.uuid, valname: "Color", value: c });
-                                    console.log("setting white", c);
-                                    delete dev._timeout;
-                                    delete dev._pending;
-                                }, 500);
-                            }
-                        });
-                        break;
-                    case $scope.Type.Light:
-                    case $scope.Type.Fan:
-                        Object.defineProperty(dev, "value", {
-                            get: function() {
-                                return dev.values.value.raw != 0;
-                            },
-                            set: function(a) {
-                                $scope.request({ type: "setValue", devuuid: dev.uuid, valname: "value", value: a ? 1 : 0 });
-                            }
-                        });
-                        break;
-                    case $scope.Type.Sensor:
-                        if (dev.values.Motion instanceof Object) {
-                            Object.defineProperty(dev, "motion", {
+                    (function(dev) {
+                        dev.safeuuid = dev.uuid.replace(/:/g, "_");
+                        switch (dev.type) {
+                        case $scope.Type.Dimmer:
+                            dev.max = dev.values.level.range[1];
+                            dev._timeout = undefined;
+                            Object.defineProperty(dev, "level", {
                                 get: function() {
-                                    return dev.values.Motion.raw;
+                                    updateColor(dev);
+                                    return dev.values.level.raw;
+                                },
+                                set: function(v) {
+                                    if (typeof v === "number") {
+                                        if (dev._timeout != undefined)
+                                            clearTimeout(dev._timeout);
+                                        dev._timeout = setTimeout(function() {
+                                            $scope.request({ type: "setValue", devuuid: dev.uuid, valname: "level", value: v });
+                                            delete dev._timeout;
+                                        }, 500);
+                                    } else {
+                                        throw "invalid value type for dimmer: " + (typeof v);
+                                    }
                                 }
                             });
+                            break;
+                        case $scope.Type.RGBWLed:
+                            dev._timeout = undefined;
+                            dev._pending = undefined;
+                            dev._white = undefined;
+                            Object.defineProperty(dev, "color", {
+                                get: function() {
+                                    return (dev._pending || dev.values.Color.raw).substr(0, 7);
+                                },
+                                set: function(v) {
+                                    if (dev._timeout != undefined)
+                                        clearTimeout(dev._timeout);
+                                    if (v.length == 7)
+                                        v += dev._white || "00";
+                                    dev._pending = v;
+                                    dev._timeout = setTimeout(function() {
+                                        console.log("setting", v);
+                                        $scope.request({ type: "setValue", devuuid: dev.uuid, valname: "Color", value: v });
+                                        delete dev._timeout;
+                                        delete dev._pending;
+                                    }, 500);
+                                }
+                            });
+                            Object.defineProperty(dev, "colorRGBW", {
+                                get: function() {
+                                    return dev._pending || dev.values.Color.raw;
+                                }
+                            });
+                            Object.defineProperty(dev, "white", {
+                                get: function() {
+                                    var wh = (dev._pending || dev.values.Color.raw).substr(7);
+                                    if (dev._white === undefined)
+                                        dev._white = wh;
+                                    return parseInt(wh, 16);
+                                },
+                                set: function(v) {
+                                    dev._white = v.toString(16);
+                                    while (dev._white.length < 2)
+                                        dev._white = "0" + dev._white;
+                                    var c = dev.values.Color.raw.substr(0, 7) + dev._white;
+                                    if (dev._timeout != undefined)
+                                        clearTimeout(dev._timeout);
+                                    dev._pending = c;
+                                    dev._timeout = setTimeout(function() {
+                                        $scope.request({ type: "setValue", devuuid: dev.uuid, valname: "Color", value: c });
+                                        console.log("setting white", c);
+                                        delete dev._timeout;
+                                        delete dev._pending;
+                                    }, 500);
+                                }
+                            });
+                            break;
+                        case $scope.Type.Light:
+                        case $scope.Type.Fan:
+                            Object.defineProperty(dev, "value", {
+                                get: function() {
+                                    return dev.values.value.raw != 0;
+                                },
+                                set: function(a) {
+                                    $scope.request({ type: "setValue", devuuid: dev.uuid, valname: "value", value: a ? 1 : 0 });
+                                }
+                            });
+                            break;
+                        case $scope.Type.Sensor:
+                            if (dev.values.Motion instanceof Object) {
+                                Object.defineProperty(dev, "motion", {
+                                    get: function() {
+                                        return dev.values.Motion.raw;
+                                    }
+                                });
+                            }
+                            break;
                         }
-                        break;
-                    }
+                    })(devs[k]);
                 }
 
                 $scope.devices = devs;
                 $scope.$apply();
             };
             for (var i = 0; i < response.length; ++i) {
-                let uuid = response[i].uuid;
-                devs[uuid] = response[i];
-                devs[uuid].values = Object.create(null);
-                $scope.request({ type: "values", devuuid: uuid }).then((response) => {
-                    if (response instanceof Array) {
-                        for (var i = 0; i < response.length; ++i) {
-                            let val = response[i];
-                            devs[uuid].values[val.name] = val;
+                (function(uuid) {
+                    devs[uuid] = response[i];
+                    devs[uuid].values = Object.create(null);
+                    $scope.request({ type: "values", devuuid: uuid }).then(function(response) {
+                        if (response instanceof Array) {
+                            for (var i = 0; i < response.length; ++i) {
+                                var val = response[i];
+                                devs[uuid].values[val.name] = val;
+                            }
                         }
-                    }
-                    if (!--rem)
-                        done();
-                });
+                        if (!--rem)
+                            done();
+                    });
+                })(response[i].uuid);
             }
         });
     };
@@ -297,12 +299,12 @@ module.controller('devicesController', function($scope) {
         $scope.listener.on("ready", deviceReady);
     }
 
-    const valueUpdated = (updated) => {
+    var valueUpdated = function(updated) {
         if (typeof $scope.devices === "object") {
             if (updated.devuuid in $scope.devices) {
-                const dev = $scope.devices[updated.devuuid];
+                var dev = $scope.devices[updated.devuuid];
                 if (updated.valname in dev.values) {
-                    const val = dev.values[updated.valname];
+                    var val = dev.values[updated.valname];
                     // const old = {
                     //     value: val.value,
                     //     raw: val.raw
@@ -319,12 +321,12 @@ module.controller('devicesController', function($scope) {
         }
     };
 
-    $scope.setLocation = (loc) => {
+    $scope.setLocation = function(loc) {
         location.href = loc;
     };
 
     $scope.listener.on("valueUpdated", valueUpdated);
-    $scope.$on("$destroy", () => {
+    $scope.$on("$destroy", function() {
         $scope.listener.off("valueUpdated", valueUpdated);
         $scope.listener.off("ready", deviceReady);
     });
@@ -334,11 +336,11 @@ module.controller('deviceController', function($scope) {
     var deviceReady = function() {
         var uuid = $scope.nav[0].replace(/_/g, ":");
         console.log("asking for dev", uuid);
-        $scope.request({ type: "device", uuid: uuid }).then((response) => {
+        $scope.request({ type: "device", uuid: uuid }).then(function(response) {
             console.log("got device", uuid, response);
             $scope.dev = response;
 
-            $scope.request({ type: "values", devuuid: uuid }).then((response) => {
+            $scope.request({ type: "values", devuuid: uuid }).then(function(response) {
                 console.log("all values", response);
                 $scope.vals = response;
                 $scope.$apply();
@@ -352,17 +354,17 @@ module.controller('deviceController', function($scope) {
         $scope.listener.on("ready", deviceReady);
     }
 
-    $scope.setValue = (v, val) => {
+    $scope.setValue = function(v, val) {
         console.log("set value?", v, val);
         $scope.request({ type: "setValue", devuuid: $scope.dev.uuid, valname: v.name, value: val !== undefined ? val : v.value });
     };
 
-    const valueUpdated = (updated) => {
+    var valueUpdated = function(updated) {
         if (updated.devuuid == $scope.dev.uuid) {
             // find value and update
             for (var i = 0; i < $scope.vals.length; ++i) {
                 if ($scope.vals[i].name === updated.valname) {
-                    const val = $scope.vals[i];
+                    var val = $scope.vals[i];
                     val.value = updated.value;
                     val.raw = updated.raw;
                     $scope.$apply();
@@ -372,16 +374,16 @@ module.controller('deviceController', function($scope) {
         }
     };
     $scope.listener.on("valueUpdated", valueUpdated);
-    $scope.$on("$destroy", () => {
+    $scope.$on("$destroy", function() {
         $scope.listener.off("valueUpdated", valueUpdated);
         $scope.listener.off("ready", deviceReady);
     });
 });
 
 module.controller('ruleController', function($scope) {
-    const ruleReady = () => {
-        $scope.request({ type: "rules" }).then((rules) => {
-            $scope.rules = rules.map((r) => { r.safename = r.name.replace(/ /g, "_"); return r; });
+    var ruleReady = function() {
+        $scope.request({ type: "rules" }).then(function(rules) {
+            $scope.rules = rules.map(function(r) { r.safename = r.name.replace(/ /g, "_"); return r; });
             $scope.$apply();
         });
     };
@@ -394,28 +396,28 @@ module.controller('ruleController', function($scope) {
         $scope.listener.on("ready", ruleReady);
     }
 
-    $scope.activeRule = (r) => {
+    $scope.activeRule = function(r) {
         return $scope.nav.length > 0 && $scope.nav[0] == r;
     };
-    $scope.clearCachedRules = () => {
+    $scope.clearCachedRules = function() {
         delete $scope.rules;
         $scope.clearNavigation();
         ruleReady();
     };
 
-    $scope.addRule = () => {
+    $scope.addRule = function() {
         $scope.adding = true;
         $('#addRuleModal').modal('show');
     };
-    $scope.ruleClass = () => {
+    $scope.ruleClass = function() {
         return $scope.adding ? "hw-blur" : "";
     };
-    $("#addRuleModal").on('hidden.bs.modal', () => {
+    $("#addRuleModal").on('hidden.bs.modal', function() {
         $scope.adding = false;
         $scope.$apply();
     });
 
-    const nav = () => {
+    var nav = function() {
         if ($scope.active !== "rules")
             return;
         if ($scope.nav.length > 0) {
@@ -424,14 +426,14 @@ module.controller('ruleController', function($scope) {
         }
     };
     $scope.listener.on("navigationChanged", nav);
-    $scope.$on("$destroy", () => {
+    $scope.$on("$destroy", function() {
         $scope.listener.off("navigationChanged", nav);
         $scope.listener.off("ready", ruleReady);
     });
 });
 
 function applyEditRule($scope, $compile, applyName) {
-    const newEvent = () => {
+    var newEvent = function() {
         $scope.events.push({
             ruleAlternatives: [$scope.initialRuleAlternatives.events],
             ruleSelections: [],
@@ -440,7 +442,7 @@ function applyEditRule($scope, $compile, applyName) {
             ruleTrigger: true
         });
     };
-    const newAction = () => {
+    var newAction = function() {
         $scope.actions.push({
             ruleAlternatives: [$scope.initialRuleAlternatives.actions],
             ruleSelections: [],
@@ -449,19 +451,19 @@ function applyEditRule($scope, $compile, applyName) {
         });
     };
 
-    const setScopeValue = function(type, row, idx, evt) {
+    var setScopeValue = function(type, row, idx, evt) {
         this[row].ruleSelections[idx] = evt;
         this[row].ruleSelections.splice(idx + 1);
         this[row].ruleAlternatives.splice(idx + 1);
         this[row].ruleExtra.splice(idx + 1);
         if (evt !== "(enter value)") {
-            $scope.request({ type: type, args: this[row].ruleSelections }).then((comp) => {
+            $scope.request({ type: type, args: this[row].ruleSelections }).then(function(comp) {
                 this[row].ruleAlternatives[idx + 1] = comp;
                 $scope.$apply();
             });
         }
-    };
-    const extraScope = function(item, row, idx) {
+    }.bind(this);
+    var extraScope = function(item, row, idx) {
         return {
             get value() {
                 if (row >= 0 && row < item.length) {
@@ -476,13 +478,13 @@ function applyEditRule($scope, $compile, applyName) {
             }
         };
     };
-    const extraScopeContinue = function(type, row, idx) {
-        $scope.request({ type: type, args: this[row].ruleSelections }).then((comp) => {
+    var extraScopeContinue = function(type, row, idx) {
+        $scope.request({ type: type, args: this[row].ruleSelections }).then(function(comp) {
             this[row].ruleAlternatives[idx + 1] = comp;
             $scope.$apply();
         });
-    };
-    const triggerScope = function(item, row) {
+    }.bind(this);
+    var triggerScope = function(item, row) {
         return {
             get value() {
                 if (row >= 0 && row < item.length)
@@ -497,7 +499,7 @@ function applyEditRule($scope, $compile, applyName) {
     };
 
     $scope.pendingListener = new EventEmitter();
-    $scope._reset = () => {
+    $scope._reset = function() {
         $scope.generator = undefined;
         $scope.error = undefined;
         $scope.events = [];
@@ -516,7 +518,7 @@ function applyEditRule($scope, $compile, applyName) {
         $scope.extraActionContinue = extraScopeContinue.bind($scope.actions, "actionCompletions");
         $scope.extraActions = extraScope.bind(null, $scope.actions);
 
-        $scope.request({ type: "ruleTypes" }).then((types) => {
+        $scope.request({ type: "ruleTypes" }).then(function(types) {
             $scope.initialRuleAlternatives.events = { type: "array", values: types.events };
             $scope.initialRuleAlternatives.actions = { type: "array", values: types.actions };
 
@@ -530,7 +532,7 @@ function applyEditRule($scope, $compile, applyName) {
     };
     $scope._reset();
 
-    $scope.eventNext = (row, val) => {
+    $scope.eventNext = function(row, val) {
         if (val === "Then") {
             if (!$scope.actions.length)
                 newAction();
@@ -540,11 +542,11 @@ function applyEditRule($scope, $compile, applyName) {
         }
         $scope.eventNexts[row] = val;
     };
-    $scope.actionNext = (row) => {
+    $scope.actionNext = function(row) {
         newAction();
     };
 
-    $scope.removeEvent = (row) => {
+    $scope.removeEvent = function(row) {
         $scope.events.splice(row, 1);
         var then = false;
         if (row + 1 === $scope.eventNexts.length && $scope.eventNexts[row] === "Then")
@@ -553,12 +555,12 @@ function applyEditRule($scope, $compile, applyName) {
         if (then)
             $scope.eventNexts[row - 1] = "Then";
     },
-    $scope.removeAction = (row) => {
+    $scope.removeAction = function(row) {
         $scope.actions.splice(row, 1);
     },
 
-    $scope.initializeFromRule = () => {
-        const pushCommon = (cur, item) => {
+    $scope.initializeFromRule = function() {
+        var pushCommon = function(cur, item) {
             // name is the first selection
             cur.ruleSelections.push(item.name);
             for (var s = 0; s < item.steps.length; ++s) {
@@ -579,7 +581,7 @@ function applyEditRule($scope, $compile, applyName) {
                 }
             }
         };
-        const pushEvent = (evt, trg) => {
+        var pushEvent = function(evt, trg) {
             var cur = $scope.events[$scope.events.length - 1];
             if (cur.ruleSelections.length !== 0) {
                 newEvent();
@@ -588,7 +590,7 @@ function applyEditRule($scope, $compile, applyName) {
             cur.ruleTrigger = trg;
             pushCommon(cur, evt);
         };
-        const pushAction = (act) => {
+        var pushAction = function(act) {
             newAction();
             var cur = $scope.actions[$scope.actions.length - 1];
             pushCommon(cur, act);
@@ -599,8 +601,8 @@ function applyEditRule($scope, $compile, applyName) {
         if ($scope.name !== "")
             return;
         $scope.name = $scope.generator.name;
-        const evts = $scope.generator.events;
-        const trgs = $scope.generator.eventsTrigger;
+        var evts = $scope.generator.events;
+        var trgs = $scope.generator.eventsTrigger;
         // each of the top-level events are ORs, each of the 2nd level events are ANDs.
         // the last event is THEN
         for (var ors = 0; ors < evts.length; ++ors) {
@@ -611,21 +613,21 @@ function applyEditRule($scope, $compile, applyName) {
             }
             $scope.eventNexts.push((ors + 1 === evts.length) ? "Then" : "Or");
         }
-        const acts = $scope.generator.actions;
+        var acts = $scope.generator.actions;
         for (var act = 0; act < acts.length; ++act) {
             pushAction(acts[act]);
         }
         console.log("initialized", $scope.events, $scope.eventNexts);
     };
 
-    $scope.generate = (rule) => {
-        const internal = () => {
+    $scope.generate = function(rule) {
+        var internal = function() {
             $scope.generator = rule;
             $scope.initializeFromRule();
 
-            const createInput = (key, row, val, def, extra, func, idx) => {
+            var createInput = function(key, row, val, def, extra, func, idx) {
                 var list = val.values;
-                const isarray = list instanceof Array;
+                var isarray = list instanceof Array;
                 var ret = "";
                 if (isarray) {
                     ret += `<div class="dropdown pull-left"><button class="btn btn-default dropdown-toggle" type="button" id="${key}DropDownMenu-${row}-${idx}" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">${def}<span class="caret"></span></button><ul class="dropdown-menu" aria-labelledby="${key}DropDownMenu-${row}-${idx}">`;
@@ -709,7 +711,7 @@ function applyEditRule($scope, $compile, applyName) {
             return internal();
         } else if (rule) {
             $scope.pendingListener.removeEvent(`resetComplete${applyName}`);
-            $scope.pendingListener.on(`resetComplete${applyName}`, () => {
+            $scope.pendingListener.on(`resetComplete${applyName}`, function() {
                 var content = $compile(internal())($scope);
                 var elem = $(`#edit-${rule.safename}`);
                 elem.append(content);
@@ -718,11 +720,11 @@ function applyEditRule($scope, $compile, applyName) {
         return "";
     };
 
-    $scope.cancel = () => {
+    $scope.cancel = function() {
         $scope.clearCachedRules();
         $scope._reset();
     },
-    $scope.save = () => {
+    $scope.save = function() {
         $scope.error = undefined;
 
         var events = [[]];
@@ -775,7 +777,7 @@ function applyEditRule($scope, $compile, applyName) {
         console.log(actions);
         $scope
             .request({ type: "createRule", rule: { name: $scope.name, events: events, actions: actions } })
-            .then((result) => {
+            .then(function(result) {
                 console.log("rule created", result, $scope.generator);
                 if ($scope.generator) {
                     $scope.clearCachedRules();
@@ -783,7 +785,7 @@ function applyEditRule($scope, $compile, applyName) {
                 } else {
                     $("#addRuleModal").modal("hide");
                 }
-            }).catch((error) => {
+            }).catch(function(error) {
                 $scope.error = error;
                 $scope.$apply();
             });
@@ -793,7 +795,7 @@ function applyEditRule($scope, $compile, applyName) {
 module.controller('editRuleController', function($scope, $compile) {
     applyEditRule.call(this, $scope, $compile, 'edit');
 
-    $scope.$on("$destroy", () => {
+    $scope.$on("$destroy", function() {
         $scope._reset();
     });
 });
@@ -801,14 +803,14 @@ module.controller('editRuleController', function($scope, $compile) {
 module.controller('addRuleController', function($scope, $compile) {
     applyEditRule.call(this, $scope, $compile, 'add');
 
-    $("#addRuleModal").on('hidden.bs.modal', () => {
+    $("#addRuleModal").on('hidden.bs.modal', function() {
         $scope._reset();
     });
 });
 
 module.controller('variableController', function($scope) {
-    const variableReady = () => {
-        $scope.request({ type: "variables" }).then((vars) => {
+    var variableReady = function() {
+        $scope.request({ type: "variables" }).then(function(vars) {
             $scope.variables = vars.variables;
             $scope.$apply();
         });
@@ -822,33 +824,33 @@ module.controller('variableController', function($scope) {
         $scope.listener.on("ready", variableReady);
     }
 
-    $scope.addVariable = () => {
+    $scope.addVariable = function() {
         $('#addVariableModal').modal('show');
     };
 
-    $scope.clear = (name) => {
+    $scope.clear = function(name) {
         $scope.variables[name] = null;
     };
 
-    $scope.save = () => {
+    $scope.save = function() {
         $scope
             .request({ type: "setVariables", variables: $scope.variables })
-            .then(() => {
+            .then(function() {
                 $scope.success = "Saved";
                 $scope.$apply();
 
-                setTimeout(() => {
+                setTimeout(function() {
                     $scope.success = undefined;
                     $scope.$apply();
                 }, 5000);
             })
-            .catch((err) => {
+            .catch(function(err) {
                 $scope.error = err;
                 $scope.$apply();
             });
     };
 
-    const variableUpdated = (name, val) => {
+    var variableUpdated = function(name, val) {
         $scope.variables[name] = val;
         $scope.$apply();
 
@@ -856,7 +858,7 @@ module.controller('variableController', function($scope) {
     };
 
     $scope.listener.on("variableUpdated", variableUpdated);
-    $scope.$on("$destroy", () => {
+    $scope.$on("$destroy", function() {
         $scope.listener.off("variableUpdated", variableUpdated);
     });
 });
@@ -864,13 +866,13 @@ module.controller('variableController', function($scope) {
 module.controller('addVariableController', function($scope) {
     $scope.name = "";
     $scope.error = undefined;
-    $scope.save = () => {
+    $scope.save = function() {
         $scope
             .request({ type: "createVariable", name: $scope.name })
-            .then(() => {
+            .then(function() {
                 $('#addVariableModal').modal('hide');
             })
-            .catch((err) => {
+            .catch(function(err) {
                 $scope.error = err;
                 $scope.$apply();
             });
@@ -878,8 +880,8 @@ module.controller('addVariableController', function($scope) {
 });
 
 module.controller('timerController', function($scope) {
-    const timerReady = () => {
-        $scope.request({ type: "timers", sub: "all" }).then((response) => {
+    var timerReady = function() {
+        $scope.request({ type: "timers", sub: "all" }).then(function(response) {
             $scope.timeout = response.timers.timeout;
             $scope.interval = response.timers.interval;
             $scope.schedule = response.timers.schedule;
@@ -887,8 +889,8 @@ module.controller('timerController', function($scope) {
             $scope.serverOffset = $scope.serverReceived - response.timers.now;
             console.log(response);
 
-            const updateTimers = () => {
-                const now = new Date().getTime();
+            var updateTimers = function() {
+                var now = new Date().getTime();
                 // update all timeouts and intervals
 
                 var k, t, long;
@@ -909,7 +911,7 @@ module.controller('timerController', function($scope) {
             updateTimers();
             if ($scope._updater)
                 clearInterval($scope._updater);
-            $scope._updater = setInterval(() => {
+            $scope._updater = setInterval(function() {
                 // update and apply
                 updateTimers();
                 $scope.$apply();
@@ -926,37 +928,37 @@ module.controller('timerController', function($scope) {
     }
 
     $scope.adding = undefined;
-    $scope.add = (type) => {
+    $scope.add = function(type) {
         $scope.adding = type;
         $('#addTimerModal').modal('show');
     };
-    $scope.stop = (name, sub) => {
+    $scope.stop = function(name, sub) {
         console.log("stop", name, sub);
         $scope
             .request({ type: "stopTimer", name: name, sub: sub })
-            .then(() => {
+            .then(function() {
                 $scope.success = "Stopped";
                 $scope.$apply();
 
-                setTimeout(() => {
+                setTimeout(function() {
                     $scope.success = undefined;
                     $scope.$apply();
                 }, 5000);
             })
-            .catch((err) => {
+            .catch(function(err) {
                 $scope.error = err;
                 $scope.$apply();
             });
     };
-    $scope.restart = (name, sub) => {
+    $scope.restart = function(name, sub) {
         console.log("restart", name, sub);
         if ($scope.restarting) {
-            const r = $scope.restarting;
+            var r = $scope.restarting;
             console.log(r);
 
             $('#restartTimerModal').modal('hide');
 
-            const val = parseInt(r.value);
+            var val = parseInt(r.value);
             if (val + "" != r.value) {
                 $scope.error = `${r.value} needs to be an integer`;
                 return;
@@ -964,16 +966,16 @@ module.controller('timerController', function($scope) {
 
             $scope
                 .request({ type: "restartTimer", name: r.name, sub: r.sub, value: val })
-                .then(() => {
+                .then(function() {
                     $scope.success = "Restarted";
                     $scope.$apply();
 
-                    setTimeout(() => {
+                    setTimeout(function() {
                         $scope.success = undefined;
                         $scope.$apply();
                     }, 5000);
                 })
-                .catch((err) => {
+                .catch(function(err) {
                     $scope.error = err;
                     $scope.$apply();
                 });
@@ -984,25 +986,25 @@ module.controller('timerController', function($scope) {
         $scope.restarting = { name: name, sub: sub, value: undefined };
         $('#restartTimerModal').modal('show');
     };
-    $scope.saveSchedules = () => {
+    $scope.saveSchedules = function() {
         $scope
             .request({ type: "setSchedules", schedules: $scope.schedule })
-            .then(() => {
+            .then(function() {
                 $scope.success = "Saved";
                 $scope.$apply();
 
-                setTimeout(() => {
+                setTimeout(function() {
                     $scope.success = undefined;
                     $scope.$apply();
                 }, 5000);
             })
-            .catch((err) => {
+            .catch(function(err) {
                 $scope.error = err;
                 $scope.$apply();
             });
     };
 
-    const timerUpdated = (type, name, value) => {
+    var timerUpdated = function(type, name, value) {
         // $scope.variables[name] = val;
         // $scope.$apply();
         switch (type) {
@@ -1022,12 +1024,12 @@ module.controller('timerController', function($scope) {
     };
 
     $scope.listener.on("timerUpdated", timerUpdated);
-    $scope.$on("$destroy", () => {
+    $scope.$on("$destroy", function() {
         $scope.listener.off("timerUpdated", timerUpdated);
         clearInterval($scope._updater);
     });
 
-    $("#restartTimerModal").on('hidden.bs.modal', () => {
+    $("#restartTimerModal").on('hidden.bs.modal', function() {
         $scope.restarting = undefined;
     });
 });
@@ -1036,13 +1038,13 @@ module.controller('addTimerController', function($scope) {
     $scope.timername = "";
     $scope.timervalue = "";
     $scope.error = undefined;
-    $scope.save = () => {
+    $scope.save = function() {
         $scope
             .request({ type: "createTimer", sub: $scope.adding, name: $scope.timername, value: $scope.timervalue })
-            .then(() => {
+            .then(function() {
                 $('#addTimerModal').modal('hide');
             })
-            .catch((err) => {
+            .catch(function(err) {
                 $scope.error = err;
                 $scope.$apply();
             });
@@ -1050,12 +1052,12 @@ module.controller('addTimerController', function($scope) {
 });
 
 module.controller('zwaveController', function($scope) {
-    $scope.action = (act) => {
+    $scope.action = function(act) {
         var actions = {
-            pair: () => {
+            pair: function() {
                 $scope.request({ type: "zwaveAction", action: "pair" });
             },
-            depair: () => {
+            depair: function() {
                 $scope.request({ type: "zwaveAction", action: "depair" });
             }
         };
