@@ -406,9 +406,10 @@ module.controller('devicesController', function($scope) {
 module.controller('addGroupController', function($scope) {
     $scope.name = "";
     $scope.save = function() {
-        if ($scope.name.length > 0 && $scope.groups.indexOf($scope.name) === -1)
-            $scope.groups.push($scope.name);
-        console.log($scope.name);
+        if ($scope.name.length > 0 && $scope.groups.indexOf($scope.name) === -1) {
+            if ($scope.name !== "add" && $scope.name !== "all")
+                $scope.groups.push($scope.name);
+        }
         $('#addGroupModal').modal('hide');
     };
 
