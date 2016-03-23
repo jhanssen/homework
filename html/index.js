@@ -146,6 +146,37 @@ module.directive('compile', ['$compile', function ($compile) {
 
 module.controller('devicesController', function($scope) {
     // request devices
+    var updateNavigation = function(nav, old) {
+        var setAll = function() {
+            $scope.currentDevices = $scope.devices;
+            $scope.currentGroup = "all";
+        };
+        if (nav.length > 0) {
+            // we have a group selected
+            console.log("device group", nav[0]);
+            switch (nav[0]) {
+            case "":
+            case "all":
+                setAll();
+                break;
+            case "add":
+                $scope.oldNav = old;
+                $('#addGroupModal').modal('show');
+                break;
+            default:
+                var grp = nav[0];
+                $scope.currentDevices = {};
+                for (var k in $scope.devices) {
+                    if ($scope.devices[k].groups.indexOf(grp) !== -1) {
+                        $scope.currentDevices[k] = $scope.devices[k];
+                    }
+                }
+                $scope.currentGroup = grp;
+            }
+        } else {
+            setAll();
+        }
+    };
     var deviceReady = function() {
         $scope.request({ type: "devices" }).then(function(response) {
             console.log("got devices", response);
@@ -280,8 +311,7 @@ module.controller('devicesController', function($scope) {
                 }
 
                 $scope.devices = devs;
-                $scope.currentDevices = $scope.devices;
-                $scope.currentGroup = "all";
+                updateNavigation($scope.nav);
                 $scope.groups = grps;
                 $scope.$apply();
             };
@@ -305,8 +335,8 @@ module.controller('devicesController', function($scope) {
     };
 
     $scope.groups = [];
-    $scope.currentGroup = "all";
-    $scope.currentDevices = $scope.devices;
+    updateNavigation($scope.nav);
+
     $scope.activeGroup = function(grp) {
         return grp == $scope.currentGroup ? "active" : "";
     };
@@ -351,32 +381,8 @@ module.controller('devicesController', function($scope) {
     var nav = function(old) {
         if ($scope.active !== "devices")
             return;
-        if ($scope.nav.length > 0) {
-            // we have a group selected
-            console.log("device group", $scope.nav[0]);
-            switch ($scope.nav[0]) {
-            case "":
-            case "all":
-                $scope.currentDevices = $scope.devices;
-                $scope.currentGroup = "all";
-                $scope.$apply();
-                break;
-            case "add":
-                $scope.oldNav = old;
-                $('#addGroupModal').modal('show');
-                break;
-            default:
-                var grp = $scope.nav[0];
-                $scope.currentDevices = {};
-                for (var k in $scope.devices) {
-                    if ($scope.devices[k].groups.indexOf(grp) !== -1) {
-                        $scope.currentDevices[k] = $scope.devices[k];
-                    }
-                }
-                $scope.currentGroup = grp;
-                $scope.$apply();
-            }
-        }
+        updateNavigation($scope.nav, old);
+        $scope.$apply();
     };
 
     $("#addGroupModal").on('hidden.bs.modal', function() {
