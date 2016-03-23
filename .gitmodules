@@ -4,3 +4,6 @@
 [submodule "sub/animate.css"]
 	path = sub/animate.css
 	url = https://github.com/daneden/animate.css.git
+[submodule "sub/ngDraggable"]
+	path = sub/ngDraggable
+	url = https://github.com/fatlinesofcode/ngDraggable.git

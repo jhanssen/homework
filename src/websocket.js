@@ -11,6 +11,14 @@ var wss = undefined;
 var homework = undefined;
 var connections = [];
 
+function findDevice(uuid)
+{
+    var devs = homework.devices;
+    if (!(devs instanceof Array))
+        return undefined;
+    return devs.find((d) => { return d.uuid == uuid; });
+}
+
 function isempty(v)
 {
     if (v === undefined || v === null)
@@ -90,7 +98,7 @@ const types = {
     devices: (ws, msg) => {
         const devs = homework.devices;
         if (devs instanceof Array) {
-            const ret = devs.map((e) => { return { type: e.type, name: e.name, uuid: e.uuid }; });
+            const ret = devs.map((e) => { return { type: e.type, name: e.name, uuid: e.uuid, groups: e.groups }; });
             send(ws, msg.id, ret);
         } else {
             error(ws, msg.id, "no devices");
@@ -103,12 +111,54 @@ const types = {
             for (var i = 0; i < devs.length; ++i) {
                 if (devs[i].uuid == uuid) {
                     var d = devs[i];
-                    send(ws, msg.id, { type: d.type, name: d.name, uuid: d.uuid });
+                    send(ws, msg.id, { type: d.type, name: d.name, uuid: d.uuid, groups: d.groups });
                     return;
                 }
             }
         }
         error(ws, msg.id, "no such device");
+    },
+    addGroup: (ws, msg) => {
+        var group = msg.group;
+        if (typeof group !== "string" || !group.length) {
+            error(ws, msg.id, "no group name");
+        } else {
+            var dev = findDevice(msg.uuid);
+            if (dev instanceof Object) {
+                dev.addGroup(group);
+                send(ws, msg.id, "ok");
+            } else {
+                error(ws, msg.id, `no such device ${msg.uuid}`);
+            }
+        }
+    },
+    removeGroup: (ws, msg) => {
+        var group = msg.group;
+        if (typeof group !== "string" || !group.length) {
+            error(ws, msg.id, "no group name");
+        } else {
+            var dev = findDevice(msg.uuid);
+            if (dev instanceof Object) {
+                dev.removeGroup(group);
+                send(ws, msg.id, "ok");
+            } else {
+                error(ws, msg.id, `no such device ${msg.uuid}`);
+            }
+        }
+    },
+    setGroup: (ws, msg) => {
+        var group = msg.group;
+        if (typeof group !== "string" || !group.length) {
+            error(ws, msg.id, "no group name");
+        } else {
+            var dev = findDevice(msg.uuid);
+            if (dev instanceof Object) {
+                dev.groups = [group];
+                send(ws, msg.id, "ok");
+            } else {
+                error(ws, msg.id, `no such device ${msg.uuid}`);
+            }
+        }
     },
     rules: (ws, msg) => {
         const rs = homework.rules;

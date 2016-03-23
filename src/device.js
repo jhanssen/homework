@@ -38,10 +38,13 @@ function Device(t, u)
         this._uuid = u;
         if (typeof data.data === "object" && typeof data.data[u] === "object") {
             this._name = data.data[u].name;
+            this._groups = data.data[u].groups;
         }
     } else {
         this._uuid = uuid.v1();
     }
+    if (this._groups === undefined)
+        this._groups = [];
 }
 
 Device.Type = {
@@ -59,6 +62,7 @@ Device.prototype = {
     _name: undefined,
     _values: undefined,
     _type: undefined,
+    _groups: undefined,
 
     set name(name) {
         this._name = name;
@@ -74,6 +78,21 @@ Device.prototype = {
     },
     get type() {
         return this._type;
+    },
+    get groups() {
+        return this._groups;
+    },
+    set groups(g) {
+        this._groups = g;
+    },
+
+    addGroup: function(grp) {
+        if (this._groups.indexOf(grp) !== -1)
+            return;
+        this._groups.push(grp);
+    },
+    removeGroup: function(grp) {
+        this._groups.remove((g) => { return g == grp; });
     },
 
     addValue: function(v, keep) {

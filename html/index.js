@@ -11,7 +11,7 @@ $.fn.extend({
     }
 });
 
-var module = angular.module('app', ['ui.bootstrap', 'ui.bootstrap-slider', 'frapontillo.bootstrap-switch', 'colorpicker.module']);
+var module = angular.module('app', ['ui.bootstrap', 'ui.bootstrap-slider', 'frapontillo.bootstrap-switch', 'colorpicker.module', 'ngDraggable']);
 module.controller('mainController', function($scope) {
     location.hash = "#";
 
@@ -102,9 +102,10 @@ module.controller('mainController', function($scope) {
     $(window).on("hashchange", function() {
         var changeLocation = function(l) {
             var split = l.split("/");
+            var old = { active: $scope.active, nav: $scope.nav };
             $scope.active = split[0];
             $scope.nav = split.slice(1);
-            $scope.listener.emitEvent("navigationChanged");
+            $scope.listener.emitEvent("navigationChanged", [old]);
             $scope.$apply();
         };
         if (!location.hash.length) {
@@ -151,6 +152,7 @@ module.controller('devicesController', function($scope) {
             if (!(response instanceof Array))
                 return;
             var devs = Object.create(null);
+            var grps = [];
             var rem = response.length;
             var done = function() {
                 console.log("got all device values");
@@ -172,6 +174,12 @@ module.controller('devicesController', function($scope) {
                 // fixup devices
                 for (var k in devs) {
                     (function(dev) {
+                        for (var gi = 0; gi < dev.groups.length; ++gi) {
+                            var grp = dev.groups[gi];
+                            if (grps.indexOf(grp) === -1)
+                                grps.push(grp);
+                        }
+
                         dev.safeuuid = dev.uuid.replace(/:/g, "_");
                         switch (dev.type) {
                         case $scope.Type.Dimmer:
@@ -272,6 +280,9 @@ module.controller('devicesController', function($scope) {
                 }
 
                 $scope.devices = devs;
+                $scope.currentDevices = $scope.devices;
+                $scope.currentGroup = "all";
+                $scope.groups = grps;
                 $scope.$apply();
             };
             for (var i = 0; i < response.length; ++i) {
@@ -291,6 +302,13 @@ module.controller('devicesController', function($scope) {
                 })(response[i].uuid);
             }
         });
+    };
+
+    $scope.groups = [];
+    $scope.currentGroup = "all";
+    $scope.currentDevices = $scope.devices;
+    $scope.activeGroup = function(grp) {
+        return grp == $scope.currentGroup ? "active" : "";
     };
 
     if ($scope.ready) {
@@ -322,13 +340,80 @@ module.controller('devicesController', function($scope) {
     };
 
     $scope.setLocation = function(loc) {
-        location.href = loc;
+        if (typeof loc === "string") {
+            location.href = loc;
+        } else if (typeof loc === "object" && "active" in loc) {
+            var l = "#" + loc.active + "/" + loc.nav.join("/");
+            location.href = l;
+        }
     };
+
+    var nav = function(old) {
+        if ($scope.active !== "devices")
+            return;
+        if ($scope.nav.length > 0) {
+            // we have a group selected
+            console.log("device group", $scope.nav[0]);
+            switch ($scope.nav[0]) {
+            case "":
+            case "all":
+                $scope.currentDevices = $scope.devices;
+                $scope.currentGroup = "all";
+                $scope.$apply();
+                break;
+            case "add":
+                $scope.oldNav = old;
+                $('#addGroupModal').modal('show');
+                break;
+            default:
+                var grp = $scope.nav[0];
+                $scope.currentDevices = {};
+                for (var k in $scope.devices) {
+                    if ($scope.devices[k].groups.indexOf(grp) !== -1) {
+                        $scope.currentDevices[k] = $scope.devices[k];
+                    }
+                }
+                $scope.currentGroup = grp;
+                $scope.$apply();
+            }
+        }
+    };
+
+    $("#addGroupModal").on('hidden.bs.modal', function() {
+        $scope.$apply();
+        $scope.setLocation($scope.oldNav);
+    });
+
+    $scope.onDropDevice = function($data, $event, group) {
+        console.log("drop", $data, $event, group);
+        $scope.request({ type: "setGroup", uuid: $data.uuid, group: group }).then(function() {
+            var dev = $scope.devices[$data.uuid];
+            dev.groups = [group];
+            $scope.$apply();
+        });
+    };
+
+    $scope.listener.on("navigationChanged", nav);
 
     $scope.listener.on("valueUpdated", valueUpdated);
     $scope.$on("$destroy", function() {
         $scope.listener.off("valueUpdated", valueUpdated);
         $scope.listener.off("ready", deviceReady);
+        $scope.listener.off("navigationChanged", nav);
+    });
+});
+
+module.controller('addGroupController', function($scope) {
+    $scope.name = "";
+    $scope.save = function() {
+        if ($scope.name.length > 0 && $scope.groups.indexOf($scope.name) === -1)
+            $scope.groups.push($scope.name);
+        console.log($scope.name);
+        $('#addGroupModal').modal('hide');
+    };
+
+    $("#addGroupModal").on('hidden.bs.modal', function() {
+        $scope.name = "";
     });
 });
 

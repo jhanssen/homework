@@ -12,6 +12,7 @@
     <script src="/node_modules/bootstrap-slider/dist/bootstrap-slider.min.js"></script>
     <script src="/node_modules/angular-bootstrap-colorpicker/js/bootstrap-colorpicker-module.min.js"></script>
     <script src="/sub/angular-bootstrap-slider/slider.js"></script>
+    <script src="/sub/ngDraggable/ngDraggable.js"></script>
     <script src="index.js"></script>
     <link type="text/css" rel="stylesheet" href="/node_modules/bootstrap/dist/css/bootstrap.min.css"></link>
     <link type="text/css" rel="stylesheet" href="/node_modules/bootstrap-slider/dist/css/bootstrap-slider.min.css"></link>
@@ -49,10 +50,15 @@
     <div id="page-content">
       <div ng-if="isActive('devices')" class="container" ng-controller="devicesController">
 	<h2>Devices</h2>
+	<ul class="nav nav-pills">
+	  <li role="presentation" ng-class="activeGroup('all')"><a href="#devices/all">All</a></li>
+	  <li role="presentation" ng-repeat="group in groups" ng-class="activeGroup(group)" ng-drop="true" ng-drop-success="onDropDevice($data, $event, group)"><a href="#devices/{{group}}">{{group}}</a></li>
+	  <li role="presentation"><a href="#devices/add">+</a></li>
+	</ul>
 	<div class="container-fluid">
 	  <div class="row">
-	    <div class="col-xs-6 col-sm-4 col-md-4 col-lg-3 center-block text-center" ng-repeat="(uuid, dev) in devices">
-	      <div class="hw-frame">
+	    <div class="col-xs-6 col-sm-4 col-md-4 col-lg-3 center-block text-center" ng-repeat="(uuid, dev) in currentDevices">
+	      <div class="hw-frame" ng-drag="true" ng-drag-data="{{dev}}">
 		<div class="hw-pointer" ng-click="setLocation('#device/' + dev.safeuuid)">
 		  {{dev.name}}
 		</div>
@@ -69,6 +75,30 @@
 		<div ng-if="dev.type == Type.Sensor" class="hw-margin center-block">
 		  <div><i class="fa fa-hand-paper-o hw-big ng-class:{'faa-shake animated': dev.motion} "></i></div>
 		</div>
+	      </div>
+	    </div>
+	  </div>
+	</div>
+	<div id="addGroupModal" class="modal fade" role="dialog" ng-controller="addGroupController">
+	  <div class="modal-dialog hw-dialog">
+	    <div class="modal-content">
+	      <div class="modal-header">
+		<button type="button" class="close" data-dismiss="modal">&times;</button>
+		<h4 class="modal-title">Add group</h4>
+	      </div>
+	      <div class="modal-body">
+		<div class="hw-clear container-fluid">
+		  <div class="col-xs-6 col-sm-6 col-md-6 col-lg-6 center-block text-center">
+		    Name
+		  </div>
+		  <div class="col-xs-6 col-sm-6 col-md-6 col-lg-6">
+		    <input type="text" ng-model="name">
+		  </div>
+		</div>
+	      </div>
+	      <div class="modal-footer">
+		<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+		<button type="button" class="btn btn-default" ng-click="save()">Save</button>
 	      </div>
 	    </div>
 	  </div>

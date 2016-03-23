@@ -6,6 +6,7 @@
     box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.75);
     padding: 0.8em;
     margin: 0.5em;
+    background-color: #ffffff
 }
 .hw-spacer {
     margin-bottom: 1em
@@ -79,6 +80,14 @@ div.hw-alternate > div:nth-child(even){
 }
 div.hw-alternate > div:nth-child(odd){
   background-color: #eeeeee;
+}
+
+[ng-drop].drag-enter{
+    background-color: #88cc88;
+}
+
+[ng-drag].dragging{
+    opacity: 0.5;
 }
 
 @media screen and (min-width: 768px) {
