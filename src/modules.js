@@ -52,6 +52,7 @@ const modules = {
         const loadModules = (cur) => {
             if (!fs.existsSync(cur))
                 return;
+            var tryload = [];
             const candidates = fs.readdirSync(cur);
             for (var c = 0; c < candidates.length; ++c) {
                 if (candidates[c].substr(0, 9) == "homework-") {
@@ -76,8 +77,20 @@ const modules = {
                         Console.error(`package ${pfile} does not have homework-plugin as a keyword`);
                         continue;
                     }
-                    this._loadModule(dir);
+                    tryload.push(dir);
                 }
+            }
+            if (!tryload.length) {
+                this._homework.modulesReady();
+                return;
+            }
+            var rem = tryload.length;
+            const done = () => {
+                if (!--rem)
+                    this._homework.modulesReady();
+            };
+            for (var i = 0; i < tryload.length; ++i) {
+                this._loadModule(tryload[i], done);
             }
         };
 
@@ -105,7 +118,7 @@ const modules = {
         return this._modules;
     },
 
-    _loadModule: function(module) {
+    _loadModule: function(module, done) {
         Console.log("loading module", module);
         // load index.json with the appropriate config section
         var m;
@@ -113,16 +126,28 @@ const modules = {
             m = require(module);
         } catch (e) {
             Console.error(`couldn't load module ${module}: ${e}`);
+            done();
             return;
         }
 
-        const data = this._moduledata ? this._moduledata[m.name] : {};
-        const cfg = this._homework.config ? this._homework.config[m.name] : {};
+        if (typeof m === "object" && "init" in m && "name" in m) {
+            const data = this._moduledata ? this._moduledata[m.name] : {};
+            const cfg = this._homework.config ? this._homework.config[m.name] : {};
 
-        if (m.init(cfg, data, this._homework)) {
-            this._modules.push(m);
+            if (m.init(cfg, data, this._homework)) {
+                this._modules.push(m);
+                if (m.ready) {
+                    done();
+                } else {
+                    m.on("ready", done);
+                }
+            } else {
+                Console.error(`couldn't initialize module ${module}`);
+                done();
+            }
         } else {
-            Console.error(`couldn't initialize module ${module}`);
+            Console.error(`invalid module ${module}`);
+            done();
         }
     }
 };
