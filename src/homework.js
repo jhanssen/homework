@@ -157,8 +157,6 @@ homework = {
         db.writeFileSync("devices.json", devices, { spaces: 4 });
     },
     restore: function(args) {
-        const modulePath = args.modulePath || args.M;
-
         db.readFile("rules.json", (err, obj) => {
             if (obj) {
                 homework._pendingRules = obj;
@@ -178,7 +176,7 @@ homework = {
                 Variable.init(this);
                 WebSocket.init(this);
                 db.readFile("modules.json", (err, obj) => {
-                    Modules.init(this, modulePath, obj);
+                    Modules.init(this, obj);
                     this._restored = true;
                 });
             });
