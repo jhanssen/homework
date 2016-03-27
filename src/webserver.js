@@ -1,4 +1,4 @@
-/*global module,require,__dirname*/
+/*global module,require,__filename*/
 
 "use strict";
 
@@ -18,8 +18,8 @@ const WebServer = {
             }
             return false;
         };
-        const servePath = (pathname, resp) => {
-            const path = pathname.join("/");
+        const servePath = (root, pathname, resp) => {
+            const path = root + pathname.join("/");
             fs.readFile(path, (err, data) => {
                 if (err) {
                     resp.writeHead(404, {'Content-Type': 'text/plain'});
@@ -53,7 +53,7 @@ const WebServer = {
             });
         };
 
-        const root = path.resolve(__dirname, '..');
+        const root = path.resolve(fs.realpathSync(__filename), '../..') + path.sep;
         const port = (config && config.port) || 8089;
         homework.Console.log(`Serving html on port ${port} from ${root}`);
 
@@ -71,17 +71,17 @@ const WebServer = {
             // check if we are using special paths
             if (pathname.length > 1) {
                 if (pathname[0] === "node_modules" || pathname[0] === "sub") {
-                    servePath(pathname, resp);
+                    servePath(root, pathname, resp);
                     return;
                 } else if (pathname[0] === "uib") {
                     pathname[0] = "angular-ui-bootstrap";
                     pathname.splice(0, 0, "node_modules");
-                    servePath(pathname, resp);
+                    servePath(root, pathname, resp);
                     return;
                 }
             }
             pathname.splice(0, 0, "html");
-            servePath(pathname, resp);
+            servePath(root, pathname, resp);
         });
         this._server.listen(port);
     }
