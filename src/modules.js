@@ -55,7 +55,9 @@ const modules = {
             var tryload = [];
             const candidates = fs.readdirSync(cur);
             for (var c = 0; c < candidates.length; ++c) {
-                if (candidates[c].substr(0, 9) == "homework-") {
+                if (candidates[c].substr(0, 9) == "homework-"
+                    || (candidates[c].substr(0, 3) == "hw-"
+                        && candidates[c] != "hw-server")) {
                     // it's a candidate, try to load it
                     const dir = path.join(cur, candidates[c]);
                     if (!fs.statSync(dir).isDirectory())
@@ -69,7 +71,7 @@ const modules = {
                     }
                     if (typeof json !== "object")
                         continue;
-                    if (json.name.substr(0, 9) != "homework-") {
+                    if (json.name.substr(0, 3) != "hw-") {
                         Console.error(`package ${pfile} has an invalid name of ${json.name}`);
                         continue;
                     }
