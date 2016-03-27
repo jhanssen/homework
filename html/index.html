@@ -75,6 +75,12 @@
 		<div ng-if="dev.type == Type.Sensor" class="hw-margin center-block">
 		  <div><i class="fa fa-hand-paper-o hw-big ng-class:{'faa-shake animated': dev.motion} "></i></div>
 		</div>
+		<div ng-if="dev.type == Type.GarageDoor" class="hw-margin center-block">
+		  <div>
+		    <button class="btn btn-default ng-class:{'btn-primary': dev.closed}" ng-click="dev.mode = 0">Close</button>
+		    <button class="btn btn-default ng-class:{'btn-primary': !dev.closed}" ng-click="dev.mode = 1">Open</button>
+		  </div>
+		</div>
 	      </div>
 	    </div>
 	  </div>
