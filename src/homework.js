@@ -1,4 +1,7 @@
+#!/usr/bin/env node
+
 /*global require,process,homework,setTimeout*/
+
 require("sugar");
 
 const Config = require("./config.js");
