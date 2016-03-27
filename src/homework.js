@@ -14,6 +14,7 @@ const Modules = require("./modules.js");
 const Timer = require("./timer.js");
 const Variable = require("./variable.js");
 const db = require("jsonfile");
+const path = require("path");
 
 homework = {
     _events: Object.create(null),
@@ -150,17 +151,17 @@ homework = {
             rules.push(Rule.SerializePending(this._pendingRules[i]));
         }
         Console.log(rules);
-        db.writeFileSync("rules.json", rules, { spaces: 4 });
+        db.writeFileSync(path.join(Config.path, "rules.json"), rules, { spaces: 4 });
 
         var devices = this._deviceinfo || Object.create(null);
         for (i = 0; i < this._devices.length; ++i) {
             var dev = this._devices[i];
             devices[dev.uuid] = { name: dev.name, groups: dev.groups };
         }
-        db.writeFileSync("devices.json", devices, { spaces: 4 });
+        db.writeFileSync(path.join(Config.path, "devices.json"), devices, { spaces: 4 });
     },
     restore: function(args) {
-        db.readFile("rules.json", (err, obj) => {
+        db.readFile(path.join(Config.path, "rules.json"), (err, obj) => {
             if (obj) {
                 homework._pendingRules = obj;
                 homework.loadRules();
@@ -172,13 +173,13 @@ homework = {
         Config.load(this, () => {
             WebServer.serve(homework, this.config.webserver);
 
-            db.readFile("devices.json", (err, obj) => {
+            db.readFile(path.join(Config.path, "devices.json"), (err, obj) => {
                 this._deviceinfo = obj;
                 Device.Device.init(this, obj);
                 Timer.init(this);
                 Variable.init(this);
                 WebSocket.init(this);
-                db.readFile("modules.json", (err, obj) => {
+                db.readFile(path.join(Config.path, "modules.json"), (err, obj) => {
                     Modules.init(this, obj);
                     this._restored = true;
                 });
@@ -214,7 +215,7 @@ Console.on("shutdown", () => {
         Modules.shutdown((data) => {
             if (data) {
                 console.log("modules.json", data);
-                db.writeFileSync("modules.json", data, { spaces: 4 });
+                db.writeFileSync(path.join(Config.path, "modules.json"), data, { spaces: 4 });
             }
             process.exit();
         });
