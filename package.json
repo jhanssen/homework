@@ -1,6 +1,6 @@
 {
   "name": "hw-server",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "scripts": {
     "start": "node ./src/homework.js"
   },
