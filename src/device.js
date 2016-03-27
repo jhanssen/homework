@@ -55,6 +55,7 @@ Device.Type = {
     Clapper: 4,
     RGBWLed: 5,
     Sensor: 6,
+    GarageDoor: 7,
     Unknown: 99
 };
 
