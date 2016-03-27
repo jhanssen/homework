@@ -307,15 +307,15 @@ module.controller('devicesController', function($scope) {
                             }
                             break;
                         case $scope.Type.GarageDoor:
-                            Object.defineProperty(dev, "closed", {
-                                get: function() {
-                                    return dev.values.mode.raw == 0;
-                                }
-                            });
                             Object.defineProperty(dev, "mode", {
                                 set: function(v) {
                                     $scope.request({ type: "setValue", devuuid: dev.uuid, valname: "mode", value: v });
                                     //console.log("setting", dev.uuid, v);
+                                }
+                            });
+                            Object.defineProperty(dev, "state", {
+                                get: function() {
+                                    return dev.values.state.raw;
                                 }
                             });
                         }

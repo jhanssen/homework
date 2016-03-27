@@ -77,8 +77,9 @@
 		</div>
 		<div ng-if="dev.type == Type.GarageDoor" class="hw-margin center-block">
 		  <div>
-		    <button class="btn btn-default ng-class:{'btn-primary': dev.closed}" ng-click="dev.mode = 0">Close</button>
-		    <button class="btn btn-default ng-class:{'btn-primary': !dev.closed}" ng-click="dev.mode = 1">Open</button>
+		    <div>{{dev.state}}</div>
+		    <button class="btn btn-default" ng-click="dev.mode = 1">Open</button>
+		    <button class="btn btn-default" ng-click="dev.mode = 0">Close</button>
 		  </div>
 		</div>
 	      </div>
