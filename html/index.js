@@ -462,6 +462,10 @@ module.controller('deviceController', function($scope) {
         console.log("set value?", v, val);
         $scope.request({ type: "setValue", devuuid: $scope.dev.uuid, valname: v.name, value: val !== undefined ? val : v.value });
     };
+    $scope.setName = function(dev) {
+        console.log("set name?", dev.name);
+        $scope.request({ type: "setName", devuuid: dev.uuid, name: dev.name });
+    };
 
     var valueUpdated = function(updated) {
         if (updated.devuuid == $scope.dev.uuid) {

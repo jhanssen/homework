@@ -389,6 +389,30 @@ const types = {
                       readOnly: val.readOnly, type: val.type };
         send(ws, msg.id, ret);
     },
+    setName: (ws, msg) => {
+        const devs = homework.devices;
+        if (!("devuuid" in msg)) {
+            error(ws, msg.id, "no devuuid in message");
+            return;
+        }
+        var dev;
+        for (var i = 0; i < devs.length; ++i) {
+            if (devs[i].uuid == msg.devuuid) {
+                dev = devs[i];
+                break;
+            }
+        }
+        if (!dev) {
+            error(ws, msg.id, "unknown device");
+            return;
+        }
+        if (typeof msg.name !== "string" || !msg.name.length) {
+            error(ws, msg.id, `invalid name ${msg.name}`);
+            return;
+        }
+        dev.name = msg.name;
+        send(ws, msg.id, "ok");
+    },
     setValue: (ws, msg) => {
         const devs = homework.devices;
         if (!("devuuid" in msg)) {
