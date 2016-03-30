@@ -476,7 +476,7 @@ module.controller('deviceController', function($scope) {
     $scope.setType = function(dev, t) {
         console.log("set type?", dev.uuid, t);
         $scope.request({ type: "setType", devuuid: dev.uuid, devtype: t })
-            .then(() => {
+            .then(function() {
                 dev.type = t;
                 $scope.$apply();
             });
