@@ -16,6 +16,13 @@ module.controller('mainController', function($scope) {
     location.hash = "#";
 
     $scope.Type = { Dimmer: 0, Light: 1, Fan: 2, RGBWLed: 5, Sensor: 6, GarageDoor: 7 };
+    $scope.typeName = function(t) {
+        for (var k in $scope.Type) {
+            if (t == $scope.Type[k])
+                return k;
+        }
+        return "";
+    };
     $scope.active = "devices";
     $scope.nav = [];
 
@@ -465,6 +472,14 @@ module.controller('deviceController', function($scope) {
     $scope.setName = function(dev) {
         console.log("set name?", dev.name);
         $scope.request({ type: "setName", devuuid: dev.uuid, name: dev.name });
+    };
+    $scope.setType = function(dev, t) {
+        console.log("set type?", dev.uuid, t);
+        $scope.request({ type: "setType", devuuid: dev.uuid, devtype: t })
+            .then(() => {
+                dev.type = t;
+                $scope.$apply();
+            });
     };
 
     var valueUpdated = function(updated) {

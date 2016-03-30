@@ -132,6 +132,22 @@
 	      {{dev.uuid}}
 	    </div>
 	  </div>
+	  <div class="row hw-vcenter">
+	    <div class="col-xs-4 col-sm-4 col-md-4 col-lg-4">
+	      type
+	    </div>
+	    <div class="col-xs-8 col-sm-8 col-md-8 col-lg-8">
+	      <div class="dropdown"><button ng-attr-id="drop-hw-type" class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">{{typeName(dev.type)}}<span class="caret"></span></button>
+		<ul class="dropdown-menu" aria-labelledby="drop-hw-type">
+		  <li ng-repeat="(tn, tv) in Type">
+		    <a href="" class="btn default" ng-click="setType(dev, tv)">
+		      {{tn}}
+		    </a>
+		  </li>
+		</ul>
+	      </div>
+	    </div>
+	  </div>
 	  <div class="row hw-vcenter" ng-repeat="val in vals">
 	    <div class="col-xs-4 col-sm-4 col-md-4 col-lg-4">
 	      {{val.name}}

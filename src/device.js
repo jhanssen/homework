@@ -27,10 +27,6 @@ function stringAsType(a) {
 
 function Device(t, u)
 {
-    if (typeof t !== "number") {
-        console.trace("invalid type", t);
-        throw "Device type needs to be a number";
-    }
     this._name = undefined;
     this._type = t;
     this._values = Object.create(null);
@@ -39,12 +35,18 @@ function Device(t, u)
         if (typeof data.data === "object" && typeof data.data[u] === "object") {
             this._name = data.data[u].name;
             this._groups = data.data[u].groups;
+            if (typeof data.data[u].type === "number") {
+                this._type = data.data[u].type;
+            }
         }
     } else {
         this._uuid = uuid.v1();
     }
     if (this._groups === undefined)
         this._groups = [];
+
+    if (typeof this._type !== "number")
+        this._type = Device.Type.Unknown;
 }
 
 Device.Type = {
@@ -79,6 +81,9 @@ Device.prototype = {
     },
     get type() {
         return this._type;
+    },
+    set type(t) {
+        this._type = t;
     },
     get groups() {
         return this._groups;

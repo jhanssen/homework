@@ -413,6 +413,30 @@ const types = {
         dev.name = msg.name;
         send(ws, msg.id, "ok");
     },
+    setType: (ws, msg) => {
+        const devs = homework.devices;
+        if (!("devuuid" in msg)) {
+            error(ws, msg.id, "no devuuid in message");
+            return;
+        }
+        var dev;
+        for (var i = 0; i < devs.length; ++i) {
+            if (devs[i].uuid == msg.devuuid) {
+                dev = devs[i];
+                break;
+            }
+        }
+        if (!dev) {
+            error(ws, msg.id, "unknown device");
+            return;
+        }
+        if (typeof msg.devtype !== "number") {
+            error(ws, msg.id, `invalid type ${msg.devtype}`);
+            return;
+        }
+        dev.type = msg.devtype;
+        send(ws, msg.id, "ok");
+    },
     setValue: (ws, msg) => {
         const devs = homework.devices;
         if (!("devuuid" in msg)) {
