@@ -35,6 +35,8 @@ function Device(t, u)
         if (typeof data.data === "object" && typeof data.data[u] === "object") {
             this._name = data.data[u].name;
             this._groups = data.data[u].groups;
+            this._floor = data.data[u].floor;
+            this._room = data.data[u].room;
             if (typeof data.data[u].type === "number") {
                 this._type = data.data[u].type;
             }
@@ -66,12 +68,34 @@ Device.prototype = {
     _values: undefined,
     _type: undefined,
     _groups: undefined,
+    _floor: undefined,
+    _room: undefined,
 
     set name(name) {
         this._name = name;
     },
     get name() {
         return this._name;
+    },
+    set floor(floor) {
+        this._floor = floor;
+    },
+    get floor() {
+        return this._floor;
+    },
+    set room(room) {
+        this._room = room;
+    },
+    get room() {
+        return this._room;
+    },
+    get fullName() {
+        var n = this._name;
+        if (this._room !== undefined)
+            n = this._room + " " + n;
+        if (this._floor !== undefined)
+            n = this._floor + " " + n;
+        return n;
     },
     get values() {
         return this._values;
@@ -216,7 +240,7 @@ Device.Value.prototype = {
         if (this._value == v)
             return;
         this._value = v;
-        data.homework.Console.log("device value", this.name, "changed to", this._value, "for device", (this.device ? this.device.name : "(not set)"));
+        data.homework.Console.log("device value", this.name, "changed to", this._value, "for device", (this.device ? this.device.fullName : "(not set)"));
         data.homework.valueUpdated(this);
         this._emit("changed", this.value);
     },
@@ -257,7 +281,7 @@ Device.Event = function()
     }
     if (!dev) {
         for (i = 0; i < devs.length; ++i) {
-            if (devs[i].name === args[0])
+            if (devs[i].fullName === args[0])
                 dev = devs[i];
         }
     }
@@ -329,9 +353,9 @@ Device.Event.prototype = {
     },
     format: function() {
         if (this._eventType === "is")
-            return ["Device", this._device.name, this._value.name, "is", this._equals];
+            return ["Device", this._device.fullName, this._value.name, "is", this._equals];
         else
-            return ["Device", this._device.name, this._value.name, "range", this._equals[0], this._equals[1]];
+            return ["Device", this._device.fullName, this._value.name, "range", this._equals[0], this._equals[1]];
     }
 };
 
@@ -353,7 +377,7 @@ Device.Action = function()
     }
     if (!dev) {
         for (i = 0; i < devs.length; ++i) {
-            if (devs[i].name === arguments[0])
+            if (devs[i].fullName === arguments[0])
                 dev = devs[i];
         }
     }
@@ -396,7 +420,7 @@ Device.Action.prototype = {
         return { type: "DeviceAction", deviceUuid: this._device.uuid, valueName: this._value.name, value: this._equals };
     },
     format: function() {
-        return ["Device", this._device.name, this._value.name, this._equals];
+        return ["Device", this._device.fullName, this._value.name, this._equals];
     }
 };
 
@@ -409,13 +433,13 @@ function eventCompleter()
     if (arguments.length === 0) {
         ret.type = "array";
         for (i = 0; i < devs.length; ++i) {
-            ret.values.push(devs[i].name);
+            ret.values.push(devs[i].fullName);
         }
     } else {
         // find the device in question
         var dev;
         for (i = 0; i < devs.length; ++i) {
-            if (devs[i].name === arguments[0])
+            if (devs[i].fullName === arguments[0])
                 dev = devs[i];
         }
         if (dev !== undefined) {
@@ -444,13 +468,13 @@ function actionCompleter()
     if (arguments.length === 0) {
         ret.type = "array";
         for (i = 0; i < devs.length; ++i) {
-            ret.values.push(devs[i].name);
+            ret.values.push(devs[i].fullName);
         }
     } else {
         // find the device in question
         var dev;
         for (i = 0; i < devs.length; ++i) {
-            if (devs[i].name === arguments[0])
+            if (devs[i].fullName === arguments[0])
                 dev = devs[i];
         }
         if (dev !== undefined) {

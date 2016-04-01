@@ -98,7 +98,7 @@ const types = {
     devices: (ws, msg) => {
         const devs = homework.devices;
         if (devs instanceof Array) {
-            const ret = devs.map((e) => { return { type: e.type, name: e.name, uuid: e.uuid, groups: e.groups }; });
+            const ret = devs.map((e) => { return { type: e.type, name: e.name, room: e.room, floor: e.floor, uuid: e.uuid, groups: e.groups }; });
             send(ws, msg.id, ret);
         } else {
             error(ws, msg.id, "no devices");
@@ -111,7 +111,7 @@ const types = {
             for (var i = 0; i < devs.length; ++i) {
                 if (devs[i].uuid == uuid) {
                     var d = devs[i];
-                    send(ws, msg.id, { type: d.type, name: d.name, uuid: d.uuid, groups: d.groups });
+                    send(ws, msg.id, { type: d.type, name: d.name, room: d.room, floor: d.floor, uuid: d.uuid, groups: d.groups });
                     return;
                 }
             }
@@ -332,6 +332,24 @@ const types = {
         homework.addRule(rule);
         send(ws, msg.id, { name: desc.name, success: true });
     },
+    devicedata: (ws, msg) => {
+        // return a list of all rooms and floors
+        var rooms = Object.create(null);
+        var floors = Object.create(null);
+        const devs = homework.devices;
+        for (var i = 0; i < devs.length; ++i) {
+            var dev = devs[i];
+            if (dev.room)
+                rooms[dev.room] = true;
+            if (dev.floor)
+                floors[dev.floor] = true;
+        }
+        var ret = {
+            rooms: Object.keys(rooms),
+            floors: Object.keys(floors)
+        };
+        send(ws, msg.id, ret);
+    },
     values: (ws, msg) => {
         const devs = homework.devices;
         if (!("devuuid" in msg)) {
@@ -411,6 +429,60 @@ const types = {
             return;
         }
         dev.name = msg.name;
+        send(ws, msg.id, "ok");
+    },
+    setRoom: (ws, msg) => {
+        const devs = homework.devices;
+        if (!("devuuid" in msg)) {
+            error(ws, msg.id, "no devuuid in message");
+            return;
+        }
+        var dev;
+        for (var i = 0; i < devs.length; ++i) {
+            if (devs[i].uuid == msg.devuuid) {
+                dev = devs[i];
+                break;
+            }
+        }
+        if (!dev) {
+            error(ws, msg.id, "unknown device");
+            return;
+        }
+        if (typeof msg.room !== "string") {
+            error(ws, msg.id, `invalid room ${msg.room}`);
+            return;
+        }
+        if (msg.room.length > 0)
+            dev.room = msg.room;
+        else
+            dev.room = undefined;
+        send(ws, msg.id, "ok");
+    },
+    setFloor: (ws, msg) => {
+        const devs = homework.devices;
+        if (!("devuuid" in msg)) {
+            error(ws, msg.id, "no devuuid in message");
+            return;
+        }
+        var dev;
+        for (var i = 0; i < devs.length; ++i) {
+            if (devs[i].uuid == msg.devuuid) {
+                dev = devs[i];
+                break;
+            }
+        }
+        if (!dev) {
+            error(ws, msg.id, "unknown device");
+            return;
+        }
+        if (typeof msg.floor !== "string") {
+            error(ws, msg.id, `invalid floor ${msg.floor}`);
+            return;
+        }
+        if (msg.floor.length > 0)
+            dev.floor = msg.floor;
+        else
+            dev.floor = undefined;
         send(ws, msg.id, "ok");
     },
     setType: (ws, msg) => {

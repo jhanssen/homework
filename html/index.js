@@ -218,6 +218,17 @@ module.controller('devicesController', function($scope) {
                                 grps.push(grp);
                         }
 
+                        Object.defineProperty(dev, "fullName", {
+                            get: function() {
+                                var n = this.name;
+                                if (this.room !== undefined)
+                                    n = this.room + " " + n;
+                                if (this.floor !== undefined)
+                                    n = this.floor + " " + n;
+                                return n;
+                            }
+                        });
+
                         dev.safeuuid = dev.uuid.replace(/:/g, "_");
                         switch (dev.type) {
                         case $scope.Type.Dimmer:
@@ -451,10 +462,14 @@ module.controller('deviceController', function($scope) {
             console.log("got device", uuid, response);
             $scope.dev = response;
 
-            $scope.request({ type: "values", devuuid: uuid }).then(function(response) {
-                console.log("all values", response);
-                $scope.vals = response;
-                $scope.$apply();
+            $scope.request({ type: "devicedata" }).then(function(response) {
+                $scope.rooms = response.rooms;
+                $scope.floors = response.floors;
+                $scope.request({ type: "values", devuuid: uuid }).then(function(response) {
+                    console.log("all values", response);
+                    $scope.vals = response;
+                    $scope.$apply();
+                });
             });
         });
     };
@@ -472,6 +487,26 @@ module.controller('deviceController', function($scope) {
     $scope.setName = function(dev) {
         console.log("set name?", dev.name);
         $scope.request({ type: "setName", devuuid: dev.uuid, name: dev.name });
+    };
+    $scope.setRoom = function(dev, r) {
+        console.log("set room", dev.name, r);
+        if (r === undefined)
+            r = dev.room;
+        $scope.request({ type: "setRoom", devuuid: $scope.dev.uuid, room: r })
+            .then(function() {
+                dev.room = r;
+                $scope.$apply();
+            });
+    };
+    $scope.setFloor = function(dev, f) {
+        console.log("set floor", dev.name, f);
+        if (f === undefined)
+            f = dev.floor;
+        $scope.request({ type: "setFloor", devuuid: $scope.dev.uuid, floor: f })
+            .then(function() {
+                dev.floor = f;
+                $scope.$apply();
+            });
     };
     $scope.setType = function(dev, t) {
         console.log("set type?", dev.uuid, t);

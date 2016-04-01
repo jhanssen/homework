@@ -60,7 +60,7 @@
 	    <div class="col-xs-6 col-sm-4 col-md-4 col-lg-3 center-block text-center" ng-repeat="(uuid, dev) in currentDevices">
 	      <div class="hw-frame" ng-drag="true" ng-drag-data="{{dev}}">
 		<div class="hw-pointer" ng-click="setLocation('#device/' + dev.safeuuid)">
-		  {{dev.name}}
+		  {{dev.fullName}}
 		</div>
 		<div ng-if="dev.type == Type.Dimmer" class="hw-margin center-block">
 		  <slider ng-attr-id="{{'slider-'+dev.safeuuid}}" ng-model="dev.level" min="0" step="1" max="dev.max"></slider>
@@ -120,7 +120,43 @@
 	    </div>
 	    <div class="col-xs-8 col-sm-8 col-md-8 col-lg-8">
 	      <form ng-submit="setName(dev)">
-		<input type="text" ng-model="dev.name">
+		<input type="text" ng-model="dev.name" class="form-control">
+	      </form>
+	    </div>
+	  </div>
+	  <div class="row hw-vcenter">
+	    <div class="col-xs-4 col-sm-4 col-md-4 col-lg-4">
+	      floor
+	    </div>
+	    <div class="col-xs-8 col-sm-8 col-md-8 col-lg-8">
+	      <form ng-submit="setFloor(dev)">
+		<div class="input-group">
+		  <input type="text" ng-model="dev.floor" class="form-control" aria-label="...">
+		  <div  class="input-group-btn">
+		    <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Select <span class="caret"></span></button>
+		    <ul ng-if="floors && floors.length > 0" class="dropdown-menu dropdown-menu-right">
+		      <li ng-repeat="floor in floors"><a href="" ng-click="setFloor(dev, floor)">{{floor}}</a></li>
+		    </ul>
+		  </div>
+		</div>
+	      </form>
+	    </div>
+	  </div>
+	  <div class="row hw-vcenter">
+	    <div class="col-xs-4 col-sm-4 col-md-4 col-lg-4">
+	      room
+	    </div>
+	    <div class="col-xs-8 col-sm-8 col-md-8 col-lg-8">
+	      <form ng-submit="setRoom(dev)">
+		<div class="input-group">
+		  <input type="text" ng-model="dev.room" class="form-control" aria-label="...">
+		  <div  class="input-group-btn">
+		    <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Select <span class="caret"></span></button>
+		    <ul ng-if="rooms && rooms.length > 0" class="dropdown-menu dropdown-menu-right">
+		      <li ng-repeat="room in rooms"><a href="" ng-click="setRoom(dev, room)">{{room}}</a></li>
+		    </ul>
+		  </div>
+		</div>
 	      </form>
 	    </div>
 	  </div>
@@ -159,7 +195,7 @@
 	      <div ng-if="!val.readOnly">
 		<div ng-if="val.type !== 'array'" style="float: left; margin-right: 1em">
 		  <form ng-submit="setValue(val)">
-		    <input type="text" ng-model="val.value">
+		    <input type="text" ng-model="val.value" class="form-control">
 		  </form>
 		</div>
 		<div style="margin-right: 1em; float: left" ng-if="val.values">

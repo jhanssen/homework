@@ -156,7 +156,7 @@ homework = {
         var devices = this._deviceinfo || Object.create(null);
         for (i = 0; i < this._devices.length; ++i) {
             var dev = this._devices[i];
-            devices[dev.uuid] = { name: dev.name, groups: dev.groups, type: dev.type };
+            devices[dev.uuid] = { name: dev.name, room: dev.room, floor: dev.floor, groups: dev.groups, type: dev.type };
         }
         db.writeFileSync(path.join(Config.path, "devices.json"), devices, { spaces: 4 });
     },
