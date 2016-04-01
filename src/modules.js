@@ -36,7 +36,13 @@ function getDefaultPaths() {
         }
     }
 
-    return paths;
+    // uniquify
+    var uniq = Object.create(null);
+    for (var p = 0; p < paths.length; ++p) {
+        uniq[paths[p]] = true;
+    }
+
+    return Object.keys(uniq);
 }
 
 const modules = {
