@@ -37,6 +37,7 @@ function config(homework, cb)
     fs.readFile(file, (err, data) => {
         if (err) {
             Console.error("no config file, consider creating", file);
+            homework._cfg = {};
             cb();
             return;
         }
@@ -44,6 +45,7 @@ function config(homework, cb)
             var cfg = JSON.parse(data);
         } catch (e) {
             Console.error("unable to parse config file as JSON", file);
+            homework._cfg = {};
             cb();
             return;
         }
