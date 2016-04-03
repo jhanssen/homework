@@ -60,6 +60,7 @@ Device.Type = {
     RGBWLed: 5,
     Sensor: 6,
     GarageDoor: 7,
+    Lock: 8,
     Unknown: 99
 };
 

@@ -15,7 +15,7 @@ var module = angular.module('app', ['ui.bootstrap', 'ui.bootstrap-slider', 'frap
 module.controller('mainController', function($scope) {
     location.hash = "#";
 
-    $scope.Type = { Dimmer: 0, Light: 1, Fan: 2, Thermostat: 3, Clapper: 4, RGBWLed: 5, Sensor: 6, GarageDoor: 7, Unknown: 99 };
+    $scope.Type = { Dimmer: 0, Light: 1, Fan: 2, Thermostat: 3, Clapper: 4, RGBWLed: 5, Sensor: 6, GarageDoor: 7, Lock: 8, Unknown: 99 };
     $scope.typeName = function(t) {
         for (var k in $scope.Type) {
             if (t == $scope.Type[k])
