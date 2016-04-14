@@ -759,6 +759,7 @@ const HWWebSocket = {
     _cloudOk: false,
     _cloudPending: [],
     _cloudInterval: undefined,
+    _cloudSentReady: false,
 
     sendCloud: function(d) {
         if (this._cloud && this._cloudOk) {
@@ -832,7 +833,8 @@ const HWWebSocket = {
             this._cloud.on("open", () => {
                 Console.log("cloud available");
                 this._setupWS(this._cloud);
-                if (this._ready) {
+                if (this._ready && !this._cloudSentReady) {
+                    this._cloudSentReady = true;
                     Console.log("telling cloud we're ready (1)");
                     this.sendCloud({ type: "ready", ready: true });
                 }
@@ -845,6 +847,7 @@ const HWWebSocket = {
                 Console.log("cloud gone");
                 this._cloud = undefined;
                 this._cloudOk = false;
+                this._cloudSentReady = false;
                 clearInterval(this._cloudInterval);
                 this._cloudInterval = undefined;
             });
@@ -875,8 +878,11 @@ const HWWebSocket = {
         homework.on("ready", () => {
             this._ready = true;
             sendToAll({ type: "ready", ready: true });
-            Console.log("telling cloud we're ready (2)");
-            this.sendCloud({ type: "ready", ready: true });
+            if (!this._cloudSentReady) {
+                Console.log("telling cloud we're ready (2)");
+                this.sendCloud({ type: "ready", ready: true });
+                this._cloudSentReady = true;
+            }
         });
         wss = new WebSocketServer({ port: 8093 });
         wss.on("connection", (ws) => {
