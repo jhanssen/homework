@@ -54,10 +54,18 @@ const modules = {
         this._homework = homework;
         this._moduledata = data;
 
+        var remainingPaths = 0;
+        const ready = () => {
+            if (!--remainingPaths) {
+                this._homework.modulesReady();
+            }
+        };
         // load modules in path
         const loadModules = (cur) => {
-            if (!fs.existsSync(cur))
+            if (!fs.existsSync(cur)) {
+                ready();
                 return;
+            }
             var tryload = [];
             const candidates = fs.readdirSync(cur);
             for (var c = 0; c < candidates.length; ++c) {
@@ -89,13 +97,14 @@ const modules = {
                 }
             }
             if (!tryload.length) {
-                this._homework.modulesReady();
+                ready();
                 return;
             }
             var rem = tryload.length;
             const done = () => {
-                if (!--rem)
-                    this._homework.modulesReady();
+                if (!--rem) {
+                    ready();
+                }
             };
             for (var i = 0; i < tryload.length; ++i) {
                 this._loadModule(tryload[i], done);
@@ -103,6 +112,11 @@ const modules = {
         };
 
         const paths = getDefaultPaths();
+        remainingPaths = paths.length;
+        if (!remainingPaths) {
+            this._homework.modulesReady();
+            return;
+        }
         paths.forEach(loadModules, this);
     },
     shutdown: function(cb) {

@@ -813,6 +813,8 @@ const HWWebSocket = {
             sendToAll({ type: "variableUpdated", name: name, value: Variable.variables[name] });
         });
 
+        this._ready = false;
+
         if (cfg && cfg.key) {
             this._cloud = new WebSocket("wss://www.homework.software:443/user/websocket",
             //this._cloud = new WebSocket("ws://192.168.1.22:3000/user/websocket",
@@ -838,7 +840,6 @@ const HWWebSocket = {
             console.log("no cloud key, not connecting");
         }
 
-        this._ready = false;
         homework = hw;
         homework.on("valueUpdated", (value) => {
             sendToAll({ type: "valueUpdated", valueUpdated: { devuuid: value.device ? value.device.uuid : null, valname: value.name, value: value.value, raw: value.raw }});
