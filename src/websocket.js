@@ -1,4 +1,4 @@
-/*global module,require,global*/
+/*global module,require,global,setInterval,clearInterval*/
 
 "use strict";
 
@@ -11,6 +11,8 @@ const Timer = require("./timer.js");
 var wss = undefined;
 var homework = undefined;
 var connections = [];
+
+var Console;
 
 function findDevice(uuid)
 {
@@ -59,7 +61,7 @@ const types = {
     call: (ws, msg) => {
         // find the thing
         if (typeof msg.call !== "string") {
-            console.log("no call:", msg);
+            Console.log("no call:", msg);
             error(ws, msg.id, "message has no call");
             return;
         }
@@ -68,7 +70,7 @@ const types = {
         var thing = homework;
         for (var i = 0; i < split.length; ++i) {
             if (!(split[i] in thing)) {
-                console.log(`no ${split[i]} in ${thing}`);
+                Console.log(`no ${split[i]} in ${thing}`);
                 error(ws, msg.id, "message has invalid call");
                 return;
             }
@@ -91,12 +93,13 @@ const types = {
         try {
             retmsg = JSON.stringify({ id: msg.id, result: ret });
         } catch (e) {
-            console.log("ws data exception", e);
+            Console.log("ws data exception", e);
             retmsg = JSON.stringify({ id: msg.id, error: "message data exception" });
         }
         ws.send(retmsg);
     },
     devices: (ws, msg) => {
+        Console.log("asked for devices");
         const devs = homework.devices;
         if (devs instanceof Array) {
             const ret = devs.map((e) => { return { type: e.type, name: e.name, room: e.room, floor: e.floor, uuid: e.uuid, groups: e.groups }; });
@@ -170,7 +173,7 @@ const types = {
                 if (f === undefined) {
                     throw `No event/action named '${array[0]}' registered`;
                 }
-                // console.log(`--${array[0]}--`);
+                // Console.log(`--${array[0]}--`);
                 // call consecutive complete with the rest of the array
                 var ret = { name: array[0], steps: [] };
                 var len = array.length - 1;
@@ -178,7 +181,7 @@ const types = {
                     var rest = array.slice(1);
                     rest.splice(i);
                     var comps = f.completion.apply(null, rest);
-                    // console.log("comps for " + JSON.stringify(rest) + ": " + JSON.stringify(comps) + "(val: " + array[i + 1] + ")");
+                    // Console.log("comps for " + JSON.stringify(rest) + ": " + JSON.stringify(comps) + "(val: " + array[i + 1] + ")");
                     ret.steps.push({ alternatives: comps, value: array[i + 1] });
                 }
                 return ret;
@@ -227,9 +230,9 @@ const types = {
             if (!(typeof evt === "object") || !("completion" in evt)) {
                 error(ws, msg.id, "no event");
             } else {
-                // console.log("asking for completions", args.slice(1));
+                // Console.log("asking for completions", args.slice(1));
                 const ret = evt.completion.apply(null, args.slice(1));
-                // console.log("got", ret);
+                // Console.log("got", ret);
                 send(ws, msg.id, ret);
             }
         }
@@ -243,9 +246,9 @@ const types = {
             if (!(typeof act === "object") || !("completion" in act)) {
                 error(ws, msg.id, "no action");
             } else {
-                // console.log("asking for completions", args.slice(1));
+                // Console.log("asking for completions", args.slice(1));
                 const ret = act.completion.apply(null, args.slice(1));
-                // console.log("got", ret);
+                // Console.log("got", ret);
                 send(ws, msg.id, ret);
             }
         }
@@ -745,7 +748,7 @@ const types = {
 
 function cloud(ws, msg)
 {
-    console.log("cloud", msg);
+    Console.log("cloud", msg);
 }
 
 var extraTypes = Object.create(null);
@@ -755,6 +758,7 @@ const HWWebSocket = {
     _cloud: undefined,
     _cloudOk: false,
     _cloudPending: [],
+    _cloudInterval: undefined,
 
     sendCloud: function(d) {
         if (this._cloud && this._cloudOk) {
@@ -769,6 +773,8 @@ const HWWebSocket = {
             }
         } else if (this._cloud) {
             this._cloudPending.push(d);
+        } else {
+            Console.log("no cloud");
         }
     },
 
@@ -779,12 +785,12 @@ const HWWebSocket = {
             try {
                 msg = JSON.parse(data);
             } catch (e) {
-                console.log("invalid ws message:", data);
+                Console.log("invalid ws message:", data);
                 ws.send(JSON.stringify({ error: "invalid message" }));
                 return;
             }
             if (typeof msg !== "object") {
-                console.log("ws message is not an object:", msg);
+                Console.log("ws message is not an object:", msg);
                 ws.send(JSON.stringify({ error: "message is not an object" }));
                 return;
             }
@@ -794,7 +800,7 @@ const HWWebSocket = {
                     this.sendCloud();
                     return;
                 }
-                console.log("no id in message", msg);
+                Console.log("no id in message", msg);
                 ws.send(JSON.stringify({ error: "message has no id" }));
                 return;
             }
@@ -803,12 +809,14 @@ const HWWebSocket = {
             } else if ("type" in msg && msg.type in extraTypes) {
                 extraTypes[msg.type](ws, msg);
             } else {
-                console.log("unhandled ws message:", msg);
+                Console.log("unhandled ws message:", msg);
             }
         });
     },
 
     init: function(hw, cfg) {
+        Console = hw.Console;
+
         Variable.on("changed", (name) => {
             sendToAll({ type: "variableUpdated", name: name, value: Variable.variables[name] });
         });
@@ -822,22 +830,29 @@ const HWWebSocket = {
                                             "X-Homework-Key": cfg.key
                                         }});
             this._cloud.on("open", () => {
-                console.log("cloud available");
+                Console.log("cloud available");
                 this._setupWS(this._cloud);
                 if (this._ready) {
+                    Console.log("telling cloud we're ready (1)");
                     this.sendCloud({ type: "ready", ready: true });
                 }
+                this._cloudInterval = setInterval(() => {
+                    Console.log("ping cloud");
+                    this._cloud.ping();
+                }, 1000 * 30);
             });
             this._cloud.on("close", () => {
-                console.log("cloud gone");
+                Console.log("cloud gone");
                 this._cloud = undefined;
                 this._cloudOk = false;
+                clearInterval(this._cloudInterval);
+                this._cloudInterval = undefined;
             });
             this._cloud.on("error", (err) => {
-                console.log("cloud error", err);
+                Console.log("cloud error", err);
             });
         } else {
-            console.log("no cloud key, not connecting");
+            Console.log("no cloud key, not connecting");
         }
 
         homework = hw;
@@ -860,6 +875,7 @@ const HWWebSocket = {
         homework.on("ready", () => {
             this._ready = true;
             sendToAll({ type: "ready", ready: true });
+            Console.log("telling cloud we're ready (2)");
             this.sendCloud({ type: "ready", ready: true });
         });
         wss = new WebSocketServer({ port: 8093 });
