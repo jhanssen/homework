@@ -178,7 +178,7 @@ homework = {
                 Device.Device.init(this, obj);
                 Timer.init(this);
                 Variable.init(this);
-                WebSocket.init(this);
+                WebSocket.init(this, this.config.websocket);
                 db.readFile(path.join(Config.path, "modules.json"), (err, obj) => {
                     Modules.init(this, obj);
                     this._restored = true;

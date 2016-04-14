@@ -2,7 +2,8 @@
 
 "use strict";
 
-const WebSocketServer = require("ws").Server;
+const WebSocket = require("ws");
+const WebSocketServer = WebSocket.Server;
 const Rule = require("./rule.js");
 const Variable = require("./variable.js");
 const Timer = require("./timer.js");
@@ -547,6 +548,44 @@ const types = {
 
         send(ws, msg.id, "ok");
     },
+    addValue: (ws, msg) => {
+        const devs = homework.devices;
+        if (!("devuuid" in msg)) {
+            error(ws, msg.id, "no devuuid in message");
+            return;
+        }
+        var dev;
+        for (var i = 0; i < devs.length; ++i) {
+            if (devs[i].uuid == msg.devuuid) {
+                dev = devs[i];
+                break;
+            }
+        }
+        if (!dev) {
+            error(ws, msg.id, "unknown device");
+            return;
+        }
+        if (!("valname" in msg)) {
+            error(ws, msg.id, "no valname in message");
+            return;
+        }
+        if (!(msg.valname in dev.values)) {
+            error(ws, msg.id, "valname not found");
+            return;
+        }
+        if (!("delta" in msg)) {
+            error(ws, msg.id, "no delta in message");
+            return;
+        }
+        const val = dev.values[msg.valname];
+        if (val.readOnly) {
+            error(ws, msg.id, "read only value");
+            return;
+        }
+        val.value = val.value + msg.delta;
+
+        send(ws, msg.id, "ok");
+    },
     variables: (ws, msg) => {
         // JSON.stringify screws me over
         var ret = Object.create(null);
@@ -704,15 +743,100 @@ const types = {
     }
 };
 
+function cloud(ws, msg)
+{
+    console.log("cloud", msg);
+}
+
 var extraTypes = Object.create(null);
 
-const WebSocket = {
+const HWWebSocket = {
     _ready: undefined,
+    _cloud: undefined,
+    _cloudOk: false,
+    _cloudPending: [],
 
-    init: function(hw) {
+    sendCloud: function(d) {
+        if (this._cloud && this._cloudOk) {
+            if (d) {
+                var data = JSON.stringify(d);
+                this._cloud.send(data);
+            } else if (this._cloudPending.length > 0) {
+                for (var i = 0; i < this._cloudPending.length; ++i) {
+                    this._cloud.send(JSON.stringify(this._cloudPending[i]));
+                }
+                this._cloudPending = [];
+            }
+        } else if (this._cloud) {
+            this._cloudPending.push(d);
+        }
+    },
+
+    _setupWS: function(ws) {
+        ws.on("message", (data, flags) => {
+            // we only support rpc for now
+            var msg;
+            try {
+                msg = JSON.parse(data);
+            } catch (e) {
+                console.log("invalid ws message:", data);
+                ws.send(JSON.stringify({ error: "invalid message" }));
+                return;
+            }
+            if (typeof msg !== "object") {
+                console.log("ws message is not an object:", msg);
+                ws.send(JSON.stringify({ error: "message is not an object" }));
+                return;
+            }
+            if (!("id" in msg)) {
+                if ("type" in msg && msg.type == "cloud") {
+                    this._cloudOk = true;
+                    this.sendCloud();
+                    return;
+                }
+                console.log("no id in message", msg);
+                ws.send(JSON.stringify({ error: "message has no id" }));
+                return;
+            }
+            if ("type" in msg && msg.type in types) {
+                types[msg.type](ws, msg);
+            } else if ("type" in msg && msg.type in extraTypes) {
+                extraTypes[msg.type](ws, msg);
+            } else {
+                console.log("unhandled ws message:", msg);
+            }
+        });
+    },
+
+    init: function(hw, cfg) {
         Variable.on("changed", (name) => {
             sendToAll({ type: "variableUpdated", name: name, value: Variable.variables[name] });
         });
+
+        if (cfg && cfg.key) {
+            this._cloud = new WebSocket("wss://www.homework.software:443/user/websocket",
+            //this._cloud = new WebSocket("ws://192.168.1.22:3000/user/websocket",
+                                        { headers: {
+                                            "X-Homework-Key": cfg.key
+                                        }});
+            this._cloud.on("open", () => {
+                console.log("cloud available");
+                this._setupWS(this._cloud);
+                if (this._ready) {
+                    this.sendCloud({ type: "ready", ready: true });
+                }
+            });
+            this._cloud.on("close", () => {
+                console.log("cloud gone");
+                this._cloud = undefined;
+                this._cloudOk = false;
+            });
+            this._cloud.on("error", (err) => {
+                console.log("cloud error", err);
+            });
+        } else {
+            console.log("no cloud key, not connecting");
+        }
 
         this._ready = false;
         homework = hw;
@@ -735,6 +859,7 @@ const WebSocket = {
         homework.on("ready", () => {
             this._ready = true;
             sendToAll({ type: "ready", ready: true });
+            this.sendCloud({ type: "ready", ready: true });
         });
         wss = new WebSocketServer({ port: 8093 });
         wss.on("connection", (ws) => {
@@ -744,34 +869,7 @@ const WebSocket = {
                 ws.send(JSON.stringify({ type: "ready", ready: true }));
             }
 
-            ws.on("message", (data, flags) => {
-                // we only support rpc for now
-                var msg;
-                try {
-                    msg = JSON.parse(data);
-                } catch (e) {
-                    console.log("invalid ws message:", data);
-                    ws.send(JSON.stringify({ error: "invalid message" }));
-                    return;
-                }
-                if (typeof msg !== "object") {
-                    console.log("ws message is not an object:", msg);
-                    ws.send(JSON.stringify({ error: "message is not an object" }));
-                    return;
-                }
-                if (!("id" in msg)) {
-                    console.log("no id in message");
-                    ws.send(JSON.stringify({ error: "message has no id" }));
-                    return;
-                }
-                if ("type" in msg && msg.type in types) {
-                    types[msg.type](ws, msg);
-                } else if ("type" in msg && msg.type in extraTypes) {
-                    extraTypes[msg.type](ws, msg);
-                } else {
-                    console.log("unhandled ws message:", msg);
-                }
-            });
+            this._setupWS(ws);
             ws.on("close", () => {
                 const idx = connections.indexOf(ws);
                 if (idx !== -1) {
@@ -787,4 +885,4 @@ const WebSocket = {
     error: error
 };
 
-module.exports = WebSocket;
+module.exports = HWWebSocket;
