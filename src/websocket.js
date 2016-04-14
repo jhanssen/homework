@@ -585,7 +585,7 @@ const types = {
             error(ws, msg.id, "read only value");
             return;
         }
-        val.value = val.value + msg.delta;
+        val.value = val.raw + msg.delta;
 
         send(ws, msg.id, "ok");
     },
