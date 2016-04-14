@@ -839,7 +839,7 @@ const HWWebSocket = {
                 this._cloudInterval = setInterval(() => {
                     Console.log("ping cloud");
                     this._cloud.ping();
-                }, 1000 * 30);
+                }, cfg.cloudPingInterval || (20 * 1000 * 60));
             });
             this._cloud.on("close", () => {
                 Console.log("cloud gone");
