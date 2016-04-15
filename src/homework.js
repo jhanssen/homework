@@ -31,7 +31,7 @@ homework = {
     _Console: Console,
     _Timer: Timer,
     _Variable: Variable,
-    _WebServer: WebServer,
+    _WebServer: WebServer.Server,
     _WebSocket: WebSocket,
     _restored: false,
     _rulePriorities: { High: 0, Medium: 1, Low: 2 },
@@ -171,7 +171,7 @@ homework = {
             }
         });
         Config.load(this, () => {
-            WebServer.serve(homework, this.config.webserver);
+            this.WebServer.serve(homework, this.config.webserver);
 
             db.readFile(path.join(Config.path, "devices.json"), (err, obj) => {
                 this._deviceinfo = obj;

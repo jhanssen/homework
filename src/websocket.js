@@ -7,6 +7,7 @@ const WebSocketServer = WebSocket.Server;
 const Rule = require("./rule.js");
 const Variable = require("./variable.js");
 const Timer = require("./timer.js");
+const WebServer = require("./webserver.js");
 
 var wss = undefined;
 var homework = undefined;
@@ -31,14 +32,14 @@ function isempty(v)
     return false;
 }
 
-function send(ws, id, result)
+function send(ws, msg, result)
 {
-    ws.send(JSON.stringify({ id: id, result: result }));
+    ws.send(JSON.stringify({ id: msg.id, wsid: msg.wsid, result: result }));
 }
 
-function error(ws, id, err)
+function error(ws, msg, err)
 {
-    ws.send(JSON.stringify({ id: id, error: err }));
+    ws.send(JSON.stringify({ id: msg.id, wsid: msg.wsid, error: err }));
 }
 
 function sendToAll(result)
@@ -62,7 +63,7 @@ const types = {
         // find the thing
         if (typeof msg.call !== "string") {
             Console.log("no call:", msg);
-            error(ws, msg.id, "message has no call");
+            error(ws, msg, "message has no call");
             return;
         }
         var split = msg.call.split(".");
@@ -71,7 +72,7 @@ const types = {
         for (var i = 0; i < split.length; ++i) {
             if (!(split[i] in thing)) {
                 Console.log(`no ${split[i]} in ${thing}`);
-                error(ws, msg.id, "message has invalid call");
+                error(ws, msg, "message has invalid call");
                 return;
             }
             callee = thing;
@@ -91,10 +92,10 @@ const types = {
         }
         var retmsg;
         try {
-            retmsg = JSON.stringify({ id: msg.id, result: ret });
+            retmsg = JSON.stringify({ id: msg.id, wsid: msg.wsid, result: ret });
         } catch (e) {
             Console.log("ws data exception", e);
-            retmsg = JSON.stringify({ id: msg.id, error: "message data exception" });
+            retmsg = JSON.stringify({ id: msg.id, wsid: msg.wsid, error: "message data exception" });
         }
         ws.send(retmsg);
     },
@@ -103,9 +104,9 @@ const types = {
         const devs = homework.devices;
         if (devs instanceof Array) {
             const ret = devs.map((e) => { return { type: e.type, name: e.name, room: e.room, floor: e.floor, uuid: e.uuid, groups: e.groups }; });
-            send(ws, msg.id, ret);
+            send(ws, msg, ret);
         } else {
-            error(ws, msg.id, "no devices");
+            error(ws, msg, "no devices");
         }
     },
     device: (ws, msg) => {
@@ -115,52 +116,52 @@ const types = {
             for (var i = 0; i < devs.length; ++i) {
                 if (devs[i].uuid == uuid) {
                     var d = devs[i];
-                    send(ws, msg.id, { type: d.type, name: d.name, room: d.room, floor: d.floor, uuid: d.uuid, groups: d.groups });
+                    send(ws, msg, { type: d.type, name: d.name, room: d.room, floor: d.floor, uuid: d.uuid, groups: d.groups });
                     return;
                 }
             }
         }
-        error(ws, msg.id, "no such device");
+        error(ws, msg, "no such device");
     },
     addGroup: (ws, msg) => {
         var group = msg.group;
         if (typeof group !== "string" || !group.length) {
-            error(ws, msg.id, "no group name");
+            error(ws, msg, "no group name");
         } else {
             var dev = findDevice(msg.uuid);
             if (dev instanceof Object) {
                 dev.addGroup(group);
-                send(ws, msg.id, "ok");
+                send(ws, msg, "ok");
             } else {
-                error(ws, msg.id, `no such device ${msg.uuid}`);
+                error(ws, msg, `no such device ${msg.uuid}`);
             }
         }
     },
     removeGroup: (ws, msg) => {
         var group = msg.group;
         if (typeof group !== "string" || !group.length) {
-            error(ws, msg.id, "no group name");
+            error(ws, msg, "no group name");
         } else {
             var dev = findDevice(msg.uuid);
             if (dev instanceof Object) {
                 dev.removeGroup(group);
-                send(ws, msg.id, "ok");
+                send(ws, msg, "ok");
             } else {
-                error(ws, msg.id, `no such device ${msg.uuid}`);
+                error(ws, msg, `no such device ${msg.uuid}`);
             }
         }
     },
     setGroup: (ws, msg) => {
         var group = msg.group;
         if (typeof group !== "string" || !group.length) {
-            error(ws, msg.id, "no group name");
+            error(ws, msg, "no group name");
         } else {
             var dev = findDevice(msg.uuid);
             if (dev instanceof Object) {
                 dev.groups = [group];
-                send(ws, msg.id, "ok");
+                send(ws, msg, "ok");
             } else {
-                error(ws, msg.id, `no such device ${msg.uuid}`);
+                error(ws, msg, `no such device ${msg.uuid}`);
             }
         }
     },
@@ -206,12 +207,12 @@ const types = {
                     }
                     return fmt;
                 });
-                send(ws, msg.id, ret);
+                send(ws, msg, ret);
             } catch (e) {
-                error(ws, msg.id, `Exception mapping rule: ${e}`);
+                error(ws, msg, `Exception mapping rule: ${e}`);
             }
         } else {
-            error(ws, msg.id, "no devices");
+            error(ws, msg, "no devices");
         }
     },
     ruleTypes: (ws, msg) => {
@@ -219,65 +220,65 @@ const types = {
             events: Object.keys(homework.events),
             actions: Object.keys(homework.actions)
         };
-        send(ws, msg.id, ret);
+        send(ws, msg, ret);
     },
     eventCompletions: (ws, msg) => {
         const args = msg.args;
         if (!(args instanceof Array)) {
-            error(ws, msg.id, "args needs to be an array");
+            error(ws, msg, "args needs to be an array");
         } else {
             const evt = homework.events[args[0]];
             if (!(typeof evt === "object") || !("completion" in evt)) {
-                error(ws, msg.id, "no event");
+                error(ws, msg, "no event");
             } else {
                 // Console.log("asking for completions", args.slice(1));
                 const ret = evt.completion.apply(null, args.slice(1));
                 // Console.log("got", ret);
-                send(ws, msg.id, ret);
+                send(ws, msg, ret);
             }
         }
     },
     actionCompletions: (ws, msg) => {
         const args = msg.args;
         if (!(args instanceof Array)) {
-            error(ws, msg.id, "args needs to be an array");
+            error(ws, msg, "args needs to be an array");
         } else {
             const act = homework.actions[args[0]];
             if (!(typeof act === "object") || !("completion" in act)) {
-                error(ws, msg.id, "no action");
+                error(ws, msg, "no action");
             } else {
                 // Console.log("asking for completions", args.slice(1));
                 const ret = act.completion.apply(null, args.slice(1));
                 // Console.log("got", ret);
-                send(ws, msg.id, ret);
+                send(ws, msg, ret);
             }
         }
     },
     createRule: (ws, msg) => {
         if (typeof msg.rule !== "object") {
-            error(ws, msg.id, "No rule");
+            error(ws, msg, "No rule");
             return;
         }
         const desc = msg.rule;
         if (typeof desc.name !== "string" || !desc.name.length) {
-            error(ws, msg.id, "No name");
+            error(ws, msg, "No name");
             return;
         }
         const events = desc.events;
         const actions = desc.actions;
         if (!(events instanceof Array)) {
-            error(ws, msg.id, "Events is not an array");
+            error(ws, msg, "Events is not an array");
             return;
         }
         if (!(actions instanceof Array)) {
-            error(ws, msg.id, "Actions is not an array");
+            error(ws, msg, "Actions is not an array");
             return;
         }
         var rule = new Rule(desc.name);
         var andCount = 0;
         for (var es = 0; es < events.length; ++es) {
             if (!(events[es] instanceof Array)) {
-                error(ws, msg.id, `Event is not an array: ${es}`);
+                error(ws, msg, `Event is not an array: ${es}`);
                 return;
             }
             var ands = [];
@@ -285,26 +286,26 @@ const types = {
                 var tr = events[es][e].trigger;
                 var event = events[es][e].event;
                 if (!(event instanceof Array) || !event.length) {
-                    error(ws, msg.id, `Sub event is not an array: ${es}:${e}`);
+                    error(ws, msg, `Sub event is not an array: ${es}:${e}`);
                     return;
                 }
                 const ector = homework.events[event[0]];
                 if (typeof ector !== "object" || !("ctor" in ector)) {
-                    error(ws, msg.id, `Sub event doesn't have a constructor ${event[0]}`);
+                    error(ws, msg, `Sub event doesn't have a constructor ${event[0]}`);
                     return;
                 }
                 try {
                     ands.push({ trigger: tr, and: construct(ector.ctor, event.slice(1)) });
                     ++andCount;
                 } catch (e) {
-                    error(ws, msg.id, `Error in event ctor ${event[0]}: ${e}`);
+                    error(ws, msg, `Error in event ctor ${event[0]}: ${e}`);
                     return;
                 }
             }
             rule.and.apply(rule, ands);
         }
         if (!andCount) {
-            error(ws, msg.id, `No events for rule`);
+            error(ws, msg, `No events for rule`);
             return;
         }
 
@@ -312,29 +313,29 @@ const types = {
         for (var as = 0; as < actions.length; ++as) {
             var action = actions[as];
             if (!(action instanceof Array) || !action.length) {
-                error(ws, msg.id, `Action is not an array: ${as}`);
+                error(ws, msg, `Action is not an array: ${as}`);
                 return;
             }
             const actor = homework.actions[action[0]];
             if (typeof actor !== "object" || !("ctor" in actor)) {
-                error(ws, msg.id, `Sub action doesn't have a constructor ${action[0]}`);
+                error(ws, msg, `Sub action doesn't have a constructor ${action[0]}`);
                 return;
             }
             try {
                 thens.push(construct(actor.ctor, action.slice(1)));
             } catch (e) {
-                error(ws, msg.id, `Error in action ctor ${action[0]}: ${e}`);
+                error(ws, msg, `Error in action ctor ${action[0]}: ${e}`);
                 return;
             }
         }
         if (!thens.length) {
-            error(ws, msg.id, `No actions for rule`);
+            error(ws, msg, `No actions for rule`);
             return;
         }
         rule.then.apply(rule, thens);
         homework.removeRuleByName(rule.name);
         homework.addRule(rule);
-        send(ws, msg.id, { name: desc.name, success: true });
+        send(ws, msg, { name: desc.name, success: true });
     },
     devicedata: (ws, msg) => {
         // return a list of all rooms and floors
@@ -352,12 +353,12 @@ const types = {
             rooms: Object.keys(rooms),
             floors: Object.keys(floors)
         };
-        send(ws, msg.id, ret);
+        send(ws, msg, ret);
     },
     values: (ws, msg) => {
         const devs = homework.devices;
         if (!("devuuid" in msg)) {
-            error(ws, msg.id, "no devuuid in message");
+            error(ws, msg, "no devuuid in message");
             return;
         }
         var dev;
@@ -368,7 +369,7 @@ const types = {
             }
         }
         if (!dev) {
-            error(ws, msg.id, "unknown device");
+            error(ws, msg, "unknown device");
             return;
         }
         var ret = [];
@@ -378,12 +379,12 @@ const types = {
                        values: val.values, range: val.range, units: val.units,
                        readOnly: val.readOnly, type: val.type });
         }
-        send(ws, msg.id, ret);
+        send(ws, msg, ret);
     },
     getValue: (ws, msg) => {
         const devs = homework.devices;
         if (!("devuuid" in msg)) {
-            error(ws, msg.id, "no devuuid in message");
+            error(ws, msg, "no devuuid in message");
             return;
         }
         var dev;
@@ -394,27 +395,27 @@ const types = {
             }
         }
         if (!dev) {
-            error(ws, msg.id, "unknown device");
+            error(ws, msg, "unknown device");
             return;
         }
         if (!("valname" in msg)) {
-            error(ws, msg.id, "no valname in message");
+            error(ws, msg, "no valname in message");
             return;
         }
         if (!(msg.valname in dev.values)) {
-            error(ws, msg.id, "valname not found");
+            error(ws, msg, "valname not found");
             return;
         }
         const val = dev.values[msg.valname];
         const ret = { name: val.name, value: val.value, raw: val.raw,
                       values: val.values, range: val.range, units: val.units,
                       readOnly: val.readOnly, type: val.type };
-        send(ws, msg.id, ret);
+        send(ws, msg, ret);
     },
     setName: (ws, msg) => {
         const devs = homework.devices;
         if (!("devuuid" in msg)) {
-            error(ws, msg.id, "no devuuid in message");
+            error(ws, msg, "no devuuid in message");
             return;
         }
         var dev;
@@ -425,20 +426,20 @@ const types = {
             }
         }
         if (!dev) {
-            error(ws, msg.id, "unknown device");
+            error(ws, msg, "unknown device");
             return;
         }
         if (typeof msg.name !== "string" || !msg.name.length) {
-            error(ws, msg.id, `invalid name ${msg.name}`);
+            error(ws, msg, `invalid name ${msg.name}`);
             return;
         }
         dev.name = msg.name;
-        send(ws, msg.id, "ok");
+        send(ws, msg, "ok");
     },
     setRoom: (ws, msg) => {
         const devs = homework.devices;
         if (!("devuuid" in msg)) {
-            error(ws, msg.id, "no devuuid in message");
+            error(ws, msg, "no devuuid in message");
             return;
         }
         var dev;
@@ -449,23 +450,23 @@ const types = {
             }
         }
         if (!dev) {
-            error(ws, msg.id, "unknown device");
+            error(ws, msg, "unknown device");
             return;
         }
         if (typeof msg.room !== "string") {
-            error(ws, msg.id, `invalid room ${msg.room}`);
+            error(ws, msg, `invalid room ${msg.room}`);
             return;
         }
         if (msg.room.length > 0)
             dev.room = msg.room;
         else
             dev.room = undefined;
-        send(ws, msg.id, "ok");
+        send(ws, msg, "ok");
     },
     setFloor: (ws, msg) => {
         const devs = homework.devices;
         if (!("devuuid" in msg)) {
-            error(ws, msg.id, "no devuuid in message");
+            error(ws, msg, "no devuuid in message");
             return;
         }
         var dev;
@@ -476,23 +477,23 @@ const types = {
             }
         }
         if (!dev) {
-            error(ws, msg.id, "unknown device");
+            error(ws, msg, "unknown device");
             return;
         }
         if (typeof msg.floor !== "string") {
-            error(ws, msg.id, `invalid floor ${msg.floor}`);
+            error(ws, msg, `invalid floor ${msg.floor}`);
             return;
         }
         if (msg.floor.length > 0)
             dev.floor = msg.floor;
         else
             dev.floor = undefined;
-        send(ws, msg.id, "ok");
+        send(ws, msg, "ok");
     },
     setType: (ws, msg) => {
         const devs = homework.devices;
         if (!("devuuid" in msg)) {
-            error(ws, msg.id, "no devuuid in message");
+            error(ws, msg, "no devuuid in message");
             return;
         }
         var dev;
@@ -503,20 +504,20 @@ const types = {
             }
         }
         if (!dev) {
-            error(ws, msg.id, "unknown device");
+            error(ws, msg, "unknown device");
             return;
         }
         if (typeof msg.devtype !== "number") {
-            error(ws, msg.id, `invalid type ${msg.devtype}`);
+            error(ws, msg, `invalid type ${msg.devtype}`);
             return;
         }
         dev.type = msg.devtype;
-        send(ws, msg.id, "ok");
+        send(ws, msg, "ok");
     },
     setValue: (ws, msg) => {
         const devs = homework.devices;
         if (!("devuuid" in msg)) {
-            error(ws, msg.id, "no devuuid in message");
+            error(ws, msg, "no devuuid in message");
             return;
         }
         var dev;
@@ -527,34 +528,34 @@ const types = {
             }
         }
         if (!dev) {
-            error(ws, msg.id, "unknown device");
+            error(ws, msg, "unknown device");
             return;
         }
         if (!("valname" in msg)) {
-            error(ws, msg.id, "no valname in message");
+            error(ws, msg, "no valname in message");
             return;
         }
         if (!(msg.valname in dev.values)) {
-            error(ws, msg.id, "valname not found");
+            error(ws, msg, "valname not found");
             return;
         }
         if (!("value" in msg)) {
-            error(ws, msg.id, "no value in message");
+            error(ws, msg, "no value in message");
             return;
         }
         const val = dev.values[msg.valname];
         if (val.readOnly) {
-            error(ws, msg.id, "read only value");
+            error(ws, msg, "read only value");
             return;
         }
         val.value = msg.value;
 
-        send(ws, msg.id, "ok");
+        send(ws, msg, "ok");
     },
     addValue: (ws, msg) => {
         const devs = homework.devices;
         if (!("devuuid" in msg)) {
-            error(ws, msg.id, "no devuuid in message");
+            error(ws, msg, "no devuuid in message");
             return;
         }
         var dev;
@@ -565,29 +566,29 @@ const types = {
             }
         }
         if (!dev) {
-            error(ws, msg.id, "unknown device");
+            error(ws, msg, "unknown device");
             return;
         }
         if (!("valname" in msg)) {
-            error(ws, msg.id, "no valname in message");
+            error(ws, msg, "no valname in message");
             return;
         }
         if (!(msg.valname in dev.values)) {
-            error(ws, msg.id, "valname not found");
+            error(ws, msg, "valname not found");
             return;
         }
         if (!("delta" in msg)) {
-            error(ws, msg.id, "no delta in message");
+            error(ws, msg, "no delta in message");
             return;
         }
         const val = dev.values[msg.valname];
         if (val.readOnly) {
-            error(ws, msg.id, "read only value");
+            error(ws, msg, "read only value");
             return;
         }
         val.value = val.raw + msg.delta;
 
-        send(ws, msg.id, "ok");
+        send(ws, msg, "ok");
     },
     variables: (ws, msg) => {
         // JSON.stringify screws me over
@@ -597,31 +598,31 @@ const types = {
             if (ret[k] === undefined)
                 ret[k] = null;
         }
-        send(ws, msg.id, { variables: ret });
+        send(ws, msg, { variables: ret });
     },
     setVariables: (ws, msg) => {
         var name;
         for (name in msg.variables) {
             if (!(name in Variable.variables)) {
-                error(ws, msg.id, `variable ${name} doesn't exist`);
+                error(ws, msg, `variable ${name} doesn't exist`);
                 return;
             }
         }
         for (name in msg.variables) {
             Variable.change(name, msg.variables[name]);
         }
-        send(ws, msg.id, { success: true });
+        send(ws, msg, { success: true });
     },
     createVariable: (ws, msg) => {
         if (typeof msg.name !== "string" || !msg.name.length) {
-            error(ws, msg.id, `no name for variable`);
+            error(ws, msg, `no name for variable`);
             return;
         }
         if (!Variable.create(msg.name)) {
-            error(ws, msg.id, `variable ${msg.name} already exists`);
+            error(ws, msg, `variable ${msg.name} already exists`);
             return;
         }
-        send(ws, msg.id, { success: true });
+        send(ws, msg, { success: true });
         sendToAll({ type: "variableUpdated", name: msg.name, value: null });
     },
     timers: (ws, msg) => {
@@ -655,7 +656,7 @@ const types = {
             ret.schedule = out;
         }
         ret["now"] = Date.now();
-        send(ws, msg.id, { timers: ret });
+        send(ws, msg, { timers: ret });
     },
     stopTimer: (ws, msg) => {
         var err = "";
@@ -674,9 +675,9 @@ const types = {
             err = "Timer group not found";
         }
         if (err != "") {
-            error(ws, msg.id, `${err} for ${msg.name} in group ${msg.sub}`);
+            error(ws, msg, `${err} for ${msg.name} in group ${msg.sub}`);
         } else {
-            send(ws, msg.id, { success: true });
+            send(ws, msg, { success: true });
         }
     },
     restartTimer: (ws, msg) => {
@@ -696,37 +697,37 @@ const types = {
             err = "Timer group not found";
         }
         if (err != "") {
-            error(ws, msg.id, `${err} for ${msg.name} in group ${msg.sub}`);
+            error(ws, msg, `${err} for ${msg.name} in group ${msg.sub}`);
         } else {
-            send(ws, msg.id, { success: true });
+            send(ws, msg, { success: true });
         }
     },
     createTimer: (ws, msg) => {
         if (isempty(msg.name)) {
-            error(ws, msg.id, `No name for timer`);
+            error(ws, msg, `No name for timer`);
             return;
         }
         if (isempty(msg.sub)) {
-            error(ws, msg.id, `No type for timer ${msg.name}`);
+            error(ws, msg, `No type for timer ${msg.name}`);
             return;
         }
         if (msg.sub === "schedule" && isempty(msg.value)) {
-            error(ws, msg.id, `No value for timer ${msg.name}`);
+            error(ws, msg, `No value for timer ${msg.name}`);
             return;
         }
         try {
             Timer.create(msg.sub, msg.name, msg.value);
         } catch (e) {
-            error(ws, msg.id, `Couldn't create timer: ${e}`);
+            error(ws, msg, `Couldn't create timer: ${e}`);
             return;
         }
-        send(ws, msg.id, { success: true });
+        send(ws, msg, { success: true });
     },
     setSchedules: (ws, msg) => {
         var name;
         for (name in msg.schedules) {
             if (!(name in Timer.schedule)) {
-                error(ws, msg.id, `schedule ${name} doesn't exist`);
+                error(ws, msg, `schedule ${name} doesn't exist`);
                 return;
             }
         }
@@ -739,9 +740,18 @@ const types = {
             }
         }
         if (err != "") {
-            error(ws, msg.id, err);
+            error(ws, msg, err);
         } else {
-            send(ws, msg.id, { success: true });
+            send(ws, msg, { success: true });
+        }
+    },
+    web: (ws, msg) => {
+        if ("path" in msg) {
+            WebServer.get(msg.path, (statusCode, headers, body) => {
+                send(ws, msg, { statusCode: statusCode, headers: headers, body: body });
+            });
+        } else {
+            error(ws, msg, "no path in msg");
         }
     }
 };
