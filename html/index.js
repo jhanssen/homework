@@ -58,9 +58,10 @@ module.controller('mainController', function($scope) {
         });
         return p;
     };
+    var pingInterval;
     if (window.location.hostname == "www.homework.software") {
         $scope.socket = new WebSocket(`wss://${window.location.hostname}/user/site`);
-        setInterval(function() { $scope.socket.ping(); }, (20 * 1000 * 60));
+        pingInterval = setInterval(function() { $scope.socket.ping(); }, (20 * 1000 * 60));
     } else {
         $scope.socket = new WebSocket(`ws://${window.location.hostname}:8093/`);
     }
@@ -105,6 +106,10 @@ module.controller('mainController', function($scope) {
 
     $scope.socket.onclose = function() {
         $scope.listener.emitEvent("close");
+        if (pingInterval) {
+            clearInterval(pingInterval);
+            pingInterval = undefined;
+        }
     };
     $scope.clearNavigation = function() {
         $scope.nav = [];
