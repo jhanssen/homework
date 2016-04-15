@@ -21,39 +21,43 @@ function get(pathname, cb)
 
     const servePath = (root, pathname, cb) => {
         const path = root + pathname.join("/");
-        fs.readFile(path, { encoding: "utf-8" }, (err, data) => {
+        fs.readFile(path, (err, data) => {
             if (err) {
                 cb(404, {'Content-Type': 'text/plain'}, "File not found");
                 return;
             }
             var ct;
+            var binary = false;
             const dotidx = path.lastIndexOf(".");
             if (dotidx !== -1) {
                 const ext = path.substr(dotidx + 1).toLowerCase();
 
                 const cts = {
-                    html: "text/html",
-                    css: "text/css",
-                    js: "application/javascript",
-                    gif: "image/gif",
-                    png: "image/png",
-                    jpg: "image/jpeg",
-                    jpeg: "image/jpeg",
-                    txt: "text/plain"
+                    html: { type: "text/html" },
+                    css: { type: "text/css" },
+                    js: { type: "application/javascript" },
+                    gif: { type: "image/gif", binary: true },
+                    png: { type: "image/png", binary: true },
+                    jpg: { type: "image/jpeg", binary: true },
+                    jpeg: { type: "image/jpeg", binary: true },
+                    txt: { type: "text/plain" }
                 };
                 if (ext in cts) {
-                    ct = cts[ext];
+                    ct = cts[ext].type;
+                    binary = cts[ext].binary ? true : false;
                 }
             }
             if (ct === undefined) {
                 ct = "application/octet-stream";
+                binary = true;
             }
-            cb(200, {'Content-Type': ct}, data);
+            var bin = data.toString("binary");
+            cb(200, {'Content-Type': ct}, binary ? data.toString("binary") : data.toString("utf8"), binary);
         });
     };
 
     pathname = pathname.split("/").filter((p) => { return p.length > 0; });
-    console.log("serving", pathname);
+    //console.log("serving", pathname);
 
     if (!pathname.length)
         pathname.push("index.html");
@@ -88,9 +92,9 @@ const WebServer = {
 
         this._server = http.createServer((req, resp) => {
             const parsedUrl = url.parse(req.url);
-            get(parsedUrl.pathname, (statusCode, headers, body) => {
+            get(parsedUrl.pathname, (statusCode, headers, body, binary) => {
                 resp.writeHead(statusCode, headers);
-                resp.end(body);
+                resp.end(body, binary ? "binary" : "utf8");
             });
         });
         this._server.listen(port);

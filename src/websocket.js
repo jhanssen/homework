@@ -747,8 +747,8 @@ const types = {
     },
     web: (ws, msg) => {
         if ("path" in msg) {
-            WebServer.get(msg.path, (statusCode, headers, body) => {
-                send(ws, msg, { statusCode: statusCode, headers: headers, body: body });
+            WebServer.get(msg.path, (statusCode, headers, body, binary) => {
+                send(ws, msg, { statusCode: statusCode, headers: headers, body: body, binary: binary });
             });
         } else {
             error(ws, msg, "no path in msg");
