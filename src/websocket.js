@@ -747,7 +747,11 @@ const types = {
     },
     web: (ws, msg) => {
         if ("path" in msg) {
-            WebServer.get(msg.path, (statusCode, headers, body, binary) => {
+            var path = msg.path;
+            var q = path.indexOf('?');
+            if (q !== -1)
+                path = path.substr(0, q);
+            WebServer.get(path, (statusCode, headers, body, binary) => {
                 send(ws, msg, { statusCode: statusCode, headers: headers, body: body, binary: binary });
             });
         } else {
