@@ -1,4 +1,4 @@
-/*global module,require,global,setInterval,clearInterval*/
+/*global module,require,global,setInterval,clearInterval,setTimeout*/
 
 "use strict";
 
@@ -832,6 +832,59 @@ const HWWebSocket = {
         });
     },
 
+    _cloudConnect: function(cfg, state)
+    {
+        const again = () => {
+            const timeout = state.next;
+            state.next *= 10;
+            if (state.next > (10 * 60))
+                state = 10 * 60;
+            setTimeout(() => { this._cloudConnect(cfg, state); }, timeout);
+        };
+        const stop = () => {
+            this._cloud = undefined;
+            this._cloudOk = false;
+            this._cloudSentReady = false;
+            if (this._cloudInterval) {
+                clearInterval(this._cloudInterval);
+                this._cloudInterval = undefined;
+            }
+        };
+
+        this._cloud = new WebSocket("wss://www.homework.software:443/user/websocket",
+                                    //this._cloud = new WebSocket("ws://192.168.1.22:3000/user/websocket",
+                                    { headers: {
+                                        "X-Homework-Key": cfg.key
+                                    }});
+        this._cloud.on("open", () => {
+            state.next = 1;
+            Console.log("cloud available");
+            this._setupWS(this._cloud);
+            if (this._ready && !this._cloudSentReady) {
+                this._cloudSentReady = true;
+                Console.log("telling cloud we're ready (1)");
+                this.sendCloud({ type: "ready", ready: true });
+            }
+            this._cloudInterval = setInterval(() => {
+                Console.log("ping cloud");
+                this._cloud.ping();
+            }, cfg.cloudPingInterval || (20 * 1000 * 60));
+        });
+        this._cloud.on("close", () => {
+            Console.log("cloud gone");
+
+            stop();
+            again();
+        });
+        this._cloud.on("error", (err) => {
+            Console.log("cloud error", err);
+
+            this._cloud.close();
+            stop();
+            again();
+        });
+    },
+
     init: function(hw, cfg) {
         Console = hw.Console;
 
@@ -846,35 +899,8 @@ const HWWebSocket = {
         this._ready = false;
 
         if (cfg && cfg.key) {
-            this._cloud = new WebSocket("wss://www.homework.software:443/user/websocket",
-            //this._cloud = new WebSocket("ws://192.168.1.22:3000/user/websocket",
-                                        { headers: {
-                                            "X-Homework-Key": cfg.key
-                                        }});
-            this._cloud.on("open", () => {
-                Console.log("cloud available");
-                this._setupWS(this._cloud);
-                if (this._ready && !this._cloudSentReady) {
-                    this._cloudSentReady = true;
-                    Console.log("telling cloud we're ready (1)");
-                    this.sendCloud({ type: "ready", ready: true });
-                }
-                this._cloudInterval = setInterval(() => {
-                    Console.log("ping cloud");
-                    this._cloud.ping();
-                }, cfg.cloudPingInterval || (20 * 1000 * 60));
-            });
-            this._cloud.on("close", () => {
-                Console.log("cloud gone");
-                this._cloud = undefined;
-                this._cloudOk = false;
-                this._cloudSentReady = false;
-                clearInterval(this._cloudInterval);
-                this._cloudInterval = undefined;
-            });
-            this._cloud.on("error", (err) => {
-                Console.log("cloud error", err);
-            });
+            let connectState = { next: 1 };
+            this._cloudConnect(cfg, connectState);
         } else {
             Console.log("no cloud key, not connecting");
         }
