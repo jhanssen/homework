@@ -14,6 +14,7 @@ var homework = undefined;
 var connections = [];
 
 var Console;
+var sendCloud;
 
 function findDevice(uuid)
 {
@@ -623,7 +624,9 @@ const types = {
             return;
         }
         send(ws, msg, { success: true });
-        sendToAll({ type: "variableUpdated", name: msg.name, value: null });
+        const obj = { type: "variableUpdated", name: msg.name, value: null };
+        sendToAll(obj);
+        sendCloud(obj);
     },
     timers: (ws, msg) => {
         const sub = msg.sub;
@@ -832,8 +835,12 @@ const HWWebSocket = {
     init: function(hw, cfg) {
         Console = hw.Console;
 
+        sendCloud = this.sendCloud.bind(this);
+
         Variable.on("changed", (name) => {
-            sendToAll({ type: "variableUpdated", name: name, value: Variable.variables[name] });
+            const obj = { type: "variableUpdated", name: name, value: Variable.variables[name] };
+            sendToAll(obj);
+            this.sendCloud(obj);
         });
 
         this._ready = false;
@@ -874,7 +881,9 @@ const HWWebSocket = {
 
         homework = hw;
         homework.on("valueUpdated", (value) => {
-            sendToAll({ type: "valueUpdated", valueUpdated: { devuuid: value.device ? value.device.uuid : null, valname: value.name, value: value.value, raw: value.raw }});
+            const obj = { type: "valueUpdated", valueUpdated: { devuuid: value.device ? value.device.uuid : null, valname: value.name, value: value.value, raw: value.raw }};
+            sendToAll(obj);
+            this.sendCloud(obj);
         });
         homework.on("timerUpdated", (timer) => {
             const t = Timer[timer.type][timer.name];
@@ -887,7 +896,9 @@ const HWWebSocket = {
                     timeout: t.timeout
                 };
             }
-            sendToAll({ type: "timerUpdated", timerUpdated: timer });
+            const obj = { type: "timerUpdated", timerUpdated: timer };
+            sendToAll(obj);
+            this.sendCloud(obj);
         });
         homework.on("ready", () => {
             this._ready = true;
