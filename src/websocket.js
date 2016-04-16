@@ -838,8 +838,8 @@ const HWWebSocket = {
             const timeout = state.next;
             state.next *= 10;
             if (state.next > (10 * 60))
-                state = 10 * 60;
-            setTimeout(() => { this._cloudConnect(cfg, state); }, timeout);
+                state.next = 10 * 60;
+            setTimeout(() => { this._cloudConnect(cfg, state); }, timeout * 1000);
         };
         const stop = () => {
             this._cloud = undefined;
