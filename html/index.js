@@ -61,7 +61,7 @@ module.controller('mainController', function($scope) {
     var pingInterval;
     if (window.location.hostname == "www.homework.software") {
         $scope.socket = new WebSocket(`wss://${window.location.hostname}/user/site`);
-        pingInterval = setInterval(function() { $scope.socket.ping(); }, (20 * 1000 * 60));
+        //pingInterval = setInterval(function() { $scope.socket.ping(); }, (20 * 1000 * 60));
     } else {
         $scope.socket = new WebSocket(`ws://${window.location.hostname}:8093/`);
     }
