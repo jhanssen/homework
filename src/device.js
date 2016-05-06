@@ -61,6 +61,7 @@ Device.Type = {
     Sensor: 6,
     GarageDoor: 7,
     Lock: 8,
+    Presence: 9,
     Unknown: 99
 };
 
