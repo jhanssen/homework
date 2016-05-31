@@ -8,6 +8,7 @@ const Rule = require("./rule.js");
 const Variable = require("./variable.js");
 const Timer = require("./timer.js");
 const WebServer = require("./webserver.js");
+const Scene = require("./scene.js").Scene;
 
 var wss = undefined;
 var homework = undefined;
@@ -760,6 +761,58 @@ const types = {
         } else {
             error(ws, msg, "no path in msg");
         }
+    },
+    scenes: (ws, msg) => {
+        var hwscenes = homework.scenes;
+        var scenes = [];
+        for (var i = 0; i < hwscenes.length; ++i) {
+            var scene = hwscenes[i];
+            scenes.push({ name: scene.name, values: scene.values });
+        }
+        send(ws, msg, scenes);
+    },
+    removeScene: (ws, msg) => {
+        if (!("name" in msg)) {
+            error(ws, msg, "no name in msg");
+            return;
+        }
+        if (homework.removeScene(msg.name)) {
+            send(ws, msg, "ok");
+        } else {
+            error(ws, msg, `no such scene: ${msg.name}`);
+        }
+    },
+    setScene: (ws, msg) => {
+        if (!("name" in msg)) {
+            error(ws, msg, "no name in msg");
+            return;
+        }
+        if (!("values" in msg)) {
+            error(ws, msg, "no values in msg");
+            return;
+        }
+        if (typeof msg.values !== "object") {
+            error(ws, msg, "values is not an object");
+            return;
+        }
+        homework.removeScene(msg.name);
+        homework.addScene(new Scene(msg.name, msg.values));
+        send(ws, msg, "ok");
+    },
+    triggerScene: (ws, msg) => {
+        if (!("name" in msg)) {
+            error(ws, msg, "no name in msg");
+            return;
+        }
+        let scenes = homework.scenes;
+        for (var i = 0; i < scenes.length; ++i) {
+            if (scenes[i].name == msg.name) {
+                scenes[i].trigger();
+                send(ws, msg, "ok");
+                return;
+            }
+        }
+        error(ws, msg, `no such scene: ${msg.name}`);
     }
 };
 

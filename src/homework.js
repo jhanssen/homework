@@ -13,6 +13,7 @@ const Rule = require("./rule.js");
 const Modules = require("./modules.js");
 const Timer = require("./timer.js");
 const Variable = require("./variable.js");
+const Scene = require("./scene.js");
 const db = require("jsonfile");
 const path = require("path");
 
@@ -20,6 +21,7 @@ homework = {
     _events: Object.create(null),
     _actions: Object.create(null),
     _devices: [],
+    _scenes: [],
     _deviceinfo: undefined,
     _rules: [],
     _triggers: [],
@@ -27,6 +29,7 @@ homework = {
     _pendingRules: [],
     _cfg: undefined,
     _Device: Device.Device,
+    _Scene: Scene.Scene,
     _Type: Device.Type,
     _Console: Console,
     _Timer: Timer,
@@ -60,6 +63,18 @@ homework = {
         this._devices.remove((el) => { return Object.is(device, el); });
     },
 
+    addScene: function(scene) {
+        this._scenes.push(scene);
+    },
+    removeScene: function(scene) {
+        var len = this._scenes.length;
+        if (typeof scene === "object")
+            this._scenes.remove((el) => { return Object.is(scene, el); });
+        else if (typeof scene === "string")
+            this._scenes.remove((el) => { return el.name === scene; });
+        return (len !== this._scenes.length);
+    },
+
     addRule: function(rule) {
         this._rules.push(rule);
     },
@@ -89,6 +104,9 @@ homework = {
     get devices() {
         return this._devices;
     },
+    get scenes() {
+        return this._scenes;
+    },
     get rules() {
         return this._rules;
     },
@@ -100,6 +118,9 @@ homework = {
     },
     get Device() {
         return this._Device;
+    },
+    get Scene() {
+        return this._Scene;
     },
     get Type() {
         return this._Type;
@@ -159,6 +180,13 @@ homework = {
             devices[dev.uuid] = { name: dev.name, room: dev.room, floor: dev.floor, groups: dev.groups, type: dev.type };
         }
         db.writeFileSync(path.join(Config.path, "devices.json"), devices, { spaces: 4 });
+
+        var scenes = [];
+        for (i = 0; i < this._scenes.length; ++i) {
+            var scene = this._scenes[i];
+            scenes.push({ name: scene.name, values: scene.values });
+        }
+        db.writeFileSync(path.join(Config.path, "scenes.json"), scenes, { spaces: 4 });
     },
     restore: function(args) {
         db.readFile(path.join(Config.path, "rules.json"), (err, obj) => {
@@ -176,12 +204,22 @@ homework = {
             db.readFile(path.join(Config.path, "devices.json"), (err, obj) => {
                 this._deviceinfo = obj;
                 Device.Device.init(this, obj);
-                Timer.init(this);
-                Variable.init(this);
-                WebSocket.init(this, this.config.websocket);
-                db.readFile(path.join(Config.path, "modules.json"), (err, obj) => {
-                    Modules.init(this, obj);
-                    this._restored = true;
+                db.readFile(path.join(Config.path, "scenes.json"), (err, obj) => {
+                    Scene.init(this);
+
+                    if (obj instanceof Array) {
+                        for (var i = 0; i < obj.length; ++i) {
+                            this.addScene(new this.Scene(obj[i].name, obj[i].values));
+                        }
+                    }
+
+                    Timer.init(this);
+                    Variable.init(this);
+                    WebSocket.init(this, this.config.websocket);
+                    db.readFile(path.join(Config.path, "modules.json"), (err, obj) => {
+                        Modules.init(this, obj);
+                        this._restored = true;
+                    });
                 });
             });
         });

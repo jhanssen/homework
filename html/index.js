@@ -548,6 +548,284 @@ module.controller('deviceController', function($scope) {
     });
 });
 
+function applyEditScene($scope, $compile)
+{
+    $scope.request({ type: "devices" }).then(function(response) {
+        if (!(response instanceof Array))
+            return;
+        var devs = Object.create(null);
+        var rem = response.length;
+        var done = function() {
+            $scope.devices = devs;
+            $scope.$apply();
+        };
+        for (var i = 0; i < response.length; ++i) {
+            (function(uuid) {
+                devs[uuid] = response[i];
+                devs[uuid].values = Object.create(null);
+                $scope.request({ type: "values", devuuid: uuid }).then(function(response) {
+                    if (response instanceof Array) {
+                        for (var i = 0; i < response.length; ++i) {
+                            var val = response[i];
+                            devs[uuid].values[val.name] = val;
+                        }
+                    }
+                    if (!--rem)
+                        done();
+                });
+            })(response[i].uuid);
+        }
+    });
+
+    $scope._reset = function() {
+        this.name = "";
+        this.sceneData = {
+            values: [],
+            current: Object.create(null)
+        };
+    };
+
+    $scope._reset();
+    $scope.updated = true;
+
+    var addInput = function(key, obj, id, what, disp, idx) {
+        var ret = "";
+        var found;
+        if (key in obj)
+            found = obj[key];
+        var def = (found && found[disp]) || "";
+        ret += `<div class="dropdown pull-left"><button class="btn btn-default dropdown-toggle" type="button" id="${key}DropDownMenu-${id}" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">${def}<span class="caret"></span></button><ul class="dropdown-menu" aria-labelledby="${key}DropDownMenu-${id}">`;
+        for (var i in obj) {
+            ret += `<li><a href="" class="btn default" ng-click="updateScene('${what}', '${obj[i][what]}', ${idx})">${obj[i][disp]}</a></li>`;
+        }
+        ret += "</ul></div>";
+        return ret;
+    };
+
+    var addScene = function(val, idx) {
+        var ret = "";
+        var id = val.uuid || "new";
+        ret += addInput(val.uuid, $scope.devices, id, "uuid", "name", idx);
+        if (val.uuid) {
+            id += val.name || "new";
+            // console.log($scope.devices[val.uuid].values);
+            ret += addInput(val.name, $scope.devices[val.uuid].values, id, "name", "name", idx);
+        }
+        if (val.name) {
+            ret += `<input type="text" class="pull-left" placeholder="Value" ng-model="sceneValue(${idx}).value" ng-keydown="$event.which === 13 && updateText(${idx})"></input>`;
+        }
+        if (idx != -1) {
+            ret += `<div class="pull-right btn btn-danger" ng-click="removeScene(${idx})">Delete</div>`;
+        }
+        ret += '<div style="clear: both;"></div>';
+        return ret;
+    };
+
+    var findValue = function(idx) {
+        if (idx == -1)
+            return $scope.sceneData.current;
+        if (idx < $scope.sceneData.values.length)
+            return $scope.sceneData.values[idx];
+        return undefined;
+    };
+
+    $scope.updateText = function(idx) {
+        $scope.updated = true;
+
+        if (!$scope.creating) {
+            var val = findValue(idx);
+            if (val) {
+                // update our scene model directly, this is rather hacky but angular kinda sucks
+                for (var s = 0; s < $scope.scenes.length; ++s) {
+                    if ($scope.scenes[s].name == $scope.name) {
+                        var scene = $scope.scenes[s];
+                        if (!(val.uuid in scene.values)) {
+                            scene.values[val.uuid] = Object.create(null);
+                        }
+                        scene.values[val.uuid][val.name] = val.value;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (idx == -1) {
+            $scope.sceneData.values.push($scope.sceneData.current);
+            $scope.sceneData.current = Object.create(null);
+        }
+        //console.log(event.currentTarget.value, idx);
+    },
+
+    $scope.removeScene = function(idx) {
+        $scope.updated = true;
+        if (!$scope.creating) {
+            var val = $scope.sceneData.values[idx];
+            for (var s = 0; s < $scope.scenes.length; ++s) {
+                if ($scope.scenes[s].name == $scope.name) {
+                    var scene = $scope.scenes[s];
+                    if (val.uuid in scene.values) {
+                        if (val.name in scene.values[val.uuid]) {
+                            delete scene.values[val.uuid][val.name];
+                            if (!Object.keys(scene.values[val.uuid]).length) {
+                                delete scene.values[val.uuid];
+                            }
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+        $scope.sceneData.values.splice(idx, 1);
+    },
+
+    $scope.updateScene = function(what, val, idx) {
+        $scope.updated = true;
+       // console.log("updateScene", what, val);
+        switch (what) {
+        case "uuid":
+            findValue(idx).uuid = val;
+            break;
+        case "name":
+            findValue(idx).name = val;
+            break;
+        }
+    },
+
+    $scope.sceneValue = function(idx) {
+        return {
+            get value() {
+                var val = findValue(idx);
+                return (val && val.value) || "";
+            },
+            set value(v) {
+                var val = findValue(idx);
+                if (val)
+                    val.value = v;
+            }
+        };
+    },
+
+    $scope.save = function() {
+        var vals = Object.create(null);
+        // postprocess
+        for (var i = 0; i < $scope.sceneData.values.length; ++i) {
+            var v = $scope.sceneData.values[i];
+            if (!(v.uuid in vals))
+                vals[v.uuid] = Object.create(null);
+            vals[v.uuid][v.name] = v.value;
+        }
+        var scene = { type: "setScene", name: $scope.name, values: vals };
+        $scope.request(scene).then(function() {
+            if ($scope.creating) {
+                $("#addSceneModal").modal("hide");
+            } else {
+                $scope.clearNavigation();
+                $scope.$apply();
+            }
+        });
+        $scope._reset();
+    },
+
+    $scope.delete = function() {
+        if ($scope.creating)
+            return;
+        $scope.request({ type: "removeScene", name: $scope.name }).then(function() {
+            $scope.request({ type: "scenes" }).then(function(scenes) {
+                $scope.clearNavigation();
+                $scope.$apply();
+            });
+        });
+    },
+
+    $scope.generate = function(scene) {
+        if (!$scope.devices)
+            return "";
+        $scope.creating = (scene === undefined);
+        var elem;
+        if (scene) {
+            if (!$scope.updated)
+                return undefined;
+            $scope.updated = false;
+            $scope.name = scene.name;
+            elem = $(`#edit-${scene.name}`);
+            // if (elem.children("div").length > 0)
+            //     return undefined;
+            // update our scene data
+            $scope.sceneData.values = [];
+            for (var uuid in scene.values) {
+                var dev = scene.values[uuid];
+                for (var v in dev) {
+                    $scope.sceneData.values.push({ uuid: uuid, name: v, value: dev[v] });
+                }
+            }
+        }
+        // console.log("lglg");
+        var ret = "";
+        if (!scene)
+            ret += `<div><input type="text" placeholder="Name" ng-model="name" class="form-control"></input></div>`;
+        for (var i = 0; i < $scope.sceneData.values.length; ++i) {
+            var val = $scope.sceneData.values[i];
+            ret += addScene(val, i);
+        }
+        ret += addScene($scope.sceneData.current, -1);
+        if (!$scope.creating) {
+            ret += `<div class="pull-right btn btn-success" type="button" ng-click="save()">Save</div>`;
+            ret += `<div class="pull-right btn btn-danger" type="button" ng-click="delete()">Delete</div><div style="clear: both"></div>`;
+        }
+        if (scene) {
+            // console.log(ret);
+            setTimeout(function() {
+                var content = $compile(ret)($scope);
+                elem.empty();
+                elem.append(content);
+            }, 0);
+            return undefined;
+        }
+        return ret;
+    };
+}
+
+module.controller('sceneController', function($scope) {
+    $scope.adding = false;
+
+    $scope.request({ type: "scenes" }).then(function(scenes) {
+        $scope.scenes = scenes;
+        console.log("got scenes", scenes);
+        $scope.$apply();
+    });
+
+    $scope.addScene = function() {
+        $scope.adding = true;
+        $('#addSceneModal').modal('show');
+    };
+
+    $scope.activeScene = function(r) {
+        return $scope.nav.length > 0 && $scope.nav[0] == r;
+    };
+
+    $("#addSceneModal").on('hidden.bs.modal', function() {
+        $scope.adding = false;
+        $scope.$apply();
+    });
+});
+
+module.controller('addSceneController', function($scope, $compile) {
+    applyEditScene.call(this, $scope, $compile);
+
+    $("#addSceneModal").on('hidden.bs.modal', function() {
+        $scope._reset();
+    });
+});
+
+module.controller('editSceneController', function($scope, $compile) {
+    applyEditScene.call(this, $scope, $compile);
+
+    $scope.$on("$destroy", function() {
+        $scope._reset();
+    });
+});
+
+
 module.controller('ruleController', function($scope) {
     var ruleReady = function() {
         $scope.request({ type: "rules" }).then(function(rules) {

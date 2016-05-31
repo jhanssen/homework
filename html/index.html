@@ -39,6 +39,7 @@
 	  <div class="hw-spacer navbar-right"></div>
 	  <ul class="nav navbar-nav">
 	    <li ng-class="activeClass('devices')"><a href="#devices">Devices</a></li>
+	    <li ng-class="activeClass('scenes')"><a href="#scenes">Scenes</a></li>
 	    <li ng-class="activeClass('rules')"><a href="#rules">Rules</a></li>
 	    <li ng-class="activeClass('variables')"><a href="#variables">Variables</a></li>
 	    <li ng-class="activeClass('timers')"><a href="#timers">Timers</a></li>
@@ -214,6 +215,47 @@
 		<div style="float: left">
 		  {{val.units}}
 		</div>
+	      </div>
+	    </div>
+	  </div>
+	</div>
+      </div>
+      <div ng-if="isActive('scenes')" class="container" ng-controller="sceneController">
+	<div>
+	  <div>
+	    <h2 class="pull-left">Scenes</h2>
+	    <button class="pull-right btn btn-success h2" type="button" ng-click="addScene()">Add</button>
+	  </div>
+	  <div ng-if="error" class="alert alert-danger">
+	    <strong>Error</strong> {{error}}
+	  </div>
+	  <div ng-if="success" class="alert alert-success">
+	    {{success}}
+	  </div>
+
+	  <div class="hw-clear btn-group-vertical hw-expand-horizontal" role="group">
+	    <div ng-repeat="scene in scenes" class="btn-group" role="group">
+	      <a type="button" class="btn btn-default" ng-href="#scenes/{{scene.name}}">
+		{{scene.name}}
+	      </a>
+	      <div ng-if="activeScene(scene.name)" ng-controller="editSceneController">
+		<div ng-attr-id="edit-{{scene.name}}" class="hw-modifyrule hw-pad" compile="generate(scene)"></div>
+	      </div>
+	    </div>
+	  </div>
+	</div>
+	<div id="addSceneModal" class="modal fade" role="dialog" ng-controller="addSceneController">
+	  <div class="modal-dialog hw-dialog">
+	    <div class="modal-content">
+	      <div class="modal-header">
+		<button type="button" class="close" data-dismiss="modal">&times;</button>
+		<h4 class="modal-title">Add scene</h4>
+	      </div>
+	      <div class="modal-body" compile="generate()">
+	      </div>
+	      <div class="modal-footer">
+		<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+		<button type="button" class="btn btn-default" ng-click="save()">Save</button>
 	      </div>
 	    </div>
 	  </div>
