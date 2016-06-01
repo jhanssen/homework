@@ -556,6 +556,18 @@ function applyEditScene($scope, $compile)
         var devs = Object.create(null);
         var rem = response.length;
         var done = function() {
+            for (var k in devs) {
+                Object.defineProperty(devs[k], "fullName", {
+                    get: function() {
+                        var n = this.name;
+                        if (this.room !== undefined)
+                            n = this.room + " " + n;
+                        if (this.floor !== undefined)
+                            n = this.floor + " " + n;
+                        return n;
+                    }
+                });
+            }
             $scope.devices = devs;
             $scope.$apply();
         };
@@ -605,7 +617,7 @@ function applyEditScene($scope, $compile)
     var addScene = function(val, idx) {
         var ret = "";
         var id = val.uuid || "new";
-        ret += addInput(val.uuid, $scope.devices, id, "uuid", "name", idx);
+        ret += addInput(val.uuid, $scope.devices, id, "uuid", "fullName", idx);
         if (val.uuid) {
             id += val.name || "new";
             // console.log($scope.devices[val.uuid].values);
@@ -737,6 +749,10 @@ function applyEditScene($scope, $compile)
         });
     },
 
+    $scope.trigger = function() {
+        $scope.request({ type: "triggerScene", name: $scope.name });
+    },
+
     $scope.generate = function(scene) {
         if (!$scope.devices)
             return "";
@@ -770,7 +786,8 @@ function applyEditScene($scope, $compile)
         ret += addScene($scope.sceneData.current, -1);
         if (!$scope.creating) {
             ret += `<div class="pull-right btn btn-success" type="button" ng-click="save()">Save</div>`;
-            ret += `<div class="pull-right btn btn-danger" type="button" ng-click="delete()">Delete</div><div style="clear: both"></div>`;
+            ret += `<div class="pull-right btn btn-danger" type="button" ng-click="delete()">Delete</div>`;
+            ret += `<div class="pull-right btn btn-default" type="button" ng-click="trigger()">Trigger</div><div style="clear: both"></div>`;
         }
         if (scene) {
             // console.log(ret);
