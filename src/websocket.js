@@ -353,7 +353,8 @@ const types = {
         }
         var ret = {
             rooms: Object.keys(rooms),
-            floors: Object.keys(floors)
+            floors: Object.keys(floors),
+            types: homework.Device.Types
         };
         send(ws, msg, ret);
     },
@@ -509,7 +510,7 @@ const types = {
             error(ws, msg, "unknown device");
             return;
         }
-        if (typeof msg.devtype !== "number") {
+        if (typeof msg.devtype !== "string") {
             error(ws, msg, `invalid type ${msg.devtype}`);
             return;
         }

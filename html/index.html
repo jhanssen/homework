@@ -63,22 +63,22 @@
 		<div class="hw-pointer" ng-click="setLocation('#device/' + dev.safeuuid)">
 		  {{dev.fullName}}
 		</div>
-		<div ng-if="dev.type == Type.Dimmer" class="hw-margin center-block">
+		<div ng-if="dev.type == 'Dimmer'" class="hw-margin center-block">
 		  <slider ng-attr-id="{{'slider-'+dev.safeuuid}}" ng-model="dev.level" min="0" step="1" max="dev.max"></slider>
 		  <button class="btn btn-default" ng-click="dev.level = 0">Off</button>
 		  <button class="btn btn-default" ng-click="dev.level = dev.max">On</button>
 		</div>
-		<div ng-if="dev.type == Type.Light || dev.type == Type.Fan" class="hw-margin center-block">
+		<div ng-if="dev.type == 'Light' || dev.type == 'Fan'" class="hw-margin center-block">
 		  <input bs-switch ng-model="dev.value" type="checkbox"></input>
 		</div>
-		<div ng-if="dev.type == Type.RGBWLed" class="hw-margin center-block">
+		<div ng-if="dev.type == 'RGBWLed'" class="hw-margin center-block">
 		  <div tooltip-placement="top" uib-tooltip="{{dev.colorRGBW}}"><i colorpicker ng-model="dev.color" class="fa fa-tint hw-big" ng-style="{'color': dev.color}"></i></div>
 		  <slider ng-model="dev.white" min="0" step="1" max="255"></slider>
 		</div>
-		<div ng-if="dev.type == Type.Sensor" class="hw-margin center-block">
+		<div ng-if="dev.type == 'Sensor'" class="hw-margin center-block">
 		  <div><i class="fa fa-hand-paper-o hw-big ng-class:{'faa-shake animated': dev.motion} "></i></div>
 		</div>
-		<div ng-if="dev.type == Type.GarageDoor" class="hw-margin center-block">
+		<div ng-if="dev.type == 'GarageDoor'" class="hw-margin center-block">
 		  <div>
 		    <div>{{dev.state}}</div>
 		    <button class="btn btn-default" ng-click="dev.mode = 1">Open</button>
@@ -176,10 +176,10 @@
 	      type
 	    </div>
 	    <div class="col-xs-8 col-sm-8 col-md-8 col-lg-8">
-	      <div class="dropdown"><button ng-attr-id="drop-hw-type" class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">{{typeName(dev.type)}}<span class="caret"></span></button>
+	      <div class="dropdown"><button ng-attr-id="drop-hw-type" class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">{{dev.type}}<span class="caret"></span></button>
 		<ul class="dropdown-menu" aria-labelledby="drop-hw-type">
-		  <li ng-repeat="(tn, tv) in Type">
-		    <a href="" class="btn default" ng-click="setType(dev, tv)">
+		  <li ng-repeat="tn in deviceTypes">
+		    <a href="" class="btn default" ng-click="setType(dev, tn)">
 		      {{tn}}
 		    </a>
 		  </li>

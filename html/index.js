@@ -15,14 +15,6 @@ var module = angular.module('app', ['ui.bootstrap', 'ui.bootstrap-slider', 'frap
 module.controller('mainController', function($scope) {
     location.hash = "#";
 
-    $scope.Type = { Dimmer: 0, Light: 1, Fan: 2, Thermostat: 3, Clapper: 4, RGBWLed: 5, Sensor: 6, GarageDoor: 7, Lock: 8, Unknown: 99 };
-    $scope.typeName = function(t) {
-        for (var k in $scope.Type) {
-            if (t == $scope.Type[k])
-                return k;
-        }
-        return "";
-    };
     $scope.active = "devices";
     $scope.nav = [];
 
@@ -241,7 +233,7 @@ module.controller('devicesController', function($scope) {
 
                         dev.safeuuid = dev.uuid.replace(/:/g, "_");
                         switch (dev.type) {
-                        case $scope.Type.Dimmer:
+                        case "Dimmer":
                             dev.max = dev.values.level.range[1];
                             dev._timeout = undefined;
                             Object.defineProperty(dev, "level", {
@@ -263,7 +255,7 @@ module.controller('devicesController', function($scope) {
                                 }
                             });
                             break;
-                        case $scope.Type.RGBWLed:
+                        case "RGBWLed":
                             dev._timeout = undefined;
                             dev._pending = undefined;
                             dev._white = undefined;
@@ -314,8 +306,8 @@ module.controller('devicesController', function($scope) {
                                 }
                             });
                             break;
-                        case $scope.Type.Light:
-                        case $scope.Type.Fan:
+                        case "Light":
+                        case "Fan":
                             Object.defineProperty(dev, "value", {
                                 get: function() {
                                     return dev.values.value.raw != 0;
@@ -325,7 +317,7 @@ module.controller('devicesController', function($scope) {
                                 }
                             });
                             break;
-                        case $scope.Type.Sensor:
+                        case "Sensor":
                             if (dev.values.Motion instanceof Object) {
                                 Object.defineProperty(dev, "motion", {
                                     get: function() {
@@ -334,7 +326,7 @@ module.controller('devicesController', function($scope) {
                                 });
                             }
                             break;
-                        case $scope.Type.GarageDoor:
+                        case "GarageDoor":
                             Object.defineProperty(dev, "mode", {
                                 set: function(v) {
                                     $scope.request({ type: "setValue", devuuid: dev.uuid, valname: "mode", value: v });
@@ -475,6 +467,7 @@ module.controller('deviceController', function($scope) {
             $scope.request({ type: "devicedata" }).then(function(response) {
                 $scope.rooms = response.rooms;
                 $scope.floors = response.floors;
+                $scope.deviceTypes = response.types;
                 $scope.request({ type: "values", devuuid: uuid }).then(function(response) {
                     console.log("all values", response);
                     $scope.vals = response;

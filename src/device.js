@@ -37,7 +37,7 @@ function Device(t, u)
             this._groups = data.data[u].groups;
             this._floor = data.data[u].floor;
             this._room = data.data[u].room;
-            if (typeof data.data[u].type === "number") {
+            if (typeof data.data[u].type === "string") {
                 this._type = data.data[u].type;
             }
         }
@@ -47,23 +47,23 @@ function Device(t, u)
     if (this._groups === undefined)
         this._groups = [];
 
-    if (typeof this._type !== "number")
-        this._type = Device.Type.Unknown;
+    if (typeof this._type !== "string")
+        this._type = "Unknown";
 }
 
-Device.Type = {
-    Dimmer: 0,
-    Light: 1,
-    Fan: 2,
-    Thermostat: 3,
-    Clapper: 4,
-    RGBWLed: 5,
-    Sensor: 6,
-    GarageDoor: 7,
-    Lock: 8,
-    Presence: 9,
-    Unknown: 99
-};
+Device.Types = [
+    "Dimmer",
+    "Light",
+    "Fan",
+    "Thermostat",
+    "Clapper",
+    "RGBWLed",
+    "Sensor",
+    "GarageDoor",
+    "Lock",
+    "Presence",
+    "Unknown"
+];
 
 Device.prototype = {
     _name: undefined,
