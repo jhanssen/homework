@@ -77,12 +77,15 @@ homework = {
 
     addRule: function(rule) {
         this._rules.push(rule);
+        this.saveRules();
     },
     removeRule: function(rule) {
         this._rules.remove((el) => { if (Object.is(rule, el)) { rule.destroy(); return true; } return false; });
+        this.saveRules();
     },
     removeRuleByName: function(name) {
         this._rules.remove((el) => { if (el.name == name) { el.destroy(); return true; } return false; });
+        this.saveRules();
     },
 
     valueUpdated: function(value) {
@@ -161,11 +164,11 @@ homework = {
         }
     },
 
-    save: function() {
+    saveRules: function() {
         var rules = [], i;
         for (i = 0; i < this._rules.length; ++i) {
             // true = overwrite
-            rules.push(this._rules[i].serialize(true));
+            rules.push(this._rules[i].serialize());
         }
         // merge with pendingRules if we still have any
         for (i = 0; i < this._pendingRules.length; ++i) {
@@ -173,21 +176,29 @@ homework = {
         }
         Console.log(rules);
         db.writeFileSync(path.join(Config.path, "rules.json"), rules, { spaces: 4 });
-
+    },
+    saveDevices: function() {
         var devices = this._deviceinfo || Object.create(null);
-        for (i = 0; i < this._devices.length; ++i) {
+        for (var i = 0; i < this._devices.length; ++i) {
             var dev = this._devices[i];
             devices[dev.uuid] = { name: dev.name, room: dev.room, floor: dev.floor, groups: dev.groups, type: dev.type };
         }
         db.writeFileSync(path.join(Config.path, "devices.json"), devices, { spaces: 4 });
-
+    },
+    saveScenes: function() {
         var scenes = [];
-        for (i = 0; i < this._scenes.length; ++i) {
+        for (var i = 0; i < this._scenes.length; ++i) {
             var scene = this._scenes[i];
             scenes.push({ name: scene.name, values: scene.values });
         }
         db.writeFileSync(path.join(Config.path, "scenes.json"), scenes, { spaces: 4 });
     },
+    save: function() {
+        this.saveRules();
+        this.saveDevices();
+        this.saveScenes();
+    },
+
     restore: function(args) {
         db.readFile(path.join(Config.path, "rules.json"), (err, obj) => {
             if (obj) {

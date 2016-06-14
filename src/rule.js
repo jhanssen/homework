@@ -141,17 +141,13 @@ Rule.prototype = {
         }
     },
 
-    _invoke: function(overwrite, call) {
-        var events = this._events.slice(0), i;
-        var actions = this._actions.slice(0);
-        var outs = {};
-        if (overwrite) {
-            outs.events = events;
-            outs.actions = actions;
-        } else {
-            outs.events = events.map((s) => { return s.map(() => { return null; }); });
-            outs.actions = actions.map(() => { return null; });
-        }
+    _invoke: function(call) {
+        var events = this._events, i;
+        var actions = this._actions;
+        var outs = {
+            events: events.map((s) => { return s.map(() => { return null; }); }),
+            actions: actions.map(() => { return null; })
+        };
         for (i = 0; i < events.length; ++i) {
             var out = outs.events[i];
             var a = events[i];
@@ -165,11 +161,11 @@ Rule.prototype = {
         }
         return { name: this._name, events: outs.events, eventsTrigger: this._eventsTrigger, actions: outs.actions };
     },
-    serialize: function(overwrite) {
-        return this._invoke(overwrite, "serialize");
+    serialize: function() {
+        return this._invoke("serialize");
     },
     format: function() {
-        return this._invoke(false, "format");
+        return this._invoke("format");
     },
 
     _check: function(evt) {
