@@ -835,6 +835,19 @@ module.controller('editSceneController', function($scope, $compile) {
     });
 });
 
+module.controller('restoreRulesController', function($scope) {
+    $scope.request({ type: "loadRules" }).then(function(rules) {
+        console.log(rules);
+        $scope.ruleCandidates = rules;
+        $scope.$apply();
+    });
+
+    $scope.restoreRule = function(sha256) {
+        $scope.request({ type: "loadRule", sha256: sha256 }).then(function() {
+            $("#restoreRulesModal").modal("hide");
+        });
+    };
+});
 
 module.controller('ruleController', function($scope) {
     var ruleReady = function() {
@@ -872,6 +885,9 @@ module.controller('ruleController', function($scope) {
         $scope.adding = false;
         $scope.$apply();
     });
+    $scope.restoreRules = function() {
+        $('#restoreRulesModal').modal('show');
+    };
 
     var nav = function() {
         if ($scope.active !== "rules")

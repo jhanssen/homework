@@ -266,6 +266,7 @@
 	  <div>
 	    <h2 class="pull-left">Rules</h2>
 	    <button class="pull-right btn btn-success h2" type="button" ng-click="addRule()">Add</button>
+	    <button class="pull-right btn btn-primary h2" type="button" ng-click="restoreRules()">Restore</button>
 	  </div>
 	  <div class="hw-clear btn-group-vertical hw-expand-horizontal" role="group">
 	    <div ng-repeat="rule in rules" class="btn-group" role="group">
@@ -290,6 +291,26 @@
 	      <div class="modal-footer">
 		<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
 		<button type="button" class="btn btn-default" ng-click="save()">Save</button>
+	      </div>
+	    </div>
+	  </div>
+	</div>
+	<div id="restoreRulesModal" class="modal fade" role="dialog" ng-controller="restoreRulesController">
+	  <div class="modal-dialog hw-dialog">
+	    <div class="modal-content">
+	      <div class="modal-header">
+		<button type="button" class="close" data-dismiss="modal">&times;</button>
+		<h4 class="modal-title">Restore rules</h4>
+	      </div>
+	      <div class="modal-body">
+		<div class="container-fluid">
+		  <div class="row" ng-repeat="rule in ruleCandidates">
+		    <button class="btn btn-default col-xs-12 col-sm-12 col-md-12 col-lg-12 center-block text-center" ng-click="restoreRule(rule.sha256)">{{rule.date}}</button>
+		  </div>
+		</div>
+	      </div>
+	      <div class="modal-footer">
+		<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
 	      </div>
 	    </div>
 	  </div>

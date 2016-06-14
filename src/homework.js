@@ -164,7 +164,7 @@ homework = {
         }
     },
 
-    saveRules: function() {
+    saveRules: function(cb) {
         var rules = [], i;
         for (i = 0; i < this._rules.length; ++i) {
             // true = overwrite
@@ -175,35 +175,52 @@ homework = {
             rules.push(Rule.SerializePending(this._pendingRules[i]));
         }
         Console.log(rules);
-        db.writeFileSync(path.join(Config.path, "rules.json"), rules, { spaces: 4 });
+        if (cb) {
+            cb("rules.json", rules);
+        } else {
+            db.writeFileSync(path.join(Config.path, "rules.json"), rules, { spaces: 4 });
+        }
     },
-    saveDevices: function() {
+    saveDevices: function(cb) {
         var devices = this._deviceinfo || Object.create(null);
         for (var i = 0; i < this._devices.length; ++i) {
             var dev = this._devices[i];
             devices[dev.uuid] = { name: dev.name, room: dev.room, floor: dev.floor, groups: dev.groups, type: dev.type };
         }
-        db.writeFileSync(path.join(Config.path, "devices.json"), devices, { spaces: 4 });
+        if (cb) {
+            cb("devices.json", devices);
+        } else {
+            db.writeFileSync(path.join(Config.path, "devices.json"), devices, { spaces: 4 });
+        }
     },
-    saveScenes: function() {
+    saveScenes: function(cb) {
         var scenes = [];
         for (var i = 0; i < this._scenes.length; ++i) {
             var scene = this._scenes[i];
             scenes.push({ name: scene.name, values: scene.values });
         }
-        db.writeFileSync(path.join(Config.path, "scenes.json"), scenes, { spaces: 4 });
+        if (cb) {
+            cb("scenes.json", scenes);
+        } else {
+            db.writeFileSync(path.join(Config.path, "scenes.json"), scenes, { spaces: 4 });
+        }
     },
-    save: function() {
-        this.saveRules();
-        this.saveDevices();
-        this.saveScenes();
+    save: function(cb) {
+        this.saveRules(cb);
+        this.saveDevices(cb);
+        this.saveScenes(cb);
     },
 
+    restoreRules: function(rules) {
+        this._rules = [];
+        this._pendingRules = rules;
+
+        this.loadRules();
+    },
     restore: function(args) {
         db.readFile(path.join(Config.path, "rules.json"), (err, obj) => {
             if (obj) {
-                homework._pendingRules = obj;
-                homework.loadRules();
+                this.restoreRules(obj);
             } else {
                 if (err.code !== "ENOENT")
                     console.error("error loading rules", err);

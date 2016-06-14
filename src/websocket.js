@@ -4,6 +4,7 @@
 
 const WebSocket = require("ws");
 const WebSocketServer = WebSocket.Server;
+const dateFormat = require("dateformat");
 const Rule = require("./rule.js");
 const Variable = require("./variable.js");
 const Timer = require("./timer.js");
@@ -58,6 +59,46 @@ function construct(constructor, args) {
     }
     F.prototype = constructor.prototype;
     return new F();
+}
+
+var requestState = { id: 0, pending: Object.create(null) };
+function requestCloud(req)
+{
+    var p = new Promise(function(resolve, reject) {
+        var id = ++requestState.id;
+        req.cid = id;
+        // this.log("sending req", JSON.stringify(req));
+        requestState.pending[id] = { resolve: resolve, reject: reject };
+        try {
+            sendCloud(req);
+        } catch (e) {
+            console.log(e);
+        }
+    });
+    return p;
+}
+
+function resolveCloud(resp)
+{
+    if (resp.cid in requestState.pending) {
+        let pending = requestState.pending[resp.cid];
+        delete requestState.pending[resp.cid];
+
+        if (resp.error) {
+            pending.reject(resp.msg);
+        } else {
+            pending.resolve(resp.msg);
+        }
+    }
+}
+
+function rejectCloud()
+{
+    for (var k in requestState.pending) {
+        requestState.pending[k].reject("Cloud gone");
+    }
+    requestState.pending = Object.create(null);
+    requestState.id = 0;
 }
 
 const types = {
@@ -814,6 +855,25 @@ const types = {
             }
         }
         error(ws, msg, `no such scene: ${msg.name}`);
+    },
+    loadRules: (ws, msg) => {
+        requestCloud({ type: "loadFile", fileName: "rules.json" }).then((data) => {
+            for (var idx in data) {
+                data[idx].date = dateFormat(data[idx].date, "dddd, mmmm dS, yyyy, h:MM:ss TT");
+            }
+            send(ws, msg, data);
+        }).catch((err) => {
+            error(ws, msg, err);
+        });
+    },
+    loadRule: (ws, msg) => {
+        requestCloud({ type: "loadFile", fileName: "rules.json", sha256: msg.sha256 }).then((data) => {
+            console.log("restoring rules", data);
+            homework.restoreRules(data);
+            send(ws, msg, "ok");
+        }).catch((err) => {
+            error(ws, msg, err);
+        });
     }
 };
 
@@ -867,9 +927,18 @@ const HWWebSocket = {
                 return;
             }
             if (!("id" in msg)) {
-                if ("type" in msg && msg.type == "cloud") {
-                    this._cloudOk = true;
-                    this.sendCloud();
+                if ("type" in msg) {
+                    if (msg.type == "cloud") {
+                        this._cloudOk = true;
+                        this.sendCloud();
+                        return;
+                    } else if (msg.type == "error") {
+                        Console.error("cloud error:", msg.msg);
+                        return;
+                    }
+                }
+                if ("cid" in msg) {
+                    resolveCloud(msg);
                     return;
                 }
                 Console.log("no id in message", msg);
@@ -923,15 +992,25 @@ const HWWebSocket = {
                 Console.log("ping cloud");
                 this._cloud.ping();
             }, cfg.cloudPingInterval || (20 * 1000 * 60));
+
+            homework.save((fn, data) => {
+                requestCloud({ type: "saveFile", fileName: fn, data: data }).then((msg) => {
+                    Console.log(msg);
+                }).catch((msg) => {
+                    Console.error("cloud error:", msg);
+                });
+            });
         });
         this._cloud.on("close", () => {
             Console.log("cloud gone");
+            rejectCloud();
 
             stop();
             again();
         });
         this._cloud.on("error", (err) => {
             Console.log("cloud error", err);
+            rejectCloud();
 
             this._cloud.close();
             stop();
