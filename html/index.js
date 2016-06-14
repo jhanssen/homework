@@ -845,6 +845,9 @@ module.controller('restoreRulesController', function($scope) {
     $scope.restoreRule = function(sha256) {
         $scope.request({ type: "loadRule", sha256: sha256 }).then(function() {
             $("#restoreRulesModal").modal("hide");
+
+            $scope.$parent.clearCachedRules();
+            $scope.$parent.$apply();
         });
     };
 });
@@ -1253,12 +1256,11 @@ function applyEditRule($scope, $compile, applyName) {
             .request({ type: "createRule", rule: { name: $scope.name, events: events, actions: actions } })
             .then(function(result) {
                 console.log("rule created", result, $scope.generator);
-                if ($scope.generator) {
-                    $scope.clearCachedRules();
-                    $scope.$apply();
-                } else {
+                if (!$scope.generator) {
                     $("#addRuleModal").modal("hide");
                 }
+                $scope.clearCachedRules();
+                $scope.$apply();
             }).catch(function(error) {
                 $scope.error = error;
                 $scope.$apply();
