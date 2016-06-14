@@ -101,6 +101,21 @@ function rejectCloud()
     requestState.id = 0;
 }
 
+function saveFilesInCloud(files)
+{
+    homework.save((fn, data) => {
+        if (!files || files.indexOf(fn) !== -1) {
+            requestCloud({ type: "saveFile", fileName: fn, data: data }).then((msg) => {
+                Console.log(msg);
+            }).catch((msg) => {
+                Console.error("cloud error:", msg);
+            });
+        } else {
+            Console.log("file skipped", fn);
+        }
+    });
+}
+
 const types = {
     call: (ws, msg) => {
         // find the thing
@@ -203,6 +218,8 @@ const types = {
             if (dev instanceof Object) {
                 dev.groups = [group];
                 send(ws, msg, "ok");
+
+                saveFilesInCloud(["devices.json"]);
             } else {
                 error(ws, msg, `no such device ${msg.uuid}`);
             }
@@ -379,6 +396,8 @@ const types = {
         homework.removeRuleByName(rule.name);
         homework.addRule(rule);
         send(ws, msg, { name: desc.name, success: true });
+
+        saveFilesInCloud(["rules.json"]);
     },
     devicedata: (ws, msg) => {
         // return a list of all rooms and floors
@@ -479,6 +498,8 @@ const types = {
         }
         dev.name = msg.name;
         send(ws, msg, "ok");
+
+        saveFilesInCloud(["devices.json"]);
     },
     setRoom: (ws, msg) => {
         const devs = homework.devices;
@@ -506,6 +527,8 @@ const types = {
         else
             dev.room = undefined;
         send(ws, msg, "ok");
+
+        saveFilesInCloud(["devices.json"]);
     },
     setFloor: (ws, msg) => {
         const devs = homework.devices;
@@ -533,6 +556,8 @@ const types = {
         else
             dev.floor = undefined;
         send(ws, msg, "ok");
+
+        saveFilesInCloud(["devices.json"]);
     },
     setType: (ws, msg) => {
         const devs = homework.devices;
@@ -557,6 +582,8 @@ const types = {
         }
         dev.type = msg.devtype;
         send(ws, msg, "ok");
+
+        saveFilesInCloud(["devices.json"]);
     },
     setValue: (ws, msg) => {
         const devs = homework.devices;
@@ -993,13 +1020,7 @@ const HWWebSocket = {
                 this._cloud.ping();
             }, cfg.cloudPingInterval || (20 * 1000 * 60));
 
-            homework.save((fn, data) => {
-                requestCloud({ type: "saveFile", fileName: fn, data: data }).then((msg) => {
-                    Console.log(msg);
-                }).catch((msg) => {
-                    Console.error("cloud error:", msg);
-                });
-            });
+            saveFilesInCloud();
         });
         this._cloud.on("close", () => {
             Console.log("cloud gone");
