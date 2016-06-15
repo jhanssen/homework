@@ -76,6 +76,12 @@ homework = {
     },
 
     addRule: function(rule) {
+        for (var i = 0; i < this._rules.length; ++i) {
+            if (rule.name == this._rules[i].name) {
+                console.trace(`duplicate rule ${rule.name}`);
+                process.exit();
+            }
+        }
         this._rules.push(rule);
         this.saveRules();
     },
