@@ -226,6 +226,128 @@ const types = {
             }
         }
     },
+    addDevice: (ws, msg) => {
+        if (!("name" in msg) || typeof msg.name !== "string" || !msg.name.length) {
+            error(ws, msg, "no device name");
+            return;
+        }
+        let uuid = "virtual:" + msg.name.replace(/[\W]+/g, "_");
+        if (findDevice(uuid)) {
+            error(ws, msg, "device already exists");
+            return;
+        }
+
+        var dev = new homework.Device("Virtual", uuid);
+        dev.name = msg.name;
+        homework.addDevice(dev);
+        send(ws, msg, "ok");
+
+        saveFilesInCloud(["devices.json"]);
+        homework.saveDevices();
+    },
+    removeDevice: (ws, msg) => {
+        if (!("uuid" in msg) || typeof msg.uuid !== "string" || !msg.uuid.length) {
+            error(ws, msg, "no device uuid");
+            return;
+        }
+        var dev = findDevice(msg.uuid);
+        if (!dev) {
+            error(ws, msg, "device not found");
+            return;
+        }
+        if (!dev.virtual) {
+            error(ws, msg, "can't remove non-virtual devices");
+            return;
+        }
+
+        homework.removeDevice(dev);
+        send(ws, msg, "ok");
+
+        saveFilesInCloud(["devices.json"]);
+        homework.saveDevices();
+    },
+    addDeviceValue: (ws, msg) => {
+        if (!("name" in msg) || typeof msg.name !== "string" || !msg.name.length) {
+            error(ws, msg, "no device name");
+            return;
+        }
+        if (!("template" in msg) || typeof msg.template !== "string") {
+            error(ws, msg, "no device template");
+            return;
+        }
+        if (!("uuid" in msg) || typeof msg.uuid !== "string" || !msg.uuid.length) {
+            error(ws, msg, "no device uuid");
+            return;
+        }
+        var dev = findDevice(msg.uuid);
+        if (!dev) {
+            error(ws, msg, "device not found");
+            return;
+        }
+        if (!dev.virtual) {
+            error(ws, msg, "can't add value for non-virtual devices");
+            return;
+        }
+
+        if (msg.name in dev.values) {
+            error(ws, msg, "device already has a value by that name");
+            return;
+        }
+
+        var data = {};
+
+        var range = /^\s*([0-9]+)\s*-\s*([0-9]+)\s*$/.exec(msg.template);
+        if (range) {
+            var low = parseInt(range[1]);
+            var high = parseInt(range[2]);
+            if (low > high)
+                data.range = [high, low];
+            else
+                data.range = [low, high];
+            data.valueType = "range";
+        } else if (!msg.template.length) {
+            data.valueType = "string";
+        } else {
+            var a = msg.template.split(";");
+            data.values = Object.create(null);
+            for (var i = 0; i < a.length; ++i) {
+                data.values[a[i]] = a[i];
+            }
+            data.valueType = "array";
+        }
+
+        dev.addValue(new homework.Device.Value(msg.name, data));
+        send(ws, msg, "ok");
+
+        saveFilesInCloud(["devices.json"]);
+        homework.saveDevices();
+    },
+    removeDeviceValue: (ws, msg) => {
+        if (!("name" in msg) || typeof msg.name !== "string" || !msg.name.length) {
+            error(ws, msg, "no device name");
+            return;
+        }
+        if (!("uuid" in msg) || typeof msg.uuid !== "string" || !msg.uuid.length) {
+            error(ws, msg, "no device uuid");
+            return;
+        }
+        var dev = findDevice(msg.uuid);
+        if (!dev) {
+            error(ws, msg, "device not found");
+            return;
+        }
+        if (!dev.virtual) {
+            error(ws, msg, "can't remove value for non-virtual devices");
+            return;
+        }
+
+        if (msg.name in dev.values) {
+            dev.removeValue(msg.name);
+            send(ws, msg, "ok");
+        } else {
+            error(ws, msg, "no such value");
+        }
+    },
     rules: (ws, msg) => {
         const rs = homework.rules;
         if (rs instanceof Array) {
@@ -582,6 +704,13 @@ const types = {
         }
         if (typeof msg.devtype !== "string") {
             error(ws, msg, `invalid type ${msg.devtype}`);
+            return;
+        }
+        if (dev.virtual) {
+            error(ws, msg, "can't change a virtual device to be non-virtual");
+            return;
+        } else if (msg.devtype == "Virtual") {
+            error(ws, msg, "can't change a non-virtual device to be virtual");
             return;
         }
         dev.type = msg.devtype;

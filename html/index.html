@@ -57,6 +57,7 @@
 	    <li role="presentation" ng-repeat="group in groups" ng-class="activeGroup(group)" ng-drop="true" ng-drop-success="onDropDevice($data, $event, group)"><a href="#devices/{{group}}">{{group}}</a></li>
 	    <li role="presentation"><a href="#devices/add">+</a></li>
 	  </ul>
+	  <button class="pull-right btn btn-success" ng-click="addDevice()">Add</button>
 	  <button class="pull-right btn btn-primary" ng-click="restoreDevices()">Restore</button>
 	  <div class="hw-clear"></div>
 	</div>
@@ -76,6 +77,33 @@
 	      </div>
 	      <div class="modal-footer">
 		<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+	      </div>
+	    </div>
+	  </div>
+	</div>
+	<div id="addDeviceModal" class="modal fade" role="dialog" ng-controller="addDeviceController">
+	  <div class="modal-dialog hw-dialog">
+	    <div class="modal-content">
+	      <div class="modal-header">
+		<button type="button" class="close" data-dismiss="modal">&times;</button>
+		<h4 class="modal-title">Add virtual device</h4>
+	      </div>
+	      <div class="modal-body">
+		<div ng-if="error" class="alert alert-danger">
+		  <strong>Error</strong> {{error}}
+		</div>
+		<div class="hw-clear container-fluid">
+		  <div class="col-xs-6 col-sm-6 col-md-6 col-lg-6 center-block text-center">
+		    Name
+		  </div>
+		  <div class="col-xs-6 col-sm-6 col-md-6 col-lg-6">
+		    <input type="text" ng-model="name">
+		  </div>
+		</div>
+	      </div>
+	      <div class="modal-footer">
+		<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+		<button type="button" class="btn btn-default" ng-click="save()">Save</button>
 	      </div>
 	    </div>
 	  </div>
@@ -139,8 +167,11 @@
 	</div>
       </div>
       <div ng-if="isActive('device')" class="container" ng-controller="deviceController">
-	<h2>{{dev.name}}</h2>
-	<div class="container hw-alternate">
+	<div>
+	  <h2 class="pull-left">{{dev.name}}</h2>
+	  <button ng-if="dev.virtual" class="pull-right btn btn-success h2" type="button" ng-click="addValue()">Add value</button>
+	</div>
+	<div class="container hw-alternate hw-clear">
 	  <div class="row hw-vcenter">
 	    <div class="col-xs-4 col-sm-4 col-md-4 col-lg-4">
 	      name
@@ -239,6 +270,41 @@
 		<div style="float: left">
 		  {{val.units}}
 		</div>
+	      </div>
+	    </div>
+	  </div>
+	</div>
+	<div id="addDeviceValueModal" class="modal fade" role="dialog" ng-controller="addDeviceValueController">
+	  <div class="modal-dialog hw-dialog">
+	    <div class="modal-content">
+	      <div class="modal-header">
+		<button type="button" class="close" data-dismiss="modal">&times;</button>
+		<h4 class="modal-title">Add value</h4>
+	      </div>
+	      <div class="modal-body">
+		<div ng-if="error" class="alert alert-danger">
+		  <strong>Error</strong> {{error}}
+		</div>
+		<div class="hw-clear container-fluid">
+		  <div class="col-xs-6 col-sm-6 col-md-6 col-lg-6 center-block text-center">
+		    Name
+		  </div>
+		  <div class="col-xs-6 col-sm-6 col-md-6 col-lg-6">
+		    <input type="text" ng-model="name">
+		  </div>
+		</div>
+		<div class="hw-clear container-fluid">
+		  <div class="col-xs-6 col-sm-6 col-md-6 col-lg-6 center-block text-center">
+		    Template
+		  </div>
+		  <div class="col-xs-6 col-sm-6 col-md-6 col-lg-6">
+		    <input type="text" ng-model="template">
+		  </div>
+		</div>
+	      </div>
+	      <div class="modal-footer">
+		<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+		<button type="button" class="btn btn-default" ng-click="save()">Save</button>
 	      </div>
 	    </div>
 	  </div>

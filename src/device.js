@@ -63,6 +63,7 @@ Device.Types = [
     "GarageDoor",
     "Lock",
     "Presence",
+    "Virtual",
     "Unknown"
 ];
 
@@ -112,6 +113,9 @@ Device.prototype = {
     set type(t) {
         this._type = t;
     },
+    get virtual() {
+        return this._type == "Virtual";
+    },
     get groups() {
         return this._groups;
     },
@@ -153,6 +157,8 @@ Device.Value = function(name, data)
         this._handle = data.handle;
         this._units = data.units;
         this._readOnly = data.readOnly || false;
+        if ("valueType" in data)
+            this._valueType = data.valueType;
     } else {
         this._readOnly = false;
     }
@@ -221,10 +227,24 @@ Device.Value.prototype = {
             v = this._values[v];
         }
 
-        if (typeof this._valueUpdated === "function")
+        if (typeof this._valueUpdated === "function") {
             this._valueUpdated(v);
-        else
-            this._value = v;
+        } else {
+            if (this._device.virtual)
+                this.update(v);
+            else
+                this._value = v;
+        }
+    },
+
+    get data() {
+        return {
+            values: this._values,
+            range: this._range,
+            units: this._units,
+            readOnly: this._readOnly,
+            valueType: this.type
+        };
     },
 
     rawValue: function(v) {
@@ -533,8 +553,29 @@ Device.init = function(homework, d)
 {
     data.homework = homework;
     data.data = d;
+
     homework.registerEvent("Device", Device.Event, eventCompleter, eventDeserializer);
     homework.registerAction("Device", Device.Action, actionCompleter, actionDeserializer);
+
+    // recreate virtual devices
+    for (var uuid in d) {
+        var dev = d[uuid];
+        if (dev.type == "Virtual") {
+            var nd = new Device("Virtual", uuid, dev);
+            nd.name = dev.name;
+            if ("room" in dev)
+                nd.room = dev.room;
+            if ("floor" in dev)
+                nd.floor = dev.floor;
+            if ("groups" in dev)
+                nd.groups = dev.groups;
+            for (var vname in dev.values) {
+                nd.addValue(new Device.Value(vname, dev.values[vname]));
+            }
+
+            homework.addDevice(nd);
+        }
+    }
 };
 
 module.exports = { Device: Device, Type: Device.Type };

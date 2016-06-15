@@ -192,6 +192,14 @@ homework = {
         for (var i = 0; i < this._devices.length; ++i) {
             var dev = this._devices[i];
             devices[dev.uuid] = { name: dev.name, room: dev.room, floor: dev.floor, groups: dev.groups, type: dev.type };
+            if (dev.virtual) {
+                // save values as well
+                var vals = Object.create(null);
+                for (var v in dev.values) {
+                    vals[v] = dev.values[v].data;
+                }
+                devices[dev.uuid].values = vals;
+            }
         }
         if (cb) {
             cb("devices.json", devices);

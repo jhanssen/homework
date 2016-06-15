@@ -431,6 +431,9 @@ module.controller('devicesController', function($scope) {
         });
     };
 
+    $scope.addDevice = function() {
+        $('#addDeviceModal').modal('show');
+    },
     $scope.restoreDevices = function() {
         $('#restoreDevicesModal').modal('show');
     };
@@ -446,6 +449,23 @@ module.controller('devicesController', function($scope) {
         $scope.listener.off("ready", deviceReady);
         $scope.listener.off("navigationChanged", nav);
     });
+});
+
+module.controller('addDeviceController', function($scope) {
+    $scope.name = undefined;
+    $scope.error = undefined;
+    $scope.save = function() {
+        if (typeof $scope.name !== "string" || !$scope.name.length) {
+            $scope.error = "Invalid name";
+            return;
+        }
+        $scope.request({ type: "addDevice", name: $scope.name }).then(function() {
+            $('#addDeviceModal').modal('hide');
+        }).catch(function(err) {
+            $scope.error = err;
+            $scope.$apply();
+        });
+    };
 });
 
 module.controller('restoreDevicesController', function($scope) {
@@ -488,6 +508,7 @@ module.controller('deviceController', function($scope) {
         $scope.request({ type: "device", uuid: uuid }).then(function(response) {
             console.log("got device", uuid, response);
             $scope.dev = response;
+            $scope.dev.virtual = $scope.dev.type == "Virtual";
 
             $scope.request({ type: "devicedata" }).then(function(response) {
                 $scope.rooms = response.rooms;
@@ -544,6 +565,9 @@ module.controller('deviceController', function($scope) {
                 $scope.$apply();
             });
     };
+    $scope.addValue = function() {
+        $('#addDeviceValueModal').modal('show');
+    };
 
     var valueUpdated = function(updated) {
         if (updated.devuuid == $scope.dev.uuid) {
@@ -564,6 +588,28 @@ module.controller('deviceController', function($scope) {
         $scope.listener.off("valueUpdated", valueUpdated);
         $scope.listener.off("ready", deviceReady);
     });
+});
+
+module.controller('addDeviceValueController', function($scope) {
+    $scope.name = undefined;
+    $scope.template = undefined;
+    $scope.error = undefined;
+    $scope.save = function() {
+        if (typeof $scope.name !== "string" || !$scope.name.length) {
+            $scope.error = "Invalid name";
+            return;
+        }
+        if (typeof $scope.template !== "string" || !$scope.template.length) {
+            $scope.error = "Invalid template";
+            return;
+        }
+        $scope.request({ type: "addDeviceValue", uuid: $scope.dev.uuid, name: $scope.name, template: $scope.template }).then(function() {
+            $('#addDeviceValueModal').modal('hide');
+        }).catch(function(err) {
+            $scope.error = err;
+            $scope.$apply();
+        });
+    };
 });
 
 function applyEditScene($scope, $compile)
