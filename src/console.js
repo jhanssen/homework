@@ -426,6 +426,7 @@ const states = {
                     if (newname instanceof Array && newname.length === 2) {
                         states.device._device.name = newname[1];
                         data.prompt = "device " + newname[1] + "> ";
+                        data.homework.saveDevices();
                     }
                 }
                 if (states.device._value === undefined) {

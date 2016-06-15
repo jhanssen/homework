@@ -51,11 +51,35 @@
     <div id="page-content">
       <div ng-if="isActive('devices')" class="container" ng-controller="devicesController">
 	<h2>Devices</h2>
-	<ul class="nav nav-pills">
-	  <li role="presentation" ng-class="activeGroup('all')"><a href="#devices/all">All</a></li>
-	  <li role="presentation" ng-repeat="group in groups" ng-class="activeGroup(group)" ng-drop="true" ng-drop-success="onDropDevice($data, $event, group)"><a href="#devices/{{group}}">{{group}}</a></li>
-	  <li role="presentation"><a href="#devices/add">+</a></li>
-	</ul>
+	<div>
+	  <ul class="nav nav-pills pull-left">
+	    <li role="presentation" ng-class="activeGroup('all')"><a href="#devices/all">All</a></li>
+	    <li role="presentation" ng-repeat="group in groups" ng-class="activeGroup(group)" ng-drop="true" ng-drop-success="onDropDevice($data, $event, group)"><a href="#devices/{{group}}">{{group}}</a></li>
+	    <li role="presentation"><a href="#devices/add">+</a></li>
+	  </ul>
+	  <button class="pull-right btn btn-primary" ng-click="restoreDevices()">Restore</button>
+	  <div class="hw-clear"></div>
+	</div>
+	<div id="restoreDevicesModal" class="modal fade" role="dialog" ng-controller="restoreDevicesController">
+	  <div class="modal-dialog hw-dialog">
+	    <div class="modal-content">
+	      <div class="modal-header">
+		<button type="button" class="close" data-dismiss="modal">&times;</button>
+		<h4 class="modal-title">Restore devices</h4>
+	      </div>
+	      <div class="modal-body">
+		<div class="container-fluid">
+		  <div class="row" ng-repeat="device in deviceCandidates">
+		    <button class="btn btn-default col-xs-12 col-sm-12 col-md-12 col-lg-12 center-block text-center" ng-click="restoreDevice(device.sha256)">{{device.date}}</button>
+		  </div>
+		</div>
+	      </div>
+	      <div class="modal-footer">
+		<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+	      </div>
+	    </div>
+	  </div>
+	</div>
 	<div class="container-fluid">
 	  <div class="row">
 	    <div class="col-xs-6 col-sm-4 col-md-4 col-lg-3 center-block text-center" ng-repeat="(uuid, dev) in currentDevices">
@@ -225,6 +249,7 @@
 	  <div>
 	    <h2 class="pull-left">Scenes</h2>
 	    <button class="pull-right btn btn-success h2" type="button" ng-click="addScene()">Add</button>
+	    <button class="pull-right btn btn-primary h2" type="button" ng-click="restoreScenes()">Restore</button>
 	  </div>
 	  <div ng-if="error" class="alert alert-danger">
 	    <strong>Error</strong> {{error}}
@@ -256,6 +281,26 @@
 	      <div class="modal-footer">
 		<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
 		<button type="button" class="btn btn-default" ng-click="save()">Save</button>
+	      </div>
+	    </div>
+	  </div>
+	</div>
+	<div id="restoreScenesModal" class="modal fade" role="dialog" ng-controller="restoreScenesController">
+	  <div class="modal-dialog hw-dialog">
+	    <div class="modal-content">
+	      <div class="modal-header">
+		<button type="button" class="close" data-dismiss="modal">&times;</button>
+		<h4 class="modal-title">Restore scenes</h4>
+	      </div>
+	      <div class="modal-body">
+		<div class="container-fluid">
+		  <div class="row" ng-repeat="scene in sceneCandidates">
+		    <button class="btn btn-default col-xs-12 col-sm-12 col-md-12 col-lg-12 center-block text-center" ng-click="restoreScene(scene.sha256)">{{scene.date}}</button>
+		  </div>
+		</div>
+	      </div>
+	      <div class="modal-footer">
+		<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
 	      </div>
 	    </div>
 	  </div>

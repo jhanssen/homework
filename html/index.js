@@ -431,6 +431,13 @@ module.controller('devicesController', function($scope) {
         });
     };
 
+    $scope.restoreDevices = function() {
+        $('#restoreDevicesModal').modal('show');
+    };
+    $scope.clearCachedDevices = function() {
+        deviceReady();
+    };
+
     $scope.listener.on("navigationChanged", nav);
 
     $scope.listener.on("valueUpdated", valueUpdated);
@@ -439,6 +446,24 @@ module.controller('devicesController', function($scope) {
         $scope.listener.off("ready", deviceReady);
         $scope.listener.off("navigationChanged", nav);
     });
+});
+
+module.controller('restoreDevicesController', function($scope) {
+    $('#restoreDevicesModal').on('shown.bs.modal', function() {
+        $scope.request({ type: "restore", file: "devices" }).then(function(devices) {
+            console.log(devices);
+            $scope.deviceCandidates = devices;
+            $scope.$apply();
+        });
+    });
+
+    $scope.restoreDevice = function(sha256) {
+        $scope.request({ type: "restore", file: "devices", sha256: sha256 }).then(function() {
+            $("#restoreDevicesModal").modal("hide");
+
+            $scope.clearCachedDevices();
+        });
+    };
 });
 
 module.controller('addGroupController', function($scope) {
@@ -798,11 +823,14 @@ function applyEditScene($scope, $compile)
 module.controller('sceneController', function($scope) {
     $scope.adding = false;
 
-    $scope.request({ type: "scenes" }).then(function(scenes) {
-        $scope.scenes = scenes;
-        console.log("got scenes", scenes);
-        $scope.$apply();
-    });
+    var requestScenes = function() {
+        $scope.request({ type: "scenes" }).then(function(scenes) {
+            $scope.scenes = scenes;
+            console.log("got scenes", scenes);
+            $scope.$apply();
+        });
+    };
+    requestScenes();
 
     $scope.addScene = function() {
         $scope.adding = true;
@@ -817,6 +845,32 @@ module.controller('sceneController', function($scope) {
         $scope.adding = false;
         $scope.$apply();
     });
+
+    $scope.restoreScenes = function() {
+        $('#restoreScenesModal').modal('show');
+    };
+
+    $scope.clearCachedScenes = function() {
+        requestScenes();
+    };
+});
+
+module.controller('restoreScenesController', function($scope) {
+    $('#restoreScenesModal').on('shown.bs.modal', function() {
+        $scope.request({ type: "restore", file: "scenes" }).then(function(scenes) {
+            console.log(scenes);
+            $scope.sceneCandidates = scenes;
+            $scope.$apply();
+        });
+    });
+
+    $scope.restoreScene = function(sha256) {
+        $scope.request({ type: "restore", file: "scenes", sha256: sha256 }).then(function() {
+            $("#restoreScenesModal").modal("hide");
+
+            $scope.clearCachedScenes();
+        });
+    };
 });
 
 module.controller('addSceneController', function($scope, $compile) {
@@ -836,14 +890,16 @@ module.controller('editSceneController', function($scope, $compile) {
 });
 
 module.controller('restoreRulesController', function($scope) {
-    $scope.request({ type: "loadRules" }).then(function(rules) {
-        console.log(rules);
-        $scope.ruleCandidates = rules;
-        $scope.$apply();
+    $('#restoreRulesModal').on('shown.bs.modal', function() {
+        $scope.request({ type: "restore", file: "rules" }).then(function(rules) {
+            console.log(rules);
+            $scope.ruleCandidates = rules;
+            $scope.$apply();
+        });
     });
 
     $scope.restoreRule = function(sha256) {
-        $scope.request({ type: "loadRule", sha256: sha256 }).then(function() {
+        $scope.request({ type: "restore", file: "rules", sha256: sha256 }).then(function() {
             $("#restoreRulesModal").modal("hide");
 
             $scope.$parent.clearCachedRules();

@@ -220,6 +220,7 @@ const types = {
                 send(ws, msg, "ok");
 
                 saveFilesInCloud(["devices.json"]);
+                homework.saveDevices();
             } else {
                 error(ws, msg, `no such device ${msg.uuid}`);
             }
@@ -500,6 +501,7 @@ const types = {
         send(ws, msg, "ok");
 
         saveFilesInCloud(["devices.json"]);
+        homework.saveDevices();
     },
     setRoom: (ws, msg) => {
         const devs = homework.devices;
@@ -529,6 +531,7 @@ const types = {
         send(ws, msg, "ok");
 
         saveFilesInCloud(["devices.json"]);
+        homework.saveDevices();
     },
     setFloor: (ws, msg) => {
         const devs = homework.devices;
@@ -558,6 +561,7 @@ const types = {
         send(ws, msg, "ok");
 
         saveFilesInCloud(["devices.json"]);
+        homework.saveDevices();
     },
     setType: (ws, msg) => {
         const devs = homework.devices;
@@ -584,6 +588,7 @@ const types = {
         send(ws, msg, "ok");
 
         saveFilesInCloud(["devices.json"]);
+        homework.saveDevices();
     },
     setValue: (ws, msg) => {
         const devs = homework.devices;
@@ -883,24 +888,64 @@ const types = {
         }
         error(ws, msg, `no such scene: ${msg.name}`);
     },
-    loadRules: (ws, msg) => {
-        requestCloud({ type: "loadFile", fileName: "rules.json" }).then((data) => {
-            for (var idx in data) {
-                data[idx].date = dateFormat(data[idx].date, "dddd, mmmm dS, yyyy, h:MM:ss TT");
-            }
-            send(ws, msg, data);
-        }).catch((err) => {
-            error(ws, msg, err);
-        });
-    },
-    loadRule: (ws, msg) => {
-        requestCloud({ type: "loadFile", fileName: "rules.json", sha256: msg.sha256 }).then((data) => {
-            console.log("restoring rules", data);
-            homework.restoreRules(data);
-            send(ws, msg, "ok");
-        }).catch((err) => {
-            error(ws, msg, err);
-        });
+    restore: (ws, msg) => {
+        if (!("file" in msg)) {
+            error(ws, msg, "no file name in msg");
+            return;
+        }
+        let fn = msg.file;
+        if (!("sha256" in msg)) {
+            requestCloud({ type: "loadFile", fileName: `${fn}.json` }).then((data) => {
+                for (var idx in data) {
+                    data[idx].date = dateFormat(data[idx].date, "dddd, mmmm dS, yyyy, h:MM:ss TT");
+                }
+                send(ws, msg, data);
+            }).catch((err) => {
+                error(ws, msg, err);
+            });
+        } else {
+            requestCloud({ type: "loadFile", fileName: `${fn}.json`, sha256: msg.sha256 }).then((data) => {
+                switch (fn) {
+                case "rules":
+                    console.log("restoring rules", data);
+                    homework.restoreRules(data);
+                    homework.saveRules();
+                    break;
+                case "scenes":
+                    console.log("restoring scenes", data);
+                    homework.restoreScenes(data);
+                    homework.saveScenes();
+                    break;
+                case "devices":
+                    //homework.removeVirtualDevices();
+                    console.log("restoring devices", data);
+                    for (let uuid in data) {
+                        // find this device
+                        let dev = findDevice(uuid);
+                        let desc = data[uuid];
+                        if (dev) {
+                            if ("name" in desc)
+                                dev.name = desc.name;
+                            if ("room" in desc)
+                                dev.room = desc.room;
+                            if ("floor" in desc)
+                                dev.floor = desc.floor;
+                            if ("groups" in desc)
+                                dev.groups = desc.groups;
+                            if ("type" in desc)
+                                dev.type = desc.type;
+                        } else {
+                            // virtual? if so, create
+                        }
+                    }
+                    homework.saveDevices();
+                    break;
+                }
+                send(ws, msg, "ok");
+            }).catch((err) => {
+                error(ws, msg, err);
+            });
+        }
     }
 };
 

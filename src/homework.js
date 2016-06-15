@@ -217,6 +217,14 @@ homework = {
 
         this.loadRules();
     },
+    restoreScenes: function(scenes) {
+        this._scenes = [];
+        if (scenes instanceof Array) {
+            for (var i = 0; i < scenes.length; ++i) {
+                this.addScene(new this.Scene(scenes[i].name, scenes[i].values));
+            }
+        }
+    },
     restore: function(args) {
         db.readFile(path.join(Config.path, "rules.json"), (err, obj) => {
             if (obj) {
@@ -235,11 +243,7 @@ homework = {
                 db.readFile(path.join(Config.path, "scenes.json"), (err, obj) => {
                     Scene.init(this);
 
-                    if (obj instanceof Array) {
-                        for (var i = 0; i < obj.length; ++i) {
-                            this.addScene(new this.Scene(obj[i].name, obj[i].values));
-                        }
-                    }
+                    this.restoreScenes(obj);
 
                     Timer.init(this);
                     Variable.init(this);

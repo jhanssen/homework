@@ -8,12 +8,6 @@ const data = {
     data: undefined
 };
 
-function save()
-{
-    if (data.homework)
-        data.homework.saveDevices();
-}
-
 function stringAsType(a)
 {
     if (typeof a === "string") {
@@ -82,21 +76,18 @@ Device.prototype = {
 
     set name(name) {
         this._name = name;
-        save();
     },
     get name() {
         return this._name;
     },
     set floor(floor) {
         this._floor = floor;
-        save();
     },
     get floor() {
         return this._floor;
     },
     set room(room) {
         this._room = room;
-        save();
     },
     get room() {
         return this._room;
@@ -120,14 +111,12 @@ Device.prototype = {
     },
     set type(t) {
         this._type = t;
-        save();
     },
     get groups() {
         return this._groups;
     },
     set groups(g) {
         this._groups = g;
-        save();
     },
 
     addGroup: function(grp) {
