@@ -461,6 +461,7 @@ module.controller('addDeviceController', function($scope) {
         }
         $scope.request({ type: "addDevice", name: $scope.name }).then(function() {
             $('#addDeviceModal').modal('hide');
+            $scope.clearCachedDevices();
         }).catch(function(err) {
             $scope.error = err;
             $scope.$apply();
