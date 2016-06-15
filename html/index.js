@@ -103,9 +103,9 @@ module.controller('mainController', function($scope) {
             pingInterval = undefined;
         }
     };
-    $scope.clearNavigation = function() {
+    $scope.clearNavigation = function(hash) {
         $scope.nav = [];
-        location.hash = $scope.active;
+        location.hash = hash || $scope.active;
     };
 
     $(window).on("hashchange", function() {
@@ -568,6 +568,19 @@ module.controller('deviceController', function($scope) {
     $scope.addValue = function() {
         $('#addDeviceValueModal').modal('show');
     };
+    $scope.removeDevice = function() {
+        $scope.request({ type: "removeDevice", uuid: $scope.dev.uuid }).then(function() {
+            $scope.clearNavigation("#devices");
+        });
+    };
+    $scope.removeValue = function(name) {
+        $scope.request({ type: "removeDeviceValue", uuid: $scope.dev.uuid, name: name }).then(function() {
+            deviceReady();
+        });
+    };
+    $scope.updateDevice = function() {
+        deviceReady();
+    };
 
     var valueUpdated = function(updated) {
         if (updated.devuuid == $scope.dev.uuid) {
@@ -605,6 +618,7 @@ module.controller('addDeviceValueController', function($scope) {
         }
         $scope.request({ type: "addDeviceValue", uuid: $scope.dev.uuid, name: $scope.name, template: $scope.template }).then(function() {
             $('#addDeviceValueModal').modal('hide');
+            $scope.updateDevice();
         }).catch(function(err) {
             $scope.error = err;
             $scope.$apply();

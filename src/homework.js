@@ -60,7 +60,10 @@ homework = {
         this._devices.push(device);
     },
     removeDevice: function(device) {
-        this._devices.remove((el) => { return Object.is(device, el); });
+        this._devices.remove((el) => { return el.uuid == device.uuid; });
+        if (this._deviceinfo && device.uuid in this._deviceinfo) {
+            delete this._deviceinfo[device.uuid];
+        }
     },
 
     addScene: function(scene) {

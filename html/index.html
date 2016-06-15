@@ -169,6 +169,7 @@
       <div ng-if="isActive('device')" class="container" ng-controller="deviceController">
 	<div>
 	  <h2 class="pull-left">{{dev.name}}</h2>
+	  <button ng-if="dev.virtual" class="pull-right btn btn-danger h2" type="button" ng-click="removeDevice()">Delete</button>
 	  <button ng-if="dev.virtual" class="pull-right btn btn-success h2" type="button" ng-click="addValue()">Add value</button>
 	</div>
 	<div class="container hw-alternate hw-clear">
@@ -247,30 +248,35 @@
 	      {{val.name}}
 	    </div>
 	    <div class="col-xs-8 col-sm-8 col-md-8 col-lg-8">
-	      <div ng-if="val.readOnly">
-		{{val.value}} {{val.units}}
-	      </div>
-	      <div ng-if="!val.readOnly">
-		<div ng-if="val.type !== 'array'" style="float: left; margin-right: 1em">
-		  <form ng-submit="setValue(val)">
-		    <input type="text" ng-model="val.value" class="form-control">
-		  </form>
+	      <div class="pull-left">
+		<div ng-if="val.readOnly">
+		  {{val.value}} {{val.units}}
 		</div>
-		<div style="margin-right: 1em; float: left" ng-if="val.values">
-		  <div class="dropdown"><button ng-attr-id="drop-{{val.name}}" class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">{{val.value}}<span class="caret"></span></button>
-		    <ul class="dropdown-menu" aria-labelledby="drop-{{val.name}}">
-		      <li ng-repeat="(valn, valv) in val.values">
-			<a href="" class="btn default" ng-click="setValue(val, valv)">
-			  {{valn}}
-			</a>
-		      </li>
-		    </ul>
+		<div ng-if="!val.readOnly">
+		  <div ng-if="val.type !== 'array'" style="float: left; margin-right: 1em">
+		    <form ng-submit="setValue(val)">
+		      <input type="text" ng-model="val.value" class="form-control">
+		    </form>
+		  </div>
+		  <div style="margin-right: 1em; float: left" ng-if="val.values">
+		    <div class="dropdown"><button ng-attr-id="drop-{{val.name}}" class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">{{val.value}}<span class="caret"></span></button>
+		      <ul class="dropdown-menu" aria-labelledby="drop-{{val.name}}">
+			<li ng-repeat="(valn, valv) in val.values">
+			  <a href="" class="btn default" ng-click="setValue(val, valv)">
+			    {{valn}}
+			  </a>
+			</li>
+		      </ul>
+		    </div>
+		  </div>
+		  <div style="float: left">
+		    {{val.units}}
 		  </div>
 		</div>
-		<div style="float: left">
-		  {{val.units}}
-		</div>
 	      </div>
+	    </div>
+	    <div class="pull-right">
+	      <button ng-if="dev.virtual" class="pull-right btn btn-danger" type="button" ng-click="removeValue(val.name)">Delete</button>
 	    </div>
 	  </div>
 	</div>
