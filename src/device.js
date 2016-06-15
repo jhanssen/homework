@@ -1,4 +1,4 @@
-/*global module,require*/
+/*global module,require,setTimeout*/
 const utils = require("./utils.js");
 const uuid = require("node-uuid");
 const devices = [];
@@ -159,6 +159,11 @@ Device.Value = function(name, data)
         this._readOnly = data.readOnly || false;
         if ("valueType" in data)
             this._valueType = data.valueType;
+        if ("value" in data) {
+            setTimeout(() => {
+                this.update(data.value);
+            }, 0);
+        }
     } else {
         this._readOnly = false;
     }
@@ -238,13 +243,17 @@ Device.Value.prototype = {
     },
 
     get data() {
-        return {
+        var d = {
             values: this._values,
             range: this._range,
             units: this._units,
             readOnly: this._readOnly,
             valueType: this.type
         };
+        if (this._device && this._device.virtual) {
+            d.value = this._value;
+        }
+        return d;
     },
 
     rawValue: function(v) {
