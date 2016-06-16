@@ -271,7 +271,7 @@ const types = {
             error(ws, msg, "no device name");
             return;
         }
-        if (!("template" in msg) || typeof msg.template !== "string") {
+        if ("template" in msg && typeof msg.template !== "string") {
             error(ws, msg, "no device template");
             return;
         }
@@ -305,7 +305,7 @@ const types = {
             else
                 data.range = [low, high];
             data.valueType = "range";
-        } else if (!msg.template.length) {
+        } else if (!msg.template || !msg.template.length) {
             data.valueType = "string";
         } else {
             var a = msg.template.split(";");

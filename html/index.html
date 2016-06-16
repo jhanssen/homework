@@ -253,10 +253,15 @@
 		  {{val.value}} {{val.units}}
 		</div>
 		<div ng-if="!val.readOnly">
-		  <div ng-if="val.type !== 'array'" style="float: left; margin-right: 1em">
-		    <form ng-submit="setValue(val)">
-		      <input type="text" ng-model="val.value" class="form-control">
-		    </form>
+		  <div ng-switch on="val.type">
+		    <div ng-switch-when="range" style="float: left; margin-right: 1em">
+		      <slider class="hw-slider-width" ng-model="val.value" min="1" step="1" max="100"></slider>
+		    </div>
+		    <div ng-switch-default>
+		      <div ng-if="val.type !== 'array'" style="float: left; margin-right: 1em">
+			<input type="text" ng-model="val.value" class="form-control">
+		      </div>
+		    </div>
 		  </div>
 		  <div style="margin-right: 1em; float: left" ng-if="val.values">
 		    <div class="dropdown"><button ng-attr-id="drop-{{val.name}}" class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">{{val.value}}<span class="caret"></span></button>
@@ -274,9 +279,9 @@
 		  </div>
 		</div>
 	      </div>
-	    </div>
-	    <div class="pull-right">
-	      <button ng-if="dev.virtual" class="pull-right btn btn-danger" type="button" ng-click="removeValue(val.name)">Delete</button>
+	      <div class="pull-right">
+		<button ng-if="dev.virtual" class="pull-right btn btn-danger" type="button" ng-click="removeValue(val.name)">Delete</button>
+	      </div>
 	    </div>
 	  </div>
 	</div>

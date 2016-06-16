@@ -517,6 +517,28 @@ module.controller('deviceController', function($scope) {
                 $scope.deviceTypes = response.types;
                 $scope.request({ type: "values", devuuid: uuid }).then(function(response) {
                     console.log("all values", response);
+                    for (var i = 0; i < response.length; ++i) {
+                        (function(local) {
+                            if ("value" in local) {
+                                local._value = local.value;
+                                delete local.value;
+                            }
+                            Object.defineProperty(local, "value", {
+                                get: function() {
+                                    return local._value;
+                                },
+                                set: function(v) {
+                                    $scope.request({ type: "setValue",
+                                                     devuuid: $scope.dev.uuid,
+                                                     valname: local.name,
+                                                     value: v !== undefined ? v : local._value })
+                                        .then(function() {
+                                            local._value = v;
+                                        });
+                                }
+                            });
+                        })(response[i]);
+                    }
                     $scope.vals = response;
                     $scope.$apply();
                 });
@@ -589,7 +611,7 @@ module.controller('deviceController', function($scope) {
             for (var i = 0; i < $scope.vals.length; ++i) {
                 if ($scope.vals[i].name === updated.valname) {
                     var val = $scope.vals[i];
-                    val.value = updated.value;
+                    val._value = updated.value;
                     val.raw = updated.raw;
                     $scope.$apply();
                     break;
@@ -613,7 +635,7 @@ module.controller('addDeviceValueController', function($scope) {
             $scope.error = "Invalid name";
             return;
         }
-        if (typeof $scope.template !== "string" || !$scope.template.length) {
+        if (typeof $scope.template !== "string" && $scope.template !== undefined) {
             $scope.error = "Invalid template";
             return;
         }

@@ -30,6 +30,17 @@
     background: rgba(75, 75, 75, 1)
 }
 
+@media (max-width:767px) {
+    .hw-slider-width {
+	min-width: 100px;
+    }
+}
+@media (min-width:768px) {
+    .hw-slider-width {
+	min-width: 350px;
+    }
+}
+
 .hw-pad {
     padding: 0.5em;
 }
