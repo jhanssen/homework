@@ -86,15 +86,12 @@ homework = {
             }
         }
         this._rules.push(rule);
-        this.saveRules();
     },
     removeRule: function(rule) {
         this._rules.remove((el) => { if (Object.is(rule, el)) { rule.destroy(); return true; } return false; });
-        this.saveRules();
     },
     removeRuleByName: function(name) {
         this._rules.remove((el) => { if (el.name == name) { el.destroy(); return true; } return false; });
-        this.saveRules();
     },
 
     valueUpdated: function(value) {

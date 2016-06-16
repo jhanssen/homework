@@ -320,6 +320,7 @@ const states = {
                     rule.and.apply(rule, states.rule._events[i]);
                 }
                 data.homework.addRule(rule);
+                data.homework.saveRules();
                 states.rule._clear();
 
                 data.gotoState(1);

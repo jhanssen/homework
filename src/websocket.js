@@ -520,6 +520,7 @@ const types = {
         homework.addRule(rule);
         send(ws, msg, { name: desc.name, success: true });
 
+        homework.saveRules();
         saveFilesInCloud(["rules.json"]);
     },
     devicedata: (ws, msg) => {
