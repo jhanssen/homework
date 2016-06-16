@@ -235,7 +235,7 @@ Device.Value.prototype = {
         if (typeof this._valueUpdated === "function") {
             this._valueUpdated(v);
         } else {
-            if (this._device.virtual)
+            if (this._device && this._device.virtual)
                 this.update(v);
             else
                 this._value = v;
