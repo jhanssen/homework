@@ -2,7 +2,6 @@
 Home automation system
 
 ## installation
-Install OpenZWave on your system.
 ```
 $ npm install
 $ git submodule update --init
