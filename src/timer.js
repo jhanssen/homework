@@ -498,7 +498,9 @@ IntervalAction.prototype._type = "interval";
 function rangeEventCompleter()
 {
     // ### complete on dates?
-    return { type: "string", values: ["sunrise", "sunset"] };
+    if (arguments.length < 2)
+        return { type: "string", values: ["sunrise", "sunset"] };
+    return { values: [] };
 }
 
 function rangeEventDeserializer(e)
