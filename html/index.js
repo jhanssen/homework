@@ -1170,10 +1170,10 @@ function applyEditRule($scope, $compile, applyName) {
         $scope.eventNexts.splice(row, 1);
         if (then)
             $scope.eventNexts[row - 1] = "Then";
-    },
+    };
     $scope.removeAction = function(row) {
         $scope.actions.splice(row, 1);
-    },
+    };
 
     $scope.initializeFromRule = function() {
         var pushCommon = function(cur, item) {
@@ -1319,6 +1319,7 @@ function applyEditRule($scope, $compile, applyName) {
             if ($scope.generator) {
                 ret += '<div class="pull-right"><button type="button" class="btn btn-default" ng-click="cancel()">Cancel</button></div>';
                 ret += '<div class="pull-right"><button type="button" class="btn btn-default" ng-click="save()">Save</button></div>';
+                ret += '<div class="pull-right"><button type="button" class="btn btn-danger" ng-click="remove()">Delete</button></div>';
                 ret += '<div style="clear: both;"></div>';
             }
             return ret;
@@ -1339,7 +1340,18 @@ function applyEditRule($scope, $compile, applyName) {
     $scope.cancel = function() {
         $scope.clearCachedRules();
         $scope._reset();
-    },
+    };
+    $scope.remove = function() {
+        $scope
+            .request({ type: "removeRule", name: $scope.name })
+            .then(function(result) {
+                $scope.clearCachedRules();
+                $scope.$apply();
+            }).catch(function(error) {
+                $scope.error = error;
+                $scope.$apply();
+            });
+    };
     $scope.save = function() {
         $scope.error = undefined;
 

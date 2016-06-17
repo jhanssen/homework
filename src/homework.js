@@ -88,10 +88,14 @@ homework = {
         this._rules.push(rule);
     },
     removeRule: function(rule) {
+        var len = this._rules.length;
         this._rules.remove((el) => { if (Object.is(rule, el)) { rule.destroy(); return true; } return false; });
+        return this._rules.length < len;
     },
     removeRuleByName: function(name) {
+        var len = this._rules.length;
         this._rules.remove((el) => { if (el.name == name) { el.destroy(); return true; } return false; });
+        return this._rules.length < len;
     },
 
     valueUpdated: function(value) {

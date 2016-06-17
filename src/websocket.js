@@ -523,6 +523,17 @@ const types = {
         homework.saveRules();
         saveFilesInCloud(["rules.json"]);
     },
+    removeRule: (ws, msg) => {
+        if (!("name" in msg)) {
+            error(ws, msg, "no name in message");
+            return;
+        }
+        if (homework.removeRuleByName(msg.name)) {
+            send(ws, msg, "ok");
+        } else {
+            error(ws, msg, "rule not found");
+        }
+    },
     devicedata: (ws, msg) => {
         // return a list of all rooms and floors
         var rooms = Object.create(null);
