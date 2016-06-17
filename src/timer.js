@@ -1,6 +1,7 @@
 /*global module,setTimeout,clearTimeout,setInterval,clearInterval,require*/
 
 const nodeschedule = require("node-schedule");
+const cronparser = require("cron-parser");
 const suncalc = require("suncalc");
 
 var homework = undefined;
@@ -29,6 +30,8 @@ function clone(obj)
 function createDate(d, adj, set)
 {
     const adjust = function(date, adj) {
+        if (!(date instanceof Date))
+            return undefined;
         const keys = {
             time: { set: "setTime", get: "getTime" },
             day: { set: "setDate", get: "getDate" },
@@ -73,7 +76,23 @@ function createDate(d, adj, set)
                 adjust(dt, adj);
             if (dt.getTime() === dt.getTime())
                 return dt;
-            return undefined;
+            var ce;
+            var cd = new Date();
+            cd.setHours(0);
+            cd.setMinutes(0);
+            cd.setSeconds(0);
+            cd.setMilliseconds(0);
+            try {
+                ce = cronparser.parseExpression(d, { currentDate: cd } );
+            } catch (e) {
+                return undefined;
+            }
+
+            dt = ce.next().toDate();
+            if (adj)
+                adjust(dt, adj);
+            if (dt.getTime() === dt.getTime())
+                return dt;
         }
     } else if (typeof d === "object") {
         if (d instanceof Date) {
@@ -359,7 +378,15 @@ function RangeEvent(start, end)
         case "sunset":
             return true;
         }
-        return false;
+
+        // might be a cron expression
+        try {
+            cronparser.parseExpression(a);
+        } catch (e) {
+            return false;
+        }
+
+        return true;
     };
 
     start = fromJSON(start);
