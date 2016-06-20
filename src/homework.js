@@ -1,6 +1,27 @@
 #!/usr/bin/env node
 
-/*global require,process,homework,setTimeout*/
+/*global require,process,homework,setTimeout,module,global*/
+
+"use strict";
+
+const path = require("path");
+const fs = require("fs");
+
+function hwVersion()
+{
+    const fn = module.filename;
+    const idx = fn.indexOf("/src/homework.js");
+    if (idx == -1) {
+        throw new Error(`Couldn't parse module filename ${fn}`);
+    }
+    var jsonfn = fn.substr(0, idx) + path.sep + "package.json";
+    try {
+        var json = JSON.parse(fs.readFileSync(jsonfn));
+    } catch (e) {
+        throw new Error(`Couldn't parse package.json from ${jsonfn}`);
+    }
+    return json.version;
+}
 
 require("sugar");
 
@@ -15,11 +36,11 @@ const Timer = require("./timer.js");
 const Variable = require("./variable.js");
 const Scene = require("./scene.js");
 const db = require("jsonfile");
-const path = require("path");
 
-homework = {
+global.homework = {
     _events: Object.create(null),
     _actions: Object.create(null),
+    _deviceSchemas: Object.create(null),
     _devices: [],
     _scenes: [],
     _deviceinfo: undefined,
@@ -37,10 +58,15 @@ homework = {
     _WebServer: WebServer.Server,
     _WebSocket: WebSocket,
     _restored: false,
+    _serverVersion: hwVersion(),
     _rulePriorities: { High: 0, Medium: 1, Low: 2 },
 
     get rulePriorities() {
         return this._rulePriorities;
+    },
+
+    get serverVersion() {
+        return this._serverVersion;
     },
 
     registerEvent: function(name, ctor, completion, deserialize) {
@@ -55,8 +81,24 @@ homework = {
         this._actions[name] = { ctor: ctor, completion: completion, deserialize: deserialize };
         return true;
     },
+    registerDevice: function(type, schema) {
+        if (type in this._deviceSchemas) {
+            if (!this._deviceSchemas[type].equals(schema))
+                throw new Error(`Device schema for ${type} already registered`);
+        } else {
+            this._deviceSchemas[type] = schema;
+        }
+    },
 
     addDevice: function(device) {
+        var t = device.type;
+        if (t in this._deviceSchemas) {
+            if (!this._deviceSchemas[t].verify(device)) {
+                throw new Error(`Device schema mismatch for ${t} -> ${device.fullName}`);
+            }
+        } else if (t != "Unknown") {
+            throw new Error(`Invalid device type ${t}`);
+        }
         this._devices.push(device);
     },
     removeDevice: function(device) {
@@ -131,6 +173,9 @@ homework = {
     },
     get Device() {
         return this._Device;
+    },
+    get DeviceTypes() {
+        return Object.keys(this._deviceSchemas);
     },
     get Scene() {
         return this._Scene;

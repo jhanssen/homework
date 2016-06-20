@@ -7,6 +7,7 @@ const path = require("path");
 const tilde = require('tilde-expansion');
 const fs = require("fs");
 const Console = require("./console.js");
+const versionCompare = require('node-version-compare');
 
 // this function lifted from https://github.com/nfarina/homebridge/blob/master/lib/plugin.js
 function getDefaultPaths() {
@@ -45,6 +46,41 @@ function getDefaultPaths() {
     return Object.keys(uniq);
 }
 
+function verifyVersion(hwversion, engines)
+{
+    if (typeof engines != "object") {
+        return false;
+    }
+    if (!("hw-server" in engines)) {
+        return false;
+    }
+    // see what our comparison is
+    var cmp = ">=";
+    var engine = engines["hw-server"];
+
+    var cmprx = /^([<>=][=]?)/.exec(engine);
+    if (cmprx) {
+        cmp = cmprx[1];
+        engine = engine.substr(cmp.length);
+    }
+
+    var ret = versionCompare(hwversion, engine.trim());
+    switch (cmp) {
+    case ">":
+        return ret == 1;
+    case ">=":
+        return ret == 1 || !ret;
+    case "==":
+    case "=":
+        return !ret;
+    case "<":
+        return ret == -1;
+    case "<=":
+        return ret == -1 || !ret;
+    }
+    return false;
+}
+
 const modules = {
     _homework: undefined,
     _moduledata: undefined,
@@ -60,6 +96,7 @@ const modules = {
                 this._homework.modulesReady();
             }
         };
+
         // load modules in path
         const loadModules = (cur) => {
             if (!fs.existsSync(cur)) {
@@ -91,6 +128,10 @@ const modules = {
                     }
                     if (!json.keywords || json.keywords.indexOf("homework-plugin") == -1) {
                         Console.error(`package ${pfile} does not have homework-plugin as a keyword`);
+                        continue;
+                    }
+                    if (!verifyVersion(homework.serverVersion, json.engines)) {
+                        Console.error(`package ${pfile} does not match the current server version ${homework.serverVersion}`);
                         continue;
                     }
                     tryload.push(dir);

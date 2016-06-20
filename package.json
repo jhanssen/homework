@@ -30,6 +30,7 @@
     "minimist": "~1.2.0",
     "node-schedule": "~1.0.0",
     "node-uuid": "~1.4.7",
+    "node-version-compare": "^1.0.1",
     "sugar": "~1.4.1",
     "suncalc": "~1.7.0",
     "tilde-expansion": "~0.0.0",

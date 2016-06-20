@@ -237,7 +237,7 @@ const types = {
             return;
         }
 
-        var dev = new homework.Device("Virtual", uuid);
+        var dev = new homework.Device("Virtual", { uuid: uuid });
         dev.name = msg.name;
         homework.addDevice(dev);
         send(ws, msg, "ok");

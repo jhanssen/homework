@@ -1,4 +1,7 @@
 /*global module,require,setTimeout*/
+
+"use strict";
+
 const utils = require("./utils.js");
 const uuid = require("node-uuid");
 const devices = [];
@@ -26,23 +29,34 @@ function stringAsType(a)
     return a;
 }
 
-function Device(t, u)
+function Device(t, opts)
 {
     this._name = undefined;
+    this._standards = undefined;
+    this._uuid = undefined;
     this._type = t;
     this._values = Object.create(null);
-    if (u) {
-        this._uuid = u;
-        if (typeof data.data === "object" && typeof data.data[u] === "object") {
-            this._name = data.data[u].name;
-            this._groups = data.data[u].groups;
-            this._floor = data.data[u].floor;
-            this._room = data.data[u].room;
-            if (typeof data.data[u].type === "string") {
-                this._type = data.data[u].type;
+    if (typeof opts === "object") {
+        if ("uuid" in opts) {
+            let u = opts.uuid;
+            this._uuid = u;
+            if (typeof data.data === "object" && typeof data.data[u] === "object") {
+                this._name = data.data[u].name;
+                this._groups = data.data[u].groups;
+                this._floor = data.data[u].floor;
+                this._room = data.data[u].room;
+                if (typeof data.data[u].type === "string") {
+                    this._type = data.data[u].type;
+                }
             }
         }
-    } else {
+        if ("standards" in opts) {
+            this._standards = opts.standards;
+        }
+    } else if (opts !== undefined) {
+        throw new Error(`Invalid option object for device: ${t}`);
+    }
+    if (this._uuid === undefined) {
         this._uuid = uuid.v1();
     }
     if (this._groups === undefined)
@@ -52,21 +66,6 @@ function Device(t, u)
         this._type = "Unknown";
 }
 
-Device.Types = [
-    "Dimmer",
-    "Light",
-    "Fan",
-    "Thermostat",
-    "Clapper",
-    "RGBWLed",
-    "Sensor",
-    "GarageDoor",
-    "Lock",
-    "Presence",
-    "Virtual",
-    "Unknown"
-];
-
 Device.prototype = {
     _name: undefined,
     _values: undefined,
@@ -74,6 +73,35 @@ Device.prototype = {
     _groups: undefined,
     _floor: undefined,
     _room: undefined,
+    _standards: undefined,
+
+    standardGet: function(name) {
+        if (this._standards && name in this._standards && "get" in this._standards[name]) {
+            return this._standards[name].get(this);
+        }
+        if (name in this._values) {
+            return this._values[name].value;
+        }
+        throw new Error(`standard ${name} not found in device ${this.fullName} of type ${this.type}`);
+    },
+    standardMeta: function(name) {
+        if (this._standards && name in this._standards && "meta" in this._standards[name]) {
+            return this._standards[name].meta();
+        }
+        if (name in this._values) {
+            return this._values[name].meta;
+        }
+        throw new Error(`standard ${name} not found in device ${this.fullName} of type ${this.type}`);
+    },
+    standardSet: function(name, value) {
+        if (this._standards && name in this._standards && "set" in this._standards[name]) {
+            return this._standards[name].set(this, value);
+        }
+        if (name in this._values) {
+            return this._values[name].value = value;
+        }
+        throw new Error(`standard ${name} not found in device ${this.fullName} of type ${this.type}`);
+    },
 
     set name(name) {
         this._name = name;
@@ -212,6 +240,15 @@ Device.Value.prototype = {
     get type() {
         return (typeof this._valueType === "function") ? this._valueType() : this._valueType;
     },
+    get meta() {
+        return {
+            units: this.units,
+            values: this.values,
+            range: this.range,
+            readOnly: this.readOnly,
+            type: this.type
+        };
+    },
     get value() {
         // see if our value maps to one of our values
         if (typeof this._values === "object") {
@@ -281,6 +318,74 @@ Device.Value.prototype = {
 };
 
 utils.onify(Device.Value.prototype);
+
+Device.Schema = function(schema)
+{
+    this._schema = schema;
+};
+
+Device.Schema.prototype = {
+    _schema: undefined,
+    _verifyValue: function(s, v) {
+        console.log("verifying", s, v);
+
+        switch (typeof s) {
+        case "undefined":
+            return true;
+        case "string":
+            return s == v.toString();
+        case "boolean":
+        case "number":
+            return s === v;
+        case "object":
+            if (s instanceof RegExp) {
+                console.log("balkl", v.toString());
+                return s.test(v.toString());
+            }
+            if (typeof v == "object") {
+                for (var k in s) {
+                    if (!(k in v)) {
+                        return false;
+                    }
+                    if (!this._verifyValue(s[k], v[k]))
+                        return false;
+                }
+                return true;
+            }
+        }
+        return false;
+    },
+
+    get schema() { return this._schema; },
+
+    verify: function(dev) {
+        // verify device values
+        for (var k in this.schema) {
+            // check value
+            var s = this.schema[k];
+            var v = dev.standardMeta(k);
+            if (!this._verifyValue(s, v)) {
+                throw new Error(`Property ${v} not verified in ${dev.fullName} of type ${dev.type}`);
+            }
+        }
+        return true;
+    },
+
+    equals: function(schema) {
+        var k;
+        for (k in this.schema) {
+            if (!(k in schema.schema))
+                return false;
+            if (JSON.stringify(this.schema[k]) != JSON.stringify(schema.schema[k]))
+                return false;
+        }
+        for (k in schema.schema) {
+            if (!(k in this.schema))
+                return false;
+        }
+        return true;
+    }
+};
 
 Device.Event = function()
 {
@@ -570,7 +675,7 @@ Device.init = function(homework, d)
     for (var uuid in d) {
         var dev = d[uuid];
         if (dev.type == "Virtual") {
-            var nd = new Device("Virtual", uuid, dev);
+            var nd = new Device("Virtual", { uuid: uuid });
             nd.name = dev.name;
             if ("room" in dev)
                 nd.room = dev.room;
