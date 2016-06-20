@@ -20,6 +20,9 @@ function hwVersion()
     } catch (e) {
         throw new Error(`Couldn't parse package.json from ${jsonfn}`);
     }
+    if (!("version" in json)) {
+        throw new Error(`Couldn't find version in package.json from ${jsonfn}`);
+    }
     return json.version;
 }
 
