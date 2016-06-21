@@ -7,8 +7,11 @@
 const path = require("path");
 const fs = require("fs");
 
-function hwVersion()
+var packageObj = undefined;
+function packageObject()
 {
+    if (packageObj)
+        return packageObj;
     const fn = module.filename;
     const idx = fn.indexOf("/src/homework.js");
     if (idx == -1) {
@@ -23,7 +26,8 @@ function hwVersion()
     if (typeof json !== "object" || !("version" in json)) {
         throw new Error(`Couldn't find version in package.json from ${jsonfn}`);
     }
-    return json.version;
+    packageObj = json;
+    return json;
 }
 
 require("sugar");
@@ -61,7 +65,8 @@ global.homework = {
     _WebServer: WebServer.Server,
     _WebSocket: WebSocket,
     _restored: false,
-    _serverVersion: hwVersion(),
+    _serverVersion: packageObject().version,
+    _moduleProtocol: packageObject()["software.homework"].moduleProtocol,
     _rulePriorities: { High: 0, Medium: 1, Low: 2 },
 
     get rulePriorities() {
@@ -70,6 +75,10 @@ global.homework = {
 
     get serverVersion() {
         return this._serverVersion;
+    },
+
+    get moduleProtocol() {
+        return this._moduleProtocol;
     },
 
     registerEvent: function(name, ctor, completion, deserialize) {

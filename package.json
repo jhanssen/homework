@@ -8,6 +8,9 @@
     "type": "git",
     "url": "git+https://github.com/jhanssen/homework"
   },
+  "software.homework": {
+    "moduleProtocol": 1
+  },
   "bin": {
     "hw-server": "src/homework.js"
   },

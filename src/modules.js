@@ -134,6 +134,13 @@ const modules = {
                         Console.error(`package ${pfile} does not match the current server version ${homework.serverVersion}`);
                         continue;
                     }
+                    var protocol = undefined;
+                    if (typeof json["software.homework"] === "object")
+                        protocol = json["software.homework"].moduleProtocol;
+                    if (homework.moduleProtocol != protocol) {
+                        Console.error(`package ${pfile} does not match the module protocol version, ${homework.moduleProtocol} vs ${protocol}`);
+                        continue;
+                    }
                     tryload.push(dir);
                 }
             }
