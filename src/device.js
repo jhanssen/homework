@@ -95,10 +95,12 @@ Device.prototype = {
     },
     standardSet: function(name, value) {
         if (this._standards && name in this._standards && "set" in this._standards[name]) {
-            return this._standards[name].set(this, value);
+            this._standards[name].set(this, value);
+            return;
         }
         if (name in this._values) {
-            return this._values[name].value = value;
+            this._values[name].value = value;
+            return;
         }
         throw new Error(`standard ${name} not found in device ${this.fullName} of type ${this.type}`);
     },

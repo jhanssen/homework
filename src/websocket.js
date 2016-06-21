@@ -1087,6 +1087,73 @@ const types = {
                 error(ws, msg, err);
             });
         }
+    },
+    standardGet: (ws, msg) => {
+        if (!("uuid" in msg)) {
+            error(ws, msg, "no device uuid");
+            return;
+        }
+        var dev = findDevice(msg.uuid);
+        if (!dev) {
+            error(ws, msg, "device not found");
+            return;
+        }
+        if (!("name" in msg)) {
+            error(ws, msg, "no name in msg");
+            return;
+        }
+        try {
+            var ret = dev.standardGet(msg.name);
+            send(ws, msg, ret);
+        } catch (e) {
+            error(ws, msg, e.message);
+        }
+    },
+    standardMeta: (ws, msg) => {
+        if (!("uuid" in msg)) {
+            error(ws, msg, "no device uuid");
+            return;
+        }
+        var dev = findDevice(msg.uuid);
+        if (!dev) {
+            error(ws, msg, "device not found");
+            return;
+        }
+        if (!("name" in msg)) {
+            error(ws, msg, "no name in msg");
+            return;
+        }
+        try {
+            var ret = dev.standardMeta(msg.name);
+            send(ws, msg, ret);
+        } catch (e) {
+            error(ws, msg, e.message);
+        }
+    },
+    standardSet: (ws, msg) => {
+        if (!("uuid" in msg)) {
+            error(ws, msg, "no device uuid");
+            return;
+        }
+        var dev = findDevice(msg.uuid);
+        if (!dev) {
+            error(ws, msg, "device not found");
+            return;
+        }
+        if (!("name" in msg)) {
+            error(ws, msg, "no name in msg");
+            return;
+        }
+        if (!("value" in msg)) {
+            error(ws, msg, "no value in msg");
+            return;
+        }
+        try {
+            dev.standardSet(msg.name, msg.value);
+            send(ws, msg, "ok");
+        } catch (e) {
+            error(ws, msg, e.message);
+        }
     }
 };
 
