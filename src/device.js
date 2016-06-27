@@ -80,7 +80,7 @@ Device.prototype = {
             return this._standards[name].get(this);
         }
         if (name in this._values) {
-            return this._values[name].value;
+            return this._values[name].raw;
         }
         throw new Error(`standard ${name} not found in device ${this.fullName} of type ${this.type}`);
     },
