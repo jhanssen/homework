@@ -549,7 +549,7 @@ const types = {
         var ret = {
             rooms: Object.keys(rooms),
             floors: Object.keys(floors),
-            types: homework.Device.Types
+            types: homework.DeviceTypes
         };
         send(ws, msg, ret);
     },
