@@ -643,7 +643,13 @@ Console.init = function(homework)
     data.homework = homework;
 
     data.LogOut = new Log(console.log);
+    data.LogOut.on("log", function(l) {
+        data._emit("logOut", l);
+    });
     data.LogError = new Log(console.error);
+    data.LogError.on("log", function(l) {
+        data._emit("logError", l);
+    });
 
     rl.on("line", (line) => {
         // console.log(`hey ${line}`);
@@ -658,6 +664,17 @@ Console.init = function(homework)
     data.applyState();
 
     prompt();
+};
+
+Console.logs = function(type)
+{
+    switch (type) {
+    case "out":
+        return data.LogOut.logs;
+    case "error":
+        return data.LogError.logs;
+    }
+    return undefined;
 };
 
 Console.cleanup = function()

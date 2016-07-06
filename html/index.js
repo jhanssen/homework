@@ -82,6 +82,9 @@ module.controller('mainController', function($scope) {
             case "variableUpdated":
                 $scope.listener.emitEvent("variableUpdated", [msg.name, msg.value]);
                 break;
+            case "log":
+                $scope.listener.emitEvent("logUpdated", [msg]);
+                break;
             default:
                 console.log("unrecognized message", msg);
                 break;
@@ -1693,6 +1696,29 @@ module.controller('zwaveController', function($scope) {
             fn();
         }
     };
+});
+
+module.controller('logsController', function($scope) {
+    $scope.logs = [];
+    $scope.request({ type: "logs", sub: "out" }).then(function(response) {
+        if ($scope.logs.length)
+            $scope.logs = response.concat($scope.logs);
+        else
+            $scope.logs = response;
+        $scope.$apply();
+    });
+
+    var logUpdated = function(log) {
+        if (log.stream != "out")
+            return;
+        $scope.logs.push(log.log);
+        $scope.$apply();
+    };
+
+    $scope.listener.on("logUpdated", logUpdated);
+    $scope.$on("$destroy", function() {
+        $scope.listener.off("logUpdated", logUpdated);
+    });
 });
 
 $(document).ready(function() {

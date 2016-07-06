@@ -1154,6 +1154,18 @@ const types = {
         } catch (e) {
             error(ws, msg, e.message);
         }
+    },
+    logs: (ws, msg) => {
+        if (!("sub" in msg)) {
+            error(ws, msg, "no sub");
+            return;
+        }
+        var logs = Console.logs(msg.sub);
+        if (logs == undefined) {
+            error(ws, msg, `no logs for ${msg.sub}`);
+            return;
+        }
+        send(ws, msg, logs);
     }
 };
 
@@ -1294,6 +1306,14 @@ const HWWebSocket = {
 
     init: function(hw, cfg) {
         Console = hw.Console;
+        Console.on("logOut", (l) => {
+            const obj = { type: "log", stream: "out", log: l };
+            sendToAll(obj);
+        });
+        Console.on("logError", (l) => {
+            const obj = { type: "log", stream: "error", log: l };
+            sendToAll(obj);
+        });
 
         sendCloud = this.sendCloud.bind(this);
 

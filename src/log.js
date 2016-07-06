@@ -3,6 +3,8 @@
 "use strict";
 
 const fs = require("fs");
+const util = require("util");
+const EventEmitter = require("events");
 
 function moveFile(from, to, cb)
 {
@@ -37,6 +39,8 @@ function Log(opts)
             throw new Error("Unrecognized object passed to Log constructor");
         }
     }
+
+    EventEmitter.call(this);
 };
 
 function argToString(a)
@@ -111,6 +115,8 @@ Log.prototype = {
         this._logs.push(l);
         if (this._fd)
             fs.write(this._fd, "\n");
+
+        this.emit("log", l);
     },
 
     close: function() {
@@ -190,5 +196,7 @@ Log.prototype = {
         return ("area" in opts && typeof opts.area == "string");
     }
 };
+
+util.inherits(Log, EventEmitter);
 
 module.exports = Log;

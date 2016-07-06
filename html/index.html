@@ -44,6 +44,7 @@
 	    <li ng-class="activeClass('variables')"><a href="#variables">Variables</a></li>
 	    <li ng-class="activeClass('timers')"><a href="#timers">Timers</a></li>
 	    <li ng-class="activeClass('zwave')"><a href="#zwave">Z-Wave</a></li>
+	    <li ng-class="activeClass('logs')"><a href="#logs">Logs</a></li>
 	  </ul>
 	</div>
       </div>
@@ -658,6 +659,22 @@
 	      <div class="col-xs-12 col-sm-8 col-md-4 col-lg-3">
 		<button type="button" ng-click="action('depair')" class="btn btn-default hw-expand-horizontal">Depair</button>
 	      </div>
+	    </div>
+	  </div>
+	</div>
+      </div>
+      <div ng-if="isActive('logs')" class="container" ng-controller="logsController">
+	<h2>Logs</h2>
+	<div class="hw-clear container-fluid">
+	  <div ng-if="error" class="row alert alert-danger">
+	    <strong>Error</strong> {{error}}
+	  </div>
+	  <div ng-if="success" class="row alert alert-success">
+	    {{success}}
+	  </div>
+	  <div>
+	    <div class="row hw-vcenter" ng-repeat="log in logs">
+	      {{log}}
 	    </div>
 	  </div>
 	</div>
