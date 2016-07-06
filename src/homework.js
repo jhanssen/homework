@@ -353,6 +353,7 @@ Rule.init(homework);
 
 Console.init(homework);
 Console.on("shutdown", () => {
+    Console.cleanup();
     if (!homework.restored) {
         process.exit();
     } else {

@@ -2,6 +2,7 @@
 
 const utils = require("./utils.js");
 const Rule = require("./rule.js");
+const Log = require("./log.js");
 const readline = require("readline");
 const rl = readline.createInterface({
     input: process.stdin,
@@ -56,6 +57,9 @@ function construct(constructor, args) {
 const data = {
     state: [],
     homework: undefined,
+
+    LogOut: undefined,
+    LogError: undefined,
 
     get currentState() {
         return this.state[this.state.length - 1];
@@ -637,6 +641,10 @@ function Console()
 Console.init = function(homework)
 {
     data.homework = homework;
+
+    data.LogOut = new Log(console.log);
+    data.LogError = new Log(console.error);
+
     rl.on("line", (line) => {
         // console.log(`hey ${line}`);
         data.currentState.apply(line);
@@ -652,15 +660,21 @@ Console.init = function(homework)
     prompt();
 };
 
+Console.cleanup = function()
+{
+    data.LogOut.close();
+    data.LogError.close();
+};
+
 Console.log = function()
 {
-    console.log.apply(console, arguments);
+    data.LogOut.log.apply(data.LogOut, arguments);
     prompt();
 };
 
 Console.error = function()
 {
-    console.error.apply(console, arguments);
+    data.LogError.log.apply(data.LogError, arguments);
     prompt();
 };
 
