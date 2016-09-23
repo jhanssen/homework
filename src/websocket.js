@@ -1166,6 +1166,13 @@ const types = {
             return;
         }
         send(ws, msg, logs);
+    },
+    ifttt: (ws, msg) => {
+        if (msg.ifttt.method && msg.ifttt.method in types) {
+            types[msg.ifttt.method](ws, msg.ifttt.data);
+        } else {
+            error(ws, msg, `Can't find action for method ${msg.ifttt.method}`);
+        }
     }
 };
 
