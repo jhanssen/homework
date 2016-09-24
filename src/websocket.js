@@ -994,6 +994,7 @@ const types = {
         if (homework.removeScene(msg.name)) {
             send(ws, msg, "ok");
             saveFilesInCloud(["scenes.json"]);
+            homework.saveScenes();
         } else {
             error(ws, msg, `no such scene: ${msg.name}`);
         }
@@ -1015,6 +1016,7 @@ const types = {
         homework.addScene(new Scene(msg.name, msg.values));
         send(ws, msg, "ok");
         saveFilesInCloud(["scenes.json"]);
+        homework.saveScenes();
     },
     triggerScene: (ws, msg) => {
         if (!("name" in msg)) {
