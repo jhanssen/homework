@@ -1197,14 +1197,23 @@ const HWWebSocket = {
 
     sendCloud: function(d) {
         if (this._cloud && this._cloudOk) {
+            while (this._cloudPending.length > 0) {
+                try {
+                    this._cloud.send(JSON.stringify(this._cloudPending[0]));
+                    this._cloudPending.splice(0, 1);
+                } catch (e) {
+                    if (d)
+                        this._cloudPending.push(d);
+                    return;
+                }
+            }
             if (d) {
                 var data = JSON.stringify(d);
-                this._cloud.send(data);
-            } else if (this._cloudPending.length > 0) {
-                for (var i = 0; i < this._cloudPending.length; ++i) {
-                    this._cloud.send(JSON.stringify(this._cloudPending[i]));
+                try {
+                    this._cloud.send(data);
+                } catch (e) {
+                    this._cloudPending.push(d);
                 }
-                this._cloudPending = [];
             }
         } else if (this._cloud) {
             this._cloudPending.push(d);
@@ -1277,42 +1286,48 @@ const HWWebSocket = {
             }
         };
 
-        this._cloud = new WebSocket("wss://www.homework.software:443/user/websocket",
-                                    //this._cloud = new WebSocket("ws://192.168.1.22:3000/user/websocket",
-                                    { headers: {
-                                        "X-Homework-Key": cfg.key
-                                    }});
-        this._cloud.on("open", () => {
-            state.next = 1;
-            Console.log("cloud available");
-            this._setupWS(this._cloud);
-            if (this._ready && !this._cloudSentReady) {
-                this._cloudSentReady = true;
-                Console.log("telling cloud we're ready (1)");
-                this.sendCloud({ type: "ready", ready: true });
-            }
-            this._cloudInterval = setInterval(() => {
-                Console.log("ping cloud");
-                this._cloud.ping();
-            }, cfg.cloudPingInterval || (20 * 1000 * 60));
+        try {
+            this._cloud = new WebSocket("wss://www.homework.software:443/user/websocket",
+                                        //this._cloud = new WebSocket("ws://192.168.1.22:3000/user/websocket",
+                                        { headers: {
+                                            "X-Homework-Key": cfg.key
+                                        }});
+            this._cloud.on("open", () => {
+                state.next = 1;
+                Console.log("cloud available");
+                this._setupWS(this._cloud);
+                if (this._ready && !this._cloudSentReady) {
+                    this._cloudSentReady = true;
+                    Console.log("telling cloud we're ready (1)");
+                    this.sendCloud({ type: "ready", ready: true });
+                }
+                this._cloudInterval = setInterval(() => {
+                    Console.log("ping cloud");
+                    this._cloud.ping();
+                }, cfg.cloudPingInterval || (20 * 1000 * 60));
 
-            saveFilesInCloud();
-        });
-        this._cloud.on("close", () => {
-            Console.log("cloud gone");
-            rejectCloud();
+                saveFilesInCloud();
+            });
+            this._cloud.on("close", () => {
+                Console.log("cloud gone");
+                rejectCloud();
 
+                stop();
+                again();
+            });
+            this._cloud.on("error", (err) => {
+                Console.log("cloud error", err);
+                rejectCloud();
+
+                this._cloud.close();
+                stop();
+                again();
+            });
+        } catch (err) {
+            Console.log("cloud exception", err);
             stop();
             again();
-        });
-        this._cloud.on("error", (err) => {
-            Console.log("cloud error", err);
-            rejectCloud();
-
-            this._cloud.close();
-            stop();
-            again();
-        });
+        }
     },
 
     init: function(hw, cfg) {
