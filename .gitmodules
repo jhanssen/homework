@@ -1,9 +1,0 @@
-[submodule "sub/angular-bootstrap-slider"]
-	path = sub/angular-bootstrap-slider
-	url = https://github.com/seiyria/angular-bootstrap-slider.git
-[submodule "sub/animate.css"]
-	path = sub/animate.css
-	url = https://github.com/daneden/animate.css.git
-[submodule "sub/ngDraggable"]
-	path = sub/ngDraggable
-	url = https://github.com/fatlinesofcode/ngDraggable.git
