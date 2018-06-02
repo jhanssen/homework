@@ -1,3 +1,6 @@
 [submodule "src/reckoning"]
 	path = src/reckoning
 	url = https://github.com/jhanssen/reckoning.git
+[submodule "3rdparty/openzwave"]
+	path = 3rdparty/openzwave
+	url = https://github.com/OpenZWave/open-zwave.git

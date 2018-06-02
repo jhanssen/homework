@@ -2,6 +2,7 @@
 *.ninja
 CMakeFiles/*
 src/CMakeFiles/*
+3rdparty/project_*
 bin/*
 cmake*
 *.cmake
