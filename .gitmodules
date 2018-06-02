@@ -4,3 +4,6 @@
 [submodule "3rdparty/openzwave"]
 	path = 3rdparty/openzwave
 	url = https://github.com/OpenZWave/open-zwave.git
+[submodule "3rdparty/nlohmann-json"]
+	path = 3rdparty/nlohmann-json
+	url = https://github.com/nlohmann/json.git

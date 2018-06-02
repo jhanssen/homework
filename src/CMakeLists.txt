@@ -8,5 +8,5 @@ set(RECKONING_EXAMPLES OFF CACHE BOOL "Build examples" FORCE)
 add_subdirectory(reckoning)
 
 include_directories(${CMAKE_CURRENT_LIST_DIR}/device)
-add_executable(homework main.cpp)
-target_link_libraries(homework reckoning)
+add_executable(homework main.cpp Options.cpp)
+target_link_libraries(homework reckoning ozw nlohmann_json)
