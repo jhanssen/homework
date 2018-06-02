@@ -1,18 +1,21 @@
 #ifndef STATE_H
 #define STATE_H
 
+#include <event/Signal.h>
 #include <util/Any.h>
+#include <util/Creatable.h>
+#include <memory>
 #include <string>
 
-class State
+using reckoning::event::Signal;
+using reckoning::util::Creatable;
+
+class Device;
+
+class State : public std::enable_shared_from_this<State>, public Creatable<State>
 {
 public:
     enum StateType { Bool, Int, Double, String };
-
-    explicit State(const std::string& name, bool value);
-    explicit State(const std::string& name, int value);
-    explicit State(const std::string& name, double value);
-    explicit State(const std::string& name, const std::string& value);
 
     StateType type() const;
     std::string name() const;
@@ -22,10 +25,24 @@ public:
 
     bool operator==(const std::any& value) const;
 
+    Signal<std::shared_ptr<State>&&>& onStateChanged();
+
+protected:
+    explicit State(const std::string& name, bool value);
+    explicit State(const std::string& name, int value);
+    explicit State(const std::string& name, double value);
+    explicit State(const std::string& name, const std::string& value);
+
+    void changeState(std::any&& v);
+
 private:
     StateType mType;
     std::string mName;
     std::any mValue;
+    Signal<std::shared_ptr<State>&&> mOnStateChanged;
+    std::weak_ptr<Device> mDevice;
+
+    friend class Device;
 };
 
 inline State::State(const std::string& name, bool value)
@@ -66,7 +83,7 @@ inline T State::value() const
     return T();
 }
 
-bool State::operator==(const std::any& value) const
+inline bool State::operator==(const std::any& value) const
 {
     if (mValue.type() == value.type()) {
         switch (mType) {
@@ -83,5 +100,20 @@ bool State::operator==(const std::any& value) const
     return false;
 }
 
+inline Signal<std::shared_ptr<State>&&>& State::onStateChanged()
+{
+    return mOnStateChanged;
+}
+
+inline void State::changeState(std::any&& v)
+{
+#if defined(HAVE_ANY_CAST)
+    assert(!mValue.has_value() || v.type() == mValue.type());
+#elif defined(HAVE_EXPERIMENTAL_ANY_CAST)
+    assert(!mValue.empty() || v.type() == mValue.type());
+#endif
+    mValue = std::forward<std::any>(v);
+    mOnStateChanged.emit(shared_from_this());
+}
 
 #endif // STATE_H
