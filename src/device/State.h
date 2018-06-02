@@ -15,9 +15,9 @@ class Device;
 class State : public std::enable_shared_from_this<State>, public Creatable<State>
 {
 public:
-    enum StateType { Bool, Int, Double, String };
+    enum Type { Bool, Int, Double, String };
 
-    StateType type() const;
+    Type type() const;
     std::string name() const;
     std::shared_ptr<Device> device() const;
 
@@ -38,7 +38,7 @@ protected:
     void setDevice(const std::shared_ptr<Device>&);
 
 private:
-    StateType mType;
+    Type mType;
     std::string mName;
     std::any mValue;
     Signal<std::shared_ptr<State>&&> mOnStateChanged;
@@ -67,7 +67,7 @@ inline State::State(const std::string& name, const std::string& value)
 {
 }
 
-inline State::StateType State::type() const
+inline State::Type State::type() const
 {
     return mType;
 }
