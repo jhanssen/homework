@@ -11,6 +11,9 @@ using reckoning::args::Parser;
 using reckoning::args::Args;
 using nlohmann::json;
 
+// ### consider consolidating some of this here with the stuff in Args
+// there's a bunch of duplicate code in both
+
 class Options
 {
 public:
@@ -34,6 +37,8 @@ private:
     template<typename T>
     static T convert(const std::any& value, bool& ok);
 
+    json findJson(const std::string& key) const;
+
 private:
     Args mArgs;
     json mJson;
@@ -53,6 +58,47 @@ inline std::string Options::upper(const std::string& key)
         ++it;
     }
     return ret;
+}
+
+inline json Options::findJson(const std::string& key) const
+{
+    // dash is object separator
+    auto j = mJson;
+    if (!j.is_object())
+        return json();
+    const char* cur = key.c_str();
+    const char* prev = cur;
+    for (;;) {
+        switch (*cur) {
+        case '-':
+            // separator, find next object
+            if (cur > prev) {
+                auto nj = j.find(std::string(prev, cur - prev));
+                if (nj == j.end() || !nj->is_object()) {
+                    // key not found
+                    return json();
+                }
+                j = *nj;
+            }
+            ++cur;
+            prev = cur;
+            break;
+        case '\0': {
+            // done, return the key from our current object
+            if (cur > prev) {
+                auto nj = j.find(std::string(prev, cur - prev));
+                if (nj == j.end())
+                    return json();
+                return *nj;
+            }
+            return json();
+            break; }
+        default:
+            ++cur;
+            break;
+        }
+    }
+    return json();
 }
 
 inline bool Options::canConvert(const std::type_info& from, const std::type_info& to)
@@ -95,9 +141,8 @@ inline bool Options::has(const std::string& key) const
         return true;
     if (getenv(upper(key).c_str()))
         return true;
-    if (mJson.is_object())
-        return mJson.find(key) != mJson.end();
-    return false;
+    const auto jv = findJson(key);
+    return !jv.is_null();
 }
 
 template<typename T>
@@ -128,13 +173,7 @@ inline bool Options::has(const std::string& key) const
         const auto v = Parser::guessValue(e);
         return canConvert(v.type(), typeid(T));
     }
-    if (mJson.is_object()) {
-        auto v = mJson.find(key);
-        if (v != mJson.end()) {
-            return canConvertFromJSON<T>(*v);
-        }
-    }
-    return false;
+    return canConvertFromJSON<T>(findJson(key));
 }
 
 template<typename T, typename std::enable_if<!std::is_pod<T>::value>::type*>
@@ -149,11 +188,9 @@ inline T Options::value(const std::string& key, const T& defaultValue) const
         if (ok)
             return ret;
     }
-    if (mJson.is_object()) {
-        auto v = mJson.find(key);
-        if (v != mJson.end() && canConvertFromJSON<T>(*v))
-            return v->get<T>();
-    }
+    const auto jv = findJson(key);
+    if (canConvertFromJSON<T>(jv))
+        return jv.get<T>();
     return defaultValue;
 }
 
@@ -169,11 +206,9 @@ inline T Options::value(const std::string& key, T defaultValue) const
         if (ok)
             return ret;
     }
-    if (mJson.is_object()) {
-        auto v = mJson.find(key);
-        if (v != mJson.end() && canConvertFromJSON<T>(*v))
-            return v->get<T>();
-    }
+    const auto jv = findJson(key);
+    if (canConvertFromJSON<T>(jv))
+        return jv.get<T>();
     return defaultValue;
 }
 
