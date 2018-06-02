@@ -26,6 +26,7 @@ public:
 
     virtual ~Device();
 
+    Type type() const;
     virtual uint8_t features() const;
 
     std::string name() const;
@@ -42,7 +43,7 @@ public:
     const States& states() const;
 
 protected:
-    Device();
+    Device(Type t);
 
     void changeName(const std::string& name);
     void addEvent(std::shared_ptr<Event>&& event);
@@ -50,6 +51,7 @@ protected:
     void addState(std::shared_ptr<State>&& state);
 
 private:
+    Type mType;
     std::string mName;
     Events mEvents;
     Actions mActions;
@@ -57,12 +59,18 @@ private:
     Signal<std::shared_ptr<Device>&&> mOnNameChanged;
 };
 
-inline Device::Device()
+inline Device::Device(Type type)
+    : mType(type)
 {
 }
 
 inline Device::~Device()
 {
+}
+
+inline Device::Type Device::type() const
+{
+    return mType;
 }
 
 inline uint8_t Device::features() const
