@@ -19,6 +19,7 @@ public:
 
     StateType type() const;
     std::string name() const;
+    std::shared_ptr<Device> device() const;
 
     template<typename T>
     T value() const;
@@ -34,6 +35,7 @@ protected:
     explicit State(const std::string& name, const std::string& value);
 
     void changeState(std::any&& v);
+    void setDevice(const std::shared_ptr<Device>&);
 
 private:
     StateType mType;
@@ -103,6 +105,16 @@ inline bool State::operator==(const std::any& value) const
 inline Signal<std::shared_ptr<State>&&>& State::onStateChanged()
 {
     return mOnStateChanged;
+}
+
+inline void State::setDevice(const std::shared_ptr<Device>& device)
+{
+    mDevice = device;
+}
+
+inline std::shared_ptr<Device> State::device() const
+{
+    return mDevice.lock();
 }
 
 inline void State::changeState(std::any&& v)
