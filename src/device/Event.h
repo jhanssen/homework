@@ -2,18 +2,22 @@
 #define EVENT_H
 
 #include <event/Signal.h>
+#include <util/Creatable.h>
 #include <memory>
 
 using reckoning::event::Signal;
+using reckoning::util::Creatable;
 
 class Device;
 
-class Event
+class Event : public std::enable_shared_from_this<Event>, public Creatable<Event>
 {
 public:
     Signal<>& onTriggered();
 
 protected:
+    Event();
+
     void trigger();
 
 private:
@@ -21,6 +25,10 @@ private:
 
     friend class Device;
 };
+
+inline Event::Event()
+{
+}
 
 inline Signal<>& Event::onTriggered()
 {

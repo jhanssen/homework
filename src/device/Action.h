@@ -1,12 +1,16 @@
 #ifndef ACTION_H
 #define ACTION_H
 
+#include <util/Any.h>
+#include <util/Creatable.h>
+#include <memory>
 #include <functional>
 #include <vector>
 #include <string>
-#include <util/Any.h>
 
-class Action
+using reckoning::util::Creatable;
+
+class Action : public std::enable_shared_from_this<Action>, public Creatable<Action>
 {
 public:
     typedef std::vector<std::any> Arguments;
@@ -33,9 +37,10 @@ public:
         };
     };
 
-    Action(Function&& func, std::vector<ArgumentDescriptor>&& args = std::vector<ArgumentDescriptor>());
-
     void execute(const Arguments& args);
+
+protected:
+    Action(Function&& func, std::vector<ArgumentDescriptor>&& args = std::vector<ArgumentDescriptor>());
 
 private:
     Function mFunc;
