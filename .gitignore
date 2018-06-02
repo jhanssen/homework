@@ -1,0 +1,11 @@
+.ninja*
+*.ninja
+CMakeFiles/*
+src/CMakeFiles/*
+bin/*
+cmake*
+*.cmake
+*.dylib
+*.so
+*.a
+CMakeCache.txt
