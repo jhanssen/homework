@@ -14,10 +14,6 @@ using reckoning::util::Creatable;
 class Device : public std::enable_shared_from_this<Device>, public Creatable<Device>
 {
 public:
-    enum Type {
-        Type_Switch,
-        Type_Light
-    };
     enum Features {
         Feature_SetName,
         Feature_ShouldPoll,
@@ -26,7 +22,7 @@ public:
 
     virtual ~Device();
 
-    Type type() const;
+    std::string group() const;
     virtual uint8_t features() const;
 
     std::string name() const;
@@ -43,7 +39,7 @@ public:
     const States& states() const;
 
 protected:
-    Device(Type t);
+    Device(const std::string& group, const std::string& name);
 
     void changeName(const std::string& name);
     void addEvent(std::shared_ptr<Event>&& event);
@@ -51,16 +47,15 @@ protected:
     void addState(std::shared_ptr<State>&& state);
 
 private:
-    Type mType;
-    std::string mName;
+    std::string mGroup, mName;
     Events mEvents;
     Actions mActions;
     States mStates;
     Signal<std::shared_ptr<Device>&&> mOnNameChanged;
 };
 
-inline Device::Device(Type type)
-    : mType(type)
+inline Device::Device(const std::string& group, const std::string& name)
+    : mGroup(group), mName(name)
 {
 }
 
@@ -68,14 +63,14 @@ inline Device::~Device()
 {
 }
 
-inline Device::Type Device::type() const
-{
-    return mType;
-}
-
 inline uint8_t Device::features() const
 {
     return 0;
+}
+
+inline std::string Device::group() const
+{
+    return mGroup;
 }
 
 inline std::string Device::name() const
