@@ -6,7 +6,7 @@
 using namespace reckoning::log;
 
 Options::Options(const std::string& prefix, Args&& args)
-    : mArgs(args)
+    : mArgs(std::forward<Args>(args))
 {
     char buf[4096];
     auto homedir = [&buf]()-> std::string {
