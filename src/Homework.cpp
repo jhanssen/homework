@@ -35,7 +35,6 @@ void Homework::start()
         mConsole = std::make_shared<Console>(std::move(platforms));
         std::weak_ptr<Loop> loop = Loop::loop();
         mConsole->onQuit().connect([loop]() {
-                printf("hey\n");
                 if (auto l = loop.lock()) {
                     l->exit();
                 }
@@ -93,7 +92,6 @@ void Homework::start()
                         Action::Arguments args;
                         const auto& actionArguments = a->descriptors();
                         if (split.size() > 1) {
-                            printf("wapp %zu %zu\n", split.size() - 1, actionArguments.size());
                             if (split.size() - 1 != actionArguments.size()) {
                                 Log(Log::Error) << "argument mismatch, action" << action
                                                 << "requires" << actionArguments.size() << "arguments";
