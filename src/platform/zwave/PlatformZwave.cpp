@@ -39,6 +39,7 @@ PlatformZwave::PlatformZwave(const Options& options)
     zoptions->AddOptionInt("DumpTrigger", OpenZWave::LogLevel_Error);
     zoptions->AddOptionBool("IntervalBetweenPolls", true);
     zoptions->AddOptionBool("ValidateValueChanges", true);
+    zoptions->AddOptionBool("ConsoleOutput", false);
     zoptions->Lock();
 
     OpenZWave::Manager::Create();
@@ -64,4 +65,5 @@ PlatformZwave::~PlatformZwave()
 
 void PlatformZwave::onNotification(const OpenZWave::Notification* notification, void* ctx)
 {
+    printf("hello %d\n", notification->GetType());
 }

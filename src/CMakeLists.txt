@@ -8,7 +8,8 @@ set(RECKONING_EXAMPLES OFF CACHE BOOL "Build examples" FORCE)
 add_subdirectory(reckoning)
 
 set(SOURCES
-    main.cpp)
+    main.cpp
+    Homework.cpp)
 
 include_directories(
     ${CMAKE_CURRENT_LIST_DIR}/device
