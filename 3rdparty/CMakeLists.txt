@@ -44,6 +44,10 @@ add_subdirectory(nlohmann-json)
 ExternalProject_Add(project_libedit
     SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/libedit
     DOWNLOAD_COMMAND ""
-    CONFIGURE_COMMAND ${CMAKE_CURRENT_LIST_DIR}/libedit/configure
+    CONFIGURE_COMMAND ${CMAKE_CURRENT_LIST_DIR}/libedit/configure --prefix=${CMAKE_CURRENT_BINARY_DIR}/libedit-install
     BUILD_COMMAND make
+    INSTALL_DIR ${CMAKE_CURRENT_BINARY_DIR}/libedit-install
     INSTALL_COMMAND make install)
+add_library(libedit STATIC IMPORTED GLOBAL)
+set_property(TARGET libedit PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_BINARY_DIR}/libedit-install/lib/libedit.a)
+set_property(TARGET libedit PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_BINARY_DIR}/libedit-install/include)

@@ -20,4 +20,4 @@ include(${CMAKE_CURRENT_LIST_DIR}/common/common.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/platform/platforms.cmake)
 
 add_executable(homework ${SOURCES} ${COMMON_SOURCES} ${PLATFORM_SOURCES})
-target_link_libraries(homework reckoning ozw nlohmann_json)
+target_link_libraries(homework reckoning ozw nlohmann_json libedit)
