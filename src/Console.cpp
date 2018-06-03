@@ -4,8 +4,11 @@
 #include <replxx.h>
 #include <event/Loop.h>
 #include <log/Log.h>
+#include <util/Socket.h>
 #include <errno.h>
-#include <signal.h>
+#include <stdlib.h>
+#include <fcntl.h>
+#include <cassert>
 
 using namespace reckoning;
 using namespace reckoning::event;
@@ -16,8 +19,15 @@ static void completionCallback(const char* prefix, int bp, replxx_completions* l
 }
 
 Console::Console(std::vector<std::string>&& prefixes)
-    : mPrefixes(std::forward<std::vector<std::string> >(prefixes))
+    : mPrefixes(std::forward<std::vector<std::string> >(prefixes)), mExited(false)
 {
+    mPipe[0] = -1;
+    mPipe[1] = -1;
+    // do horrible things to be able to wakeup replxx from another thread
+    eintrwrap(mOriginalStdIn, dup(STDIN_FILENO));
+    util::socket::setFlag(mOriginalStdIn, O_NONBLOCK);
+    setupFd();
+
     mThread = std::thread([this]() {
             const std::string historyFile = homedir() + "/.homework.history";
 
@@ -30,9 +40,9 @@ Console::Console(std::vector<std::string>&& prefixes)
                 const char* result;
                 do {
                     result = replxx_input(replxx, (prefix + "> ").c_str());
+                    //printf("whey %p %d %d\n", result, errno, mExited.load());
                 } while ((result == nullptr) && (errno == EAGAIN));
-                if (!result && !errno) {
-                    // done?
+                if (mExited.load()) {
                     break;
                 }
                 if (result && *result != '\0') {
@@ -78,4 +88,86 @@ Console::Console(std::vector<std::string>&& prefixes)
 Console::~Console()
 {
     mThread.join();
+    mFdHandle.remove();
+    int e;
+    if (mPipe[0] != -1) {
+        eintrwrap(e, close(mPipe[0]));
+    }
+    if (mPipe[1] != -1) {
+        eintrwrap(e, close(mPipe[1]));
+    }
+}
+
+void Console::setupFd()
+{
+    recreateFd();
+    mFdHandle = Loop::loop()->addFd(mOriginalStdIn, Loop::FdRead, [this](int fd, uint8_t) {
+            // write everything from newstdin to the pipe that replxx is using
+            char buf[4096];
+            for (;;) {
+                ssize_t r = read(fd, buf, sizeof(buf));
+                if (r <= 0) {
+                    if (r == 0) {
+                        // STDIN closed, set our state and wake up the replxx thread
+                        mExited = true;
+                        recreateFd();
+                    }
+                    break;
+                }
+                ssize_t w;
+                ssize_t c = 0;
+                for (;;) {
+                    w = write(mPipe[1], buf + c, r - c);
+                    if (w <= 0)
+                        break;
+                    c += w;
+                    if (c == r)
+                        break;
+                }
+            }
+        });
+}
+
+void Console::recreateFd()
+{
+    int e;
+    // don't close mPipe[0] here, that will
+    // happen implicitly in the dup2 call below
+    assert(mPipe[0] == 0 || mPipe[0] == -1);
+    if (mPipe[1] != -1) {
+        eintrwrap(e, close(mPipe[1]));
+        mPipe[1] = -1;
+    }
+    mPipe[0] = posix_openpt(O_RDWR);
+    if (mPipe[0] != -1) {
+        grantpt(mPipe[0]);
+        unlockpt(mPipe[0]);
+        mPipe[1] = open(ptsname(mPipe[0]), O_RDWR);
+    }
+    if (mPipe[0] == -1 || mPipe[1] == -1) {
+        int e;
+        Log(Log::Error) << "Unable to recreate pty";
+        if (mPipe[0] != -1) {
+            eintrwrap(e, close(mPipe[0]));
+            mPipe[0] = -1;
+        }
+        if (mPipe[1] != -1) {
+            eintrwrap(e, close(mPipe[1]));
+            mPipe[1] = -1;
+        }
+        mFdHandle.remove();
+        eintrwrap(e, dup2(mOriginalStdIn, STDIN_FILENO));
+        eintrwrap(e, close(mOriginalStdIn));
+        mOriginalStdIn = -1;
+        return;
+    }
+
+    eintrwrap(e, dup2(mPipe[0], STDIN_FILENO));
+    eintrwrap(e, close(mPipe[0]));
+    mPipe[0] = STDIN_FILENO;
+}
+
+void Console::wakeup()
+{
+    recreateFd();
 }

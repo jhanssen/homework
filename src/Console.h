@@ -5,8 +5,11 @@
 #include <string>
 #include <vector>
 #include <event/Signal.h>
+#include <event/Loop.h>
+#include <atomic>
 
 using reckoning::event::Signal;
+using reckoning::event::Loop;
 
 class Console
 {
@@ -17,11 +20,21 @@ public:
     Signal<>& onQuit();
     Signal<const std::string&, std::string&&>& onCommand();
 
+    void wakeup();
+
+private:
+    void setupFd();
+    void recreateFd();
+
 private:
     std::thread mThread;
     std::vector<std::string> mPrefixes;
     Signal<> mOnQuit;
     Signal<const std::string&, std::string&&> mOnCommand;
+    int mOriginalStdIn;
+    int mPipe[2];
+    Loop::FD mFdHandle;
+    std::atomic<bool> mExited;
 };
 
 inline Signal<>& Console::onQuit()
