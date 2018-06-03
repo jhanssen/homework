@@ -2,7 +2,7 @@
 #include <Homedir.h>
 #include <stddef.h>
 #include <event/Loop.h>
-#include <editline/readline.h>
+#include <histedit.h>
 #include <log/Log.h>
 #include <util/Socket.h>
 #include <errno.h>
