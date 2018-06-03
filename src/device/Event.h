@@ -3,6 +3,7 @@
 
 #include <event/Signal.h>
 #include <util/Creatable.h>
+#include <string>
 #include <memory>
 
 using reckoning::event::Signal;
@@ -13,21 +14,30 @@ class Device;
 class Event : public std::enable_shared_from_this<Event>, public Creatable<Event>
 {
 public:
+    std::string name() const;
+
     Signal<>& onTriggered();
 
 protected:
-    Event();
+    Event(const std::string& name);
 
     void trigger();
 
 private:
+    std::string mName;
     Signal<> mOnTriggered;
 
     friend class Device;
 };
 
-inline Event::Event()
+inline Event::Event(const std::string& name)
+    : mName(name)
 {
+}
+
+inline std::string Event::name() const
+{
+    return mName;
 }
 
 inline Signal<>& Event::onTriggered()

@@ -1,15 +1,17 @@
 #ifndef DEVICE_H
 #define DEVICE_H
 
-#include "Event.h"
-#include "Action.h"
-#include "State.h"
+#include <Event.h>
+#include <Action.h>
+#include <State.h>
 #include <cstdint>
 #include <event/Signal.h>
 #include <util/Creatable.h>
 
 using reckoning::event::Signal;
 using reckoning::util::Creatable;
+
+class Platform;
 
 class Device : public std::enable_shared_from_this<Device>, public Creatable<Device>
 {
@@ -21,6 +23,8 @@ public:
     };
 
     virtual ~Device();
+
+    std::string uniqueId() const;
 
     std::string group() const;
     virtual uint8_t features() const;
@@ -38,29 +42,38 @@ public:
     typedef std::vector<std::shared_ptr<State> > States;
     const States& states() const;
 
+    std::shared_ptr<Platform> platform() const;
+
 protected:
-    Device(const std::string& group, const std::string& name);
+    Device(const std::string& uniqueId, const std::string& group, const std::string& name);
 
     void changeName(const std::string& name);
     void addEvent(std::shared_ptr<Event>&& event);
     void addAction(std::shared_ptr<Action>&& action);
     void addState(std::shared_ptr<State>&& state);
+    void setPlatform(const std::shared_ptr<Platform>& platform);
 
 private:
-    std::string mGroup, mName;
+    std::string mUniqueId, mGroup, mName;
     Events mEvents;
     Actions mActions;
     States mStates;
     Signal<std::shared_ptr<Device>&&> mOnNameChanged;
+    std::weak_ptr<Platform> mPlatform;
 };
 
-inline Device::Device(const std::string& group, const std::string& name)
-    : mGroup(group), mName(name)
+inline Device::Device(const std::string& uniqueId, const std::string& group, const std::string& name)
+    : mUniqueId(uniqueId), mGroup(group), mName(name)
 {
 }
 
 inline Device::~Device()
 {
+}
+
+inline std::string Device::uniqueId() const
+{
+    return mUniqueId;
 }
 
 inline uint8_t Device::features() const
@@ -111,6 +124,16 @@ inline void Device::addAction(std::shared_ptr<Action>&& action)
 inline void Device::addState(std::shared_ptr<State>&& state)
 {
     mStates.push_back(std::forward<std::shared_ptr<State> >(state));
+}
+
+inline std::shared_ptr<Platform> Device::platform() const
+{
+    return mPlatform.lock();
+}
+
+inline void Device::setPlatform(const std::shared_ptr<Platform>& platform)
+{
+    mPlatform = platform;
 }
 
 #endif // DEVICE_H

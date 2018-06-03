@@ -3,9 +3,10 @@
 CMakeFiles/*
 src/CMakeFiles/*
 3rdparty/project_*
+3rdparty/openzwave-includes/*
 bin/*
 cmake*
-*.cmake
+cmake_install.cmake
 *.dylib
 *.so
 *.a
