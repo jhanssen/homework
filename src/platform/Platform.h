@@ -21,6 +21,7 @@ public:
 
     enum MessageType { Message_Status, Message_Error };
 
+    std::string name() const;
     Signal<const std::shared_ptr<Device>&>& onDeviceAdded();
     Signal<const std::shared_ptr<Device>&>& onDeviceRemoved();
     Signal<MessageType, const std::string&>& onMessage();
@@ -29,7 +30,7 @@ public:
     const Actions& actions() const;
 
 protected:
-    Platform(const Options& options);
+    Platform(const std::string& name, const Options& options);
 
     void addAction(std::shared_ptr<Action>&& action);
     void addDevice(const std::shared_ptr<Device>& device);
@@ -46,16 +47,22 @@ private:
     Actions mActions;
     std::mutex mMutex;
     std::unordered_map<std::string, std::shared_ptr<Device> > mDevices;
+    std::string mName;
     bool mValid;
 };
 
-inline Platform::Platform(const Options&)
-    : mValid(false)
+inline Platform::Platform(const std::string& name, const Options&)
+    : mName(name), mValid(false)
 {
 }
 
 inline Platform::~Platform()
 {
+}
+
+inline std::string Platform::name() const
+{
+    return mName;
 }
 
 inline bool Platform::isValid() const
@@ -71,6 +78,11 @@ inline void Platform::setValid(bool valid)
 inline std::mutex& Platform::mutex()
 {
     return mMutex;
+}
+
+inline const Platform::Actions& Platform::actions() const
+{
+    return mActions;
 }
 
 inline void Platform::addAction(std::shared_ptr<Action>&& action)

@@ -10,6 +10,7 @@ cmake_install.cmake
 *.dylib
 *.so
 *.a
+build/*
 CMakeCache.txt
 OZW_Log.txt
 zw*.xml

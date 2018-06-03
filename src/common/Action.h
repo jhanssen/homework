@@ -15,27 +15,26 @@ class Action : public std::enable_shared_from_this<Action>, public Creatable<Act
 {
 public:
     typedef std::vector<std::any> Arguments;
+    typedef std::vector<ArgumentDescriptor> Descriptors;
     typedef std::function<void(const Arguments&)> Function;
 
     void execute(const Arguments& args);
 
     std::string name() const;
-    const std::vector<ArgumentDescriptor>& arguments() const;
+    const Descriptors& descriptors() const;
 
 protected:
-    Action(const std::string& name, Function&& func,
-           std::vector<ArgumentDescriptor>&& args = std::vector<ArgumentDescriptor>());
+    Action(const std::string& name, Function&& func, Descriptors&& = Descriptors());
 
 private:
     std::string mName;
     Function mFunc;
-    std::vector<ArgumentDescriptor> mArgs;
+    Descriptors mDesc;
 };
 
-inline Action::Action(const std::string& name, Function&& func,
-                      std::vector<ArgumentDescriptor>&& args)
+inline Action::Action(const std::string& name, Function&& func, Descriptors&& desc)
     : mName(name), mFunc(std::forward<Function>(func)),
-      mArgs(std::forward<std::vector<ArgumentDescriptor> >(args))
+      mDesc(std::forward<std::vector<ArgumentDescriptor> >(desc))
 {
 }
 
@@ -50,9 +49,9 @@ inline std::string Action::name() const
     return mName;
 }
 
-inline const std::vector<ArgumentDescriptor>& Action::arguments() const
+inline const Action::Descriptors& Action::descriptors() const
 {
-    return mArgs;
+    return mDesc;
 }
 
 #endif // ACTION_H

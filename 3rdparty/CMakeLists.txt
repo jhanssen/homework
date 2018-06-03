@@ -40,3 +40,6 @@ endif()
 
 set(JSON_BuildTests OFF CACHE BOOL "Build the unit tests when BUILD_TESTING is enabled." FORCE)
 add_subdirectory(nlohmann-json)
+
+set(REPLXX_BuildExamples OFF CACHE BOOL "Build the examples." FORCE)
+add_subdirectory(replxx)

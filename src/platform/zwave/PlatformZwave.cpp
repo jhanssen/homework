@@ -28,6 +28,9 @@ struct PlatformZwaveData
 
     std::vector<std::unique_ptr<NodeInfo> > nodes;
     NodeInfo* findNode(const OpenZWave::Notification* notification);
+
+    // stuff accessed from the main thread
+    std::atomic<uint32_t> homeId;
 };
 
 NodeInfo* PlatformZwaveData::findNode(const OpenZWave::Notification* notification)
@@ -42,7 +45,7 @@ NodeInfo* PlatformZwaveData::findNode(const OpenZWave::Notification* notificatio
 }
 
 PlatformZwave::PlatformZwave(const Options& options)
-    : Platform(options), mData(nullptr)
+    : Platform("zwave", options), mData(nullptr)
 {
     mPort = options.value<std::string>("zwave-port");
     if (mPort.empty()) {
@@ -74,10 +77,42 @@ PlatformZwave::PlatformZwave(const Options& options)
     assert(zmanager != nullptr);
 
     mData = new PlatformZwaveData;
+    mData->homeId = 0;
     mData->zwave = this;
 
     zmanager->AddWatcher(onNotification, mData);
     zmanager->AddDriver(mPort);
+
+    // commands
+    auto addNodeCommand = Action::create("addnode", [this, zmanager](const Action::Arguments& args) {
+            assert(args.size() == 1 && args[0].type() == typeid(bool));
+            auto homeId = mData->homeId.load();
+            if (homeId != 0) {
+                Log(Log::Error) << "adding node for homeid" << homeId;
+                zmanager->CancelControllerCommand(homeId);
+                zmanager->AddNode(homeId, std::any_cast<bool>(args[0]));
+            }
+        }, Action::Descriptors {
+            ArgumentDescriptor { ArgumentDescriptor::Bool }
+        });
+    addAction(std::move(addNodeCommand));
+    auto removeNodeCommand = Action::create("removenode", [this, zmanager](const Action::Arguments& args) {
+            auto homeId = mData->homeId.load();
+            if (homeId != 0) {
+                Log(Log::Error) << "removing node for homeid" << homeId;
+                zmanager->CancelControllerCommand(homeId);
+                zmanager->RemoveNode(homeId);
+            }
+        });
+    addAction(std::move(removeNodeCommand));
+    auto cancelCommand = Action::create("cancel", [this, zmanager](const Action::Arguments& args) {
+            auto homeId = mData->homeId.load();
+            if (homeId != 0) {
+                const bool ok = zmanager->CancelControllerCommand(homeId);
+                Log(Log::Error) << "cancelled" << homeId << (ok ? "ok" : "failed");
+            }
+        });
+    addAction(std::move(cancelCommand));
 
     setValid(true);
 }
@@ -170,6 +205,7 @@ void PlatformZwave::onNotification(const OpenZWave::Notification* notification, 
         }
         break;
     case OpenZWave::Notification::Type_DriverReady:
+        data->homeId = notification->GetHomeId();
         // ready
         break;
     case OpenZWave::Notification::Type_DriverFailed:
