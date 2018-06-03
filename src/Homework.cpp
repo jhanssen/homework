@@ -8,6 +8,7 @@
 using namespace reckoning::log;
 using namespace reckoning::args;
 using namespace reckoning::event;
+using namespace std::chrono_literals;
 
 Homework::Homework(Options&& options)
     : mOptions(std::forward<Options>(options))
@@ -42,6 +43,14 @@ void Homework::start()
         mConsole->onCommand().connect([this](const std::string& prefix, std::string&& cmd) {
                 //printf("command %s\n", cmd.c_str());
                 // split on space, send action to platform
+
+                if (cmd == "wakeup") {
+                    Loop::loop()->addTimer(500ms, [this]() {
+                            printf("wakey\n");
+                            mConsole->wakeup();
+                        });
+                    return;
+                }
 
                 std::vector<std::string> split;
 

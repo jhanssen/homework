@@ -41,5 +41,9 @@ endif()
 set(JSON_BuildTests OFF CACHE BOOL "Build the unit tests when BUILD_TESTING is enabled." FORCE)
 add_subdirectory(nlohmann-json)
 
-set(REPLXX_BuildExamples OFF CACHE BOOL "Build the examples." FORCE)
-add_subdirectory(replxx)
+ExternalProject_Add(project_libedit
+    SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/libedit
+    DOWNLOAD_COMMAND ""
+    CONFIGURE_COMMAND ${CMAKE_CURRENT_LIST_DIR}/libedit/configure
+    BUILD_COMMAND make
+    INSTALL_COMMAND make install)

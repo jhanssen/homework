@@ -7,6 +7,7 @@
 #include <event/Signal.h>
 #include <event/Loop.h>
 #include <atomic>
+#include <mutex>
 
 using reckoning::event::Signal;
 using reckoning::event::Loop;
@@ -23,18 +24,10 @@ public:
     void wakeup();
 
 private:
-    void setupFd();
-    void recreateFd();
-
-private:
     std::thread mThread;
     std::vector<std::string> mPrefixes;
     Signal<> mOnQuit;
     Signal<const std::string&, std::string&&> mOnCommand;
-    int mOriginalStdIn;
-    int mPipe[2];
-    Loop::FD mFdHandle;
-    std::atomic<bool> mExited;
 };
 
 inline Signal<>& Console::onQuit()
