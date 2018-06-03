@@ -17,6 +17,8 @@ class Platform : public std::enable_shared_from_this<Platform>
 public:
     virtual ~Platform();
 
+    bool isValid() const;
+
     enum MessageType { Message_Status, Message_Error };
 
     Signal<const std::shared_ptr<Device>&>& onDeviceAdded();
@@ -34,6 +36,7 @@ protected:
     void removeDevice(const std::shared_ptr<Device>& device);
     void removeDevice(const std::string& uniqueId);
     void sendMessage(MessageType type, const std::string& msg);
+    void setValid(bool valid);
 
     std::mutex& mutex();
 
@@ -43,14 +46,26 @@ private:
     Actions mActions;
     std::mutex mMutex;
     std::unordered_map<std::string, std::shared_ptr<Device> > mDevices;
+    bool mValid;
 };
 
 inline Platform::Platform(const Options&)
+    : mValid(false)
 {
 }
 
 inline Platform::~Platform()
 {
+}
+
+inline bool Platform::isValid() const
+{
+    return mValid;
+}
+
+inline void Platform::setValid(bool valid)
+{
+    mValid = valid;
 }
 
 inline std::mutex& Platform::mutex()

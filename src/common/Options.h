@@ -182,11 +182,9 @@ inline T Options::value(const std::string& key, const T& defaultValue) const
     if (mArgs.has<T>(key))
         return mArgs.value<T>(key);
     if (char* e = getenv(upper(key).c_str())) {
-        std::any v = Parser::guessValue(e);
-        bool ok;
-        T ret = convert<T>(v, ok);
-        if (ok)
-            return ret;
+        const auto v = Parser::guessValue(e);
+        if (v.type() == typeid(T))
+            return std::any_cast<T>(v);
     }
     const auto jv = findJson(key);
     if (canConvertFromJSON<T>(jv))
