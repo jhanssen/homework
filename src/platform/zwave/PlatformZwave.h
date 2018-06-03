@@ -7,6 +7,8 @@
 
 using reckoning::util::Creatable;
 
+struct PlatformZwaveData;
+
 class PlatformZwave : public Platform, public Creatable<PlatformZwave>
 {
 public:
@@ -20,6 +22,7 @@ private:
 
 private:
     std::string mPort;
+    PlatformZwaveData* mData;
 };
 
 #endif // PLATFORM_ZWAVE

@@ -27,4 +27,5 @@ void Homework::start()
 
 void Homework::stop()
 {
+    mPlatforms.clear();
 }
