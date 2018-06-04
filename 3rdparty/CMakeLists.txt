@@ -41,6 +41,12 @@ endif()
 set(JSON_BuildTests OFF CACHE BOOL "Build the unit tests when BUILD_TESTING is enabled." FORCE)
 add_subdirectory(nlohmann-json)
 
+set(CURSES_NEED_NCURSES ON)
+find_package(Curses)
+if (NOT CURSES_FOUND)
+    message(FATAL_ERROR "libedit needs ncurses")
+endif()
+
 ExternalProject_Add(project_libedit
     SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/libedit
     DOWNLOAD_COMMAND ""
@@ -51,3 +57,4 @@ ExternalProject_Add(project_libedit
 add_library(libedit STATIC IMPORTED GLOBAL)
 set_property(TARGET libedit PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_BINARY_DIR}/libedit-install/lib/libedit.a)
 set_property(TARGET libedit PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_BINARY_DIR}/libedit-install/include)
+set_property(TARGET libedit PROPERTY INTERFACE_LINK_LIBRARIES ${CURSES_LIBRARIES})

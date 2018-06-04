@@ -2,15 +2,14 @@
 #define CONSOLE_H
 
 #include <thread>
+#include <event/Signal.h>
 #include <string>
 #include <vector>
-#include <event/Signal.h>
-#include <event/Loop.h>
 #include <atomic>
-#include <mutex>
+#include <histedit.h>
 
 using reckoning::event::Signal;
-using reckoning::event::Loop;
+//using reckoning::event::Loop;
 
 class Console
 {
@@ -24,10 +23,20 @@ public:
     void wakeup();
 
 private:
+    static int getChar(EditLine* edit, wchar_t* ch);
+    static const char* prompt(EditLine* edit);
+    static unsigned char complete(EditLine* edit, int);
+
+private:
+    std::atomic<bool> mStopped;
     std::thread mThread;
     std::vector<std::string> mPrefixes;
     Signal<> mOnQuit;
     Signal<const std::string&, std::string&&> mOnCommand;
+    History* mHistory;
+    EditLine* mEditLine;
+    std::string mHistoryFile, mPrompt;
+    int mPipe[2];
 };
 
 inline Signal<>& Console::onQuit()
