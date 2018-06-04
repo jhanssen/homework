@@ -367,12 +367,12 @@ void PlatformZwave::onNotification(const OpenZWave::Notification* notification, 
     Log(Log::Info) << "hello" << notification->GetType();
     switch (notification->GetType()) {
     case OpenZWave::Notification::Type_ValueAdded:
-        if(NodeInfo* nodeInfo = data->findNode(notification)) {
+        if (NodeInfo* nodeInfo = data->findNode(notification)) {
             nodeInfo->values.push_back(notification->GetValueID());
         }
         break;
     case OpenZWave::Notification::Type_ValueRemoved:
-        if(NodeInfo* nodeInfo = data->findNode(notification)) {
+        if (NodeInfo* nodeInfo = data->findNode(notification)) {
             auto it = nodeInfo->values.begin();
             const auto end = nodeInfo->values.end();
             while (it != end) {
@@ -385,7 +385,7 @@ void PlatformZwave::onNotification(const OpenZWave::Notification* notification, 
         }
         break;
     case OpenZWave::Notification::Type_ValueChanged:
-        if(NodeInfo* nodeInfo = data->findNode(notification)) {
+        if (NodeInfo* nodeInfo = data->findNode(notification)) {
             // fun stuff
         }
         break;
@@ -421,16 +421,29 @@ void PlatformZwave::onNotification(const OpenZWave::Notification* notification, 
     case OpenZWave::Notification::Type_NodeProtocolInfo:
     case OpenZWave::Notification::Type_NodeNaming:
     case OpenZWave::Notification::Type_NodeEvent:
-    case OpenZWave::Notification::Type_NodeQueriesComplete:
+        break;
+    case OpenZWave::Notification::Type_NodeQueriesComplete: {
+        auto zmanager = OpenZWave::Manager::Get();
+        if (NodeInfo* nodeInfo = data->findNode(notification)) {
+            Log(Log::Info) << "node complete"
+                           << zmanager->GetNodeType(nodeInfo->homeId, nodeInfo->nodeId)
+                           << zmanager->GetNodeBasic(nodeInfo->homeId, nodeInfo->nodeId)
+                           << zmanager->GetNodeGeneric(nodeInfo->homeId, nodeInfo->nodeId)
+                           << zmanager->GetNodeSpecific(nodeInfo->homeId, nodeInfo->nodeId);
+            for (const auto& v : nodeInfo->values) {
+                Log(Log::Info) << "  value type" << v.GetType() << v.GetCommandClassId();
+            }
+        }
+        break; }
     case OpenZWave::Notification::Type_NodeReset:
         break;
     case OpenZWave::Notification::Type_PollingDisabled:
-        if(NodeInfo* nodeInfo = data->findNode(notification)) {
+        if (NodeInfo* nodeInfo = data->findNode(notification)) {
             nodeInfo->polled = false;
         }
         break;
     case OpenZWave::Notification::Type_PollingEnabled:
-        if(NodeInfo* nodeInfo = data->findNode(notification)) {
+        if (NodeInfo* nodeInfo = data->findNode(notification)) {
             nodeInfo->polled = true;
         }
         break;
