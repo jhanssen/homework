@@ -19,6 +19,7 @@ Console::Console(std::vector<std::string>&& prefixes)
       mHistory(nullptr), mEditLine(nullptr)
 {
     mStopped = false;
+    mPrompt = "> ";
 
     int e = pipe(mPipe);
     if (e == -1) {
@@ -65,16 +66,59 @@ Console::Console(std::vector<std::string>&& prefixes)
 
     mThread = std::thread([this]() {
             int count;
+            std::string prefix, cmd;
+
             for (;;) {
                 if (mStopped)
                     return;
 
                 const char* ch = el_gets(mEditLine, &count);
                 if (!ch || count <= 0) {
+                    mOnQuit.emit();
                     break;
                 }
-                printf("got console str %s\n", std::string(ch, count).c_str());
+                const char* cur = ch;
+                bool done = false;
+                while (!done) {
+                    switch (*cur) {
+                    case ' ':
+                    case '\t':
+                    case '\0':
+                    case '\r':
+                    case '\n':
+                        cmd = std::string(ch, cur - ch);
+                        if (cmd == "exit") {
+                            if (prefix.empty()) {
+                                // done with this
+                                mOnQuit.emit();
+                                return;
+                            }
+                            prefix.clear();
+                            mPrompt = "> ";
+                            //el_set(mEditLine, EL_REFRESH);
+                            count = 0;
+                        } else if (std::find(mPrefixes.begin(), mPrefixes.end(), cmd) != mPrefixes.end()) {
+                            prefix = cmd;
+                            mPrompt = cmd + "> ";
+                            //el_set(mEditLine, EL_REFRESH);
+                            count = 0;
+                        }
+                        done = true;
+                        continue;
+                    }
+                    ++cur;
+                }
+                while (count > 0 && (ch[count - 1] == '\n' || ch[count - 1] == '\r'))
+                    --count;
+                if (count > 0) {
+                    mOnCommand.emit(prefix, std::string(ch, count));
+                }
             }
+        });
+    Log::setLogHandler([this](Log::Output, std::string&& msg) {
+            std::lock_guard<std::mutex> locker(mMutex);
+            mOutputs.push_back(std::forward<std::string>(msg));
+            wakeup();
         });
 }
 
@@ -141,37 +185,56 @@ int Console::getChar(EditLine* edit, wchar_t* out)
 
     int s;
     fd_set rdset;
+    std::vector<std::string> outputs;
 
-    FD_ZERO(&rdset);
-    FD_SET(console->mPipe[0], &rdset);
-    FD_SET(STDIN_FILENO, &rdset);
-    eintrwrap(s, select(max + 1, &rdset, nullptr, nullptr, nullptr));
-    if (s == -1) {
-        // badness
-        Log(Log::Error) << "failed to select for console" << errno;
-        *out = L'\0';
-        return 0;
-    }
-    if (FD_ISSET(console->mPipe[0], &rdset)) {
-        // drain pipe
-        int e;
-        char c;
-        do {
-            eintrwrap(e, read(console->mPipe[0], &c, 1));
-        } while (e == 1);
-        if (console->mStopped) {
+    for (;;) {
+        FD_ZERO(&rdset);
+        FD_SET(console->mPipe[0], &rdset);
+        FD_SET(STDIN_FILENO, &rdset);
+        eintrwrap(s, select(max + 1, &rdset, nullptr, nullptr, nullptr));
+        if (s == -1) {
+            // badness
+            Log(Log::Error) << "failed to select for console" << errno;
             *out = L'\0';
-            return -1;
-        }
-    }
-    if (FD_ISSET(STDIN_FILENO, &rdset)) {
-        switch (readChar(out)) {
-        case ReadOk:
-            return 1;
-        case ReadEof:
             return 0;
-        case ReadIncomplete:
-            return -1;
+        }
+        if (FD_ISSET(console->mPipe[0], &rdset)) {
+            // drain pipe
+            int e;
+            char c;
+            do {
+                eintrwrap(e, read(console->mPipe[0], &c, 1));
+            } while (e == 1);
+
+            {
+                std::lock_guard<std::mutex> locker(console->mMutex);
+                outputs = std::move(console->mOutputs);
+            }
+            if (!outputs.empty()) {
+                // clear line, cursor to start of line
+                printf("\33[2K\33[A\n");
+                for (const auto& str : outputs) {
+                    printf("%s", str.c_str());
+                }
+                outputs.clear();
+
+                el_set(console->mEditLine, EL_REFRESH);
+            }
+
+            if (console->mStopped) {
+                *out = L'\0';
+                return -1;
+            }
+        }
+        if (FD_ISSET(STDIN_FILENO, &rdset)) {
+            switch (readChar(out)) {
+            case ReadOk:
+                return 1;
+            case ReadEof:
+                return 0;
+            case ReadIncomplete:
+                return -1;
+            }
         }
     }
     *out = L'\0';
@@ -180,7 +243,11 @@ int Console::getChar(EditLine* edit, wchar_t* out)
 
 const char* Console::prompt(EditLine* edit)
 {
-    return "> ";
+    Console* console = nullptr;
+    el_get(edit, EL_CLIENTDATA, &console);
+    assert(console != nullptr);
+
+    return console->mPrompt.c_str();
 }
 
 unsigned char Console::complete(EditLine* edit, int)

@@ -29,6 +29,9 @@ public:
     typedef std::vector<std::shared_ptr<Action> > Actions;
     const Actions& actions() const;
 
+    virtual bool start() = 0;
+    virtual bool stop() { return true; }
+
 protected:
     Platform(const std::string& name, const Options& options);
 

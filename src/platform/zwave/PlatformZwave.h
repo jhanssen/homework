@@ -14,6 +14,8 @@ class PlatformZwave : public Platform, public Creatable<PlatformZwave>
 public:
     ~PlatformZwave();
 
+    bool start();
+
 protected:
     PlatformZwave(const Options& options);
 
@@ -21,7 +23,8 @@ private:
     static void onNotification(const OpenZWave::Notification* notification, void* ctx);
 
 private:
-    std::string mPort;
+    int mPollInterval;
+    std::string mPort, mConfig;
     PlatformZwaveData* mData;
 };
 

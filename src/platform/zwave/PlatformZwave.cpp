@@ -52,18 +52,38 @@ PlatformZwave::PlatformZwave(const Options& options)
         Log(Log::Error) << "no openzwave port";
         return;
     }
-    const auto config = options.value<std::string>("zwave-config");
-    if (config.empty()) {
+    mConfig = options.value<std::string>("zwave-config");
+    if (mConfig.empty()) {
         Log(Log::Error) << "no openzwave config";
         return;
     }
+    mPollInterval = options.value<int>("zwave-pollInterval", 500);
 
-    const int pollInterval = options.value<int>("zwave-pollInterval", 500);
+    setValid(true);
+}
 
-    OpenZWave::Options::Create(config, std::string(), std::string());
+PlatformZwave::~PlatformZwave()
+{
+    if (!isValid())
+        return;
+    assert(!mPort.empty());
+    assert(mData != nullptr);
+    auto zmanager = OpenZWave::Manager::Get();
+    assert(zmanager != nullptr);
+    zmanager->RemoveWatcher(onNotification, this);
+    delete mData;
+    OpenZWave::Manager::Destroy();
+    OpenZWave::Options::Destroy();
+}
+
+bool PlatformZwave::start()
+{
+    assert(isValid());
+
+    OpenZWave::Options::Create(mConfig, std::string(), std::string());
     auto zoptions = OpenZWave::Options::Get();
     assert(zoptions != nullptr);
-    zoptions->AddOptionInt("PollInterval", pollInterval);
+    zoptions->AddOptionInt("PollInterval", mPollInterval);
     zoptions->AddOptionInt("SaveLogLevel", OpenZWave::LogLevel_Detail);
     zoptions->AddOptionInt("QueueLogLevel", OpenZWave::LogLevel_Debug);
     zoptions->AddOptionInt("DumpTrigger", OpenZWave::LogLevel_Error);
@@ -113,28 +133,13 @@ PlatformZwave::PlatformZwave(const Options& options)
             }
         });
     addAction(std::move(cancelCommand));
-
-    setValid(true);
-}
-
-PlatformZwave::~PlatformZwave()
-{
-    if (!isValid())
-        return;
-    assert(!mPort.empty());
-    assert(mData != nullptr);
-    auto zmanager = OpenZWave::Manager::Get();
-    assert(zmanager != nullptr);
-    zmanager->RemoveWatcher(onNotification, this);
-    delete mData;
-    OpenZWave::Manager::Destroy();
-    OpenZWave::Options::Destroy();
+    return true;
 }
 
 void PlatformZwave::onNotification(const OpenZWave::Notification* notification, void* ctx)
 {
     PlatformZwaveData* data = static_cast<PlatformZwaveData*>(ctx);
-    printf("hello %d\n", notification->GetType());
+    Log(Log::Info) << "hello" << notification->GetType();
     switch (notification->GetType()) {
     case OpenZWave::Notification::Type_ValueAdded:
         if(NodeInfo* nodeInfo = data->findNode(notification)) {

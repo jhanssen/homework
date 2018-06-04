@@ -52,7 +52,7 @@ void Homework::start()
 
                     if (cmd == "wakeup") {
                         Loop::loop()->addTimer(500ms, [this]() {
-                                printf("wakey\n");
+                                //printf("wakey\n");
                                 mConsole->wakeup();
                             });
                         return;
@@ -165,9 +165,20 @@ void Homework::start()
                 });
         }
     }
+
+    for (const auto& platform : mPlatforms) {
+        if (!platform->start()) {
+            Log(Log::Error) << "failed to start platform" << platform->name();
+        }
+    }
 }
 
 void Homework::stop()
 {
+    for (const auto& platform : mPlatforms) {
+        if (!platform->stop()) {
+            Log(Log::Error) << "failed to stop platform" << platform->name();
+        }
+    }
     mPlatforms.clear();
 }

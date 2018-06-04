@@ -2,6 +2,7 @@
 #define CONSOLE_H
 
 #include <thread>
+#include <mutex>
 #include <event/Signal.h>
 #include <string>
 #include <vector>
@@ -30,7 +31,8 @@ private:
 private:
     std::atomic<bool> mStopped;
     std::thread mThread;
-    std::vector<std::string> mPrefixes;
+    std::mutex mMutex;
+    std::vector<std::string> mPrefixes, mOutputs;
     Signal<> mOnQuit;
     Signal<const std::string&, std::string&&> mOnCommand;
     History* mHistory;
