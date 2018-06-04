@@ -15,6 +15,7 @@ public:
     ~PlatformZwave();
 
     bool start();
+    bool stop();
 
 protected:
     PlatformZwave(const Options& options);

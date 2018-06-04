@@ -283,16 +283,6 @@ PlatformZwave::PlatformZwave(const Options& options)
 
 PlatformZwave::~PlatformZwave()
 {
-    if (!isValid())
-        return;
-    assert(!mPort.empty());
-    assert(mData != nullptr);
-    auto zmanager = OpenZWave::Manager::Get();
-    assert(zmanager != nullptr);
-    zmanager->RemoveWatcher(onNotification, this);
-    delete mData;
-    OpenZWave::Manager::Destroy();
-    OpenZWave::Options::Destroy();
 }
 
 bool PlatformZwave::start()
@@ -352,6 +342,22 @@ bool PlatformZwave::start()
             }
         });
     addAction(std::move(cancelCommand));
+    return true;
+}
+
+bool PlatformZwave::stop()
+{
+    if (!isValid())
+        return false;
+    assert(!mPort.empty());
+    assert(mData != nullptr);
+    auto zmanager = OpenZWave::Manager::Get();
+    assert(zmanager != nullptr);
+    zmanager->RemoveWatcher(onNotification, this);
+    delete mData;
+    OpenZWave::Manager::Destroy();
+    OpenZWave::Options::Destroy();
+
     return true;
 }
 
