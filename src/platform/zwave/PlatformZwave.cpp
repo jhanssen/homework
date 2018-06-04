@@ -14,6 +14,225 @@
 
 using namespace reckoning::log;
 
+// taken from http://z-wave.sigmadesigns.com/wp-content/uploads/2016/08/SDS13740-1-Z-Wave-Plus-Device-and-Command-Class-Types-and-Defines-Specification.pdf
+enum class GenericDeviceClass {
+    AV_Control_Point = 0x03,
+    Display = 0x04,
+    Entry_Control = 0x40,
+    Generic_Controller = 0x01,
+    Meter = 0x31,
+    Meter_Pulse = 0x30,
+    Non_Interoperable = 0xFf,
+    Repeater_Slave = 0x0F,
+    Security_Panel = 0x17,
+    Semi_Interoperable = 0x50,
+    Sensor_Alarm = 0xA1,
+    Sensor_Binary = 0x20,
+    Sensor_Multilevel = 0x21,
+    Static_Controller = 0x02,
+    Switch_Binary = 0x10,
+    Switch_Multilevel = 0x11,
+    Switch_Remote = 0x12,
+    Switch_Toggle = 0x13,
+    Thermostat = 0x08,
+    Ventilation = 0x16,
+    Window_Covering = 0x09,
+    Zip_Node = 0x15,
+    Wall_Controller = 0x18,
+    Network_Extender = 0x05,
+    Appliance = 0x06,
+    Sensor_Notification = 0x07
+};
+
+enum class SpecificTypeAvControlPoint {
+    Not_Used = 0x00,
+    Doorbell = 0x12,
+    Satellite_Receiver = 0x04,
+    Satellite_Receiver_V2 = 0x11
+};
+
+enum class SpecificTypeDisplay {
+    Not_Used = 0x00,
+    Simple_Display = 0x01
+};
+
+enum class SpecificTypeEntryControl {
+    Not_Used = 0x00,
+    Door_Lock = 0x01,
+    Advanced_Door_Lock = 0x02,
+    Secure_Keypad_Door_Lock = 0x03,
+    Secure_Keypad_Door_Lock_Deadbolt = 0x04,
+    Secure_Door = 0x05,
+    Secure_Gate = 0x06,
+    Secure_Barrier_Addon = 0x07,
+    Secure_Barrier_Open_Only = 0x08,
+    Secure_Barrier_Close_Only = 0x09,
+    Secure_Lockbox = 0x0A,
+    Secure_Keypad = 0x0B
+};
+
+enum class SpecificTypeSpecificController {
+    Not_Used = 0x00,
+    Portable_Remote_Controller = 0x01,
+    Portable_Scene_Controller = 0x02,
+    Portable_Installer_Tool = 0x03,
+    Remote_Control_Av = 0x04,
+    Remote_Control_Simple = 0x06
+};
+
+enum class SpecificTypeMeter {
+    Not_Used = 0x00,
+    Simple_Meter = 0x01,
+    Adv_Energy_Control = 0x02,
+    Whole_Home_Meter_Simple = 0x03
+};
+
+enum class SpecificTypeMeterPulse {
+    Not_Used = 0x00
+};
+
+enum class SpecificTypeNonInteroperable {
+    Not_Used = 0x00
+};
+
+enum class SpecificTypeRepeaterSlave {
+    Not_Used = 0x00,
+    Repeater_Slave = 0x01,
+    Virtual_Node = 0x02
+};
+
+enum class SpecificTypeSecurityPanel {
+    Not_Used = 0x00,
+    Zoned_Security_Panel = 0x01
+};
+
+enum class SpecificTypeSemiInteroperable {
+    Not_Used = 0x00,
+    Energy_Production = 0x01
+};
+
+enum class SpecificTypeSensorAlarm {
+    Not_Used = 0x00,
+    Adv_Zensor_Net_Alarm_Sensor = 0x05,
+    Adv_Zensor_Net_Smoke_Sensor = 0x0A,
+    Basic_Routing_Alarm_Sensor = 0x01,
+    Basic_Routing_Smoke_Sensor = 0x06,
+    Basic_Zensor_Net_Alarm_Sensor = 0x03,
+    Basic_Zensor_Net_Smoke_Sensor = 0x08,
+    Routing_Alarm_Sensor = 0x02,
+    Routing_Smoke_Sensor = 0x07,
+    Zensor_Net_Alarm_Sensor = 0x04,
+    Zensor_Net_Smoke_Sensor = 0x09,
+    Alarm_Sensor = 0x0B
+};
+
+enum class SpecificTypeSensorBinary {
+    Not_Used = 0x00,
+    Routing_Sensor_Binary = 0x01
+};
+
+enum class SpecificTypeSensorMultilevel {
+    Not_Used = 0x00,
+    Routing_Sensor_Multilevel = 0x01,
+    Chimney_Fan = 0x02
+};
+
+enum class SpecificTypeStaticController {
+    Not_Used = 0x00,
+    Pc_Controller = 0x01,
+    Scene_Controller = 0x02,
+    Static_Installer_Tool = 0x03,
+    Set_Top_Box = 0x04,
+    Sub_System_Controller = 0x05,
+    TV = 0x06,
+    Gateway = 0x07
+};
+
+enum class SpecificTypeSwitchBinary {
+    Not_Used = 0x00,
+    Power_Switch_Binary = 0x01,
+    Scene_Switch_Binary = 0x03,
+    Power_Strip = 0x04,
+    Siren = 0x05,
+    Valve_Open_Close = 0x06,
+    Color_Tunable_Binary = 0x02,
+    Irrigation_Controller = 0x07
+};
+
+enum class SpecificTypeSwitchMultilevel {
+    Not_Used = 0x00,
+    Class_A_Motor_Control = 0x05,
+    Class_B_Motor_Control = 0x06,
+    Class_C_Motor_Control = 0x07,
+    Motor_Multiposition = 0x03,
+    Power_Switch_Multilevel = 0x01,
+    Scene_Switch_Multilevel = 0x04,
+    Fan_Switch = 0x08,
+    Color_Tunable_Multilevel = 0x02
+};
+
+enum class SpecificTypeSwitchRemote {
+    Not_Used = 0x00,
+    Switch_Remote_Binary = 0x01,
+    Switch_Remote_Multilevel = 0x02,
+    Switch_Remote_Toggle_Binary = 0x03,
+    Switch_Remote_Toggle_Multilevel = 0x04
+};
+
+enum class SpecificTypeSwitchToggle {
+    Not_Used = 0x00,
+    Switch_Toggle_Binary = 0x01,
+    Switch_Toggle_Multilevel = 0x02
+};
+
+enum class SpecificTypeThermostat {
+    Not_Used = 0x00,
+    Setback_Schedule_Thermostat = 0x03,
+    Setback_Thermostat = 0x05,
+    Setpoint_Thermostat = 0x04,
+    Thermostat_General = 0x02,
+    Thermostat_General_V2 = 0x06,
+    Thermostat_Heating = 0x01
+};
+
+enum class SpecificTypeVentilation {
+    Not_Used = 0x00,
+    Residential_HRV = 0x01
+};
+
+enum class SpecificTypeWindowCovering {
+    Not_Used = 0x00,
+    Simple_Window_Covering = 0x01
+};
+
+enum class SpecificTypeZipNode {
+    Not_Used = 0x00,
+    Zip_Adv_Node = 0x02,
+    Zip_Tun_Node = 0x01
+};
+
+enum class SpecificTypeWallController {
+    Not_Used = 0x00,
+    Basic_Wall_Controller = 0x01
+};
+
+enum class SpecificTypeNetworkExtender {
+    Not_Used = 0x00,
+    Secure_Extender = 0x01
+};
+
+enum class SpecificTypeAppliance {
+    Not_Used = 0x00,
+    General_Appliance = 0x01,
+    Kitchen_Appliance = 0x02,
+    Laundry_Appliance = 0x03
+};
+
+enum class SpecificTypeSensorNotification {
+    Not_Used = 0x00,
+    Notification_Sensor = 0x01
+};
+
 struct NodeInfo
 {
     uint32_t homeId;
