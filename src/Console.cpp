@@ -98,6 +98,12 @@ Console::Console(std::vector<std::string>&& prefixes)
                             //el_set(mEditLine, EL_REFRESH);
                             count = 0;
                         } else if (std::find(mPrefixes.begin(), mPrefixes.end(), cmd) != mPrefixes.end()) {
+                            if (!mHistoryFile.empty()) {
+                                HistEvent histEvent;
+                                history(mHistory, &histEvent, H_ENTER, cmd.c_str());
+                                history(mHistory, &histEvent, H_SAVE, mHistoryFile.c_str());
+                            }
+
                             prefix = cmd;
                             mPrompt = cmd + "> ";
                             //el_set(mEditLine, EL_REFRESH);
@@ -111,7 +117,13 @@ Console::Console(std::vector<std::string>&& prefixes)
                 while (count > 0 && (ch[count - 1] == '\n' || ch[count - 1] == '\r'))
                     --count;
                 if (count > 0) {
-                    mOnCommand.emit(prefix, std::string(ch, count));
+                    std::string ncmd(ch, count);
+                    if (!mHistoryFile.empty()) {
+                        HistEvent histEvent;
+                        history(mHistory, &histEvent, H_ENTER, ncmd.c_str());
+                        history(mHistory, &histEvent, H_SAVE, mHistoryFile.c_str());
+                    }
+                    mOnCommand.emit(prefix, std::move(ncmd));
                 }
             }
         });
