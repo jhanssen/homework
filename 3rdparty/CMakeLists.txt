@@ -7,7 +7,8 @@ ExternalProject_Add(project_ozw
     DOWNLOAD_COMMAND ""
     CONFIGURE_COMMAND ""
     BUILD_IN_SOURCE 1
-    BUILD_COMMAND make)
+    BUILD_COMMAND make
+    INSTALL_COMMAND "")
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/openzwave-includes/ozw)
 file(GLOB_RECURSE OZW_HEADERS ${CMAKE_CURRENT_LIST_DIR}/openzwave/cpp/src/*.h)
 set(OZW_DIRECTORIES "")
@@ -28,10 +29,18 @@ foreach(OZW_HEADER ${OZW_HEADERS})
     file(COPY ${OZW_HEADER} DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/openzwave-includes/ozw/${OZW_DIRECTORY})
 endforeach()
 
-add_library(ozw STATIC IMPORTED GLOBAL)
-set_property(TARGET ozw PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${OZW_INCLUDES})
-set_property(TARGET ozw PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_LIST_DIR}/openzwave/libopenzwave.a)
+#add_library(ozw STATIC IMPORTED GLOBAL)
+#set_property(TARGET ozw PROPERTY IMPORTED_INTERFACE_LINK_LIBRARIES project_ozw)
+set_property(TARGET project_ozw PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${OZW_INCLUDES})
+set_property(TARGET project_ozw PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_LIST_DIR}/openzwave/libopenzwave.a)
+#add_dependencies(ozw project_ozw)
+
+add_library(ozw INTERFACE)
 add_dependencies(ozw project_ozw)
+
+set_property(TARGET ozw PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${OZW_INCLUDES})
+#set_property(TARGET ozw PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_LIST_DIR}/openzwave/libopenzwave.a)
+
 if (APPLE)
     find_library(COREFOUNDATION_LIBRARY CoreFoundation)
     find_library(IOKIT_LIBRARY IOKit)
@@ -47,6 +56,7 @@ if (NOT CURSES_FOUND)
     message(FATAL_ERROR "libedit needs ncurses")
 endif()
 
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/libedit-install/include)
 ExternalProject_Add(project_libedit
     SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/libedit
     DOWNLOAD_COMMAND ""
@@ -54,7 +64,12 @@ ExternalProject_Add(project_libedit
     BUILD_COMMAND make
     INSTALL_DIR ${CMAKE_CURRENT_BINARY_DIR}/libedit-install
     INSTALL_COMMAND make install)
-add_library(libedit STATIC IMPORTED GLOBAL)
-set_property(TARGET libedit PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_BINARY_DIR}/libedit-install/lib/libedit.a)
+# add_library(libedit STATIC IMPORTED GLOBAL)
+# set_property(TARGET libedit PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_BINARY_DIR}/libedit-install/lib/libedit.a)
+# set_property(TARGET libedit PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_BINARY_DIR}/libedit-install/include)
+# set_property(TARGET libedit PROPERTY INTERFACE_LINK_LIBRARIES ${CURSES_LIBRARIES})
+add_library(libedit INTERFACE)
+add_dependencies(libedit project_libedit)
+
 set_property(TARGET libedit PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_BINARY_DIR}/libedit-install/include)
 set_property(TARGET libedit PROPERTY INTERFACE_LINK_LIBRARIES ${CURSES_LIBRARIES})
