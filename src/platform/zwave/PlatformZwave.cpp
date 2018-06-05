@@ -555,9 +555,9 @@ void PlatformZwave::onNotification(const OpenZWave::Notification* notification, 
                 }
 
                 // find the Switch_All command class
-                auto valueId = findCommandClass(nodeInfo, CommandClass::Switch_All);
+                auto valueId = findCommandClass(nodeInfo, CommandClass::Switch_Binary);
                 if (!valueId) {
-                    Log(Log::Error) << "unable to find command class Switch_All for Switch_Binary";
+                    Log(Log::Error) << "unable to find command class Switch_Binary for Switch_Binary";
                     return;
                 }
 
