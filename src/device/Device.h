@@ -22,16 +22,18 @@ public:
         Feature_Last = Feature_ShouldPoll
     };
 
-    virtual ~Device();
+    ~Device();
 
     std::string uniqueId() const;
 
     std::string group() const;
-    virtual uint8_t features() const;
+    Signal<std::shared_ptr<Device>&&>& onGroupChanged();
+
+    uint8_t features() const;
 
     std::string name() const;
+    bool setName(const std::string& name);
     Signal<std::shared_ptr<Device>&&>& onNameChanged();
-    virtual void setName(const std::string& name);
 
     typedef std::vector<std::shared_ptr<Event> > Events;
     const Events& events() const;
@@ -45,8 +47,9 @@ public:
     std::shared_ptr<Platform> platform() const;
 
 protected:
-    Device(const std::string& uniqueId, const std::string& group, const std::string& name);
+    Device(const std::string& uniqueId, const std::string& group = std::string(), const std::string& name = std::string());
 
+    void changeGroup(const std::string& group);
     void changeName(const std::string& name);
     void addEvent(std::shared_ptr<Event>&& event);
     void addAction(std::shared_ptr<Action>&& action);
@@ -58,8 +61,10 @@ private:
     Events mEvents;
     Actions mActions;
     States mStates;
-    Signal<std::shared_ptr<Device>&&> mOnNameChanged;
+    Signal<std::shared_ptr<Device>&&> mOnNameChanged, mOnGroupChanged;
     std::weak_ptr<Platform> mPlatform;
+
+    friend class Platform;
 };
 
 inline Device::Device(const std::string& uniqueId, const std::string& group, const std::string& name)
@@ -76,14 +81,20 @@ inline std::string Device::uniqueId() const
     return mUniqueId;
 }
 
-inline uint8_t Device::features() const
-{
-    return 0;
-}
-
 inline std::string Device::group() const
 {
     return mGroup;
+}
+
+inline Signal<std::shared_ptr<Device>&&>& Device::onGroupChanged()
+{
+    return mOnGroupChanged;
+}
+
+inline void Device::changeGroup(const std::string& group)
+{
+    mGroup = group;
+    mOnGroupChanged.emit(shared_from_this());
 }
 
 inline std::string Device::name() const
@@ -96,10 +107,6 @@ inline Signal<std::shared_ptr<Device>&&>& Device::onNameChanged()
     return mOnNameChanged;
 }
 
-inline void Device::setName(const std::string&)
-{
-}
-
 inline void Device::changeName(const std::string& name)
 {
     mName = name;
@@ -109,6 +116,16 @@ inline void Device::changeName(const std::string& name)
 inline const Device::Events& Device::events() const
 {
     return mEvents;
+}
+
+inline const Device::Actions& Device::actions() const
+{
+    return mActions;
+}
+
+inline const Device::States& Device::states() const
+{
+    return mStates;
 }
 
 inline void Device::addEvent(std::shared_ptr<Event>&& event)

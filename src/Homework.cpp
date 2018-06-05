@@ -46,6 +46,9 @@ void Homework::start()
                         l->exit();
                     }
                 });
+            Loop::loop()->addTimer(10000ms, Loop::Interval, []() {
+                    Log(Log::Info) << "yes.";
+                });
             mConsole->onCommand().connect([this](const std::string& prefix, std::string&& cmd) {
                     //printf("command %s\n", cmd.c_str());
                     // split on space, send action to platform
@@ -56,6 +59,20 @@ void Homework::start()
                                 mConsole->wakeup();
                             });
                         return;
+                    }
+
+                    std::shared_ptr<Platform> platform;
+                    if (!prefix.empty()) {
+                        for (const auto& p : mPlatforms) {
+                            if (p->name() == prefix) {
+                                platform = p;
+                                break;
+                            }
+                        }
+                        if (!platform) {
+                            Log(Log::Error) << "no platform for" << prefix;
+                            return;
+                        }
                     }
 
                     std::vector<std::string> split;
@@ -87,17 +104,49 @@ void Homework::start()
                         return;
                     }
 
-                    std::shared_ptr<Platform> platform;
-                    for (const auto& p : mPlatforms) {
-                        if (p->name() == prefix) {
-                            platform = p;
-                            break;
-                        }
-                    }
-
                     if (!platform) {
                         Log(Log::Error) << "no platform for" << prefix;
                         return;
+                    }
+
+                    if (cmd == "devices") {
+                        Log(Log::Error) << "-- devices";
+                        if (platform) {
+                            const auto& devices = platform->devices();
+                            for (const auto& device : devices) {
+                                Log(Log::Error) << device.first << ":" << device.second->name();
+                            }
+                        }
+                        Log(Log::Error) << "-- end devices";
+                        return;
+                    } else if (split.front() == "device" && split.size() > 2) {
+                        const auto& id = split[1];
+                        const auto& cmd = split[2];
+                        const auto& devices = platform->devices();
+                        for (const auto& device : devices) {
+                            if (device.first == id) {
+                                const auto& dev = device.second;
+                                if (cmd == "actions") {
+                                    Log(Log::Error) << "-- actions";
+                                    for (const auto& action : dev->actions()) {
+                                        Log(Log::Error) << action->name();
+                                    }
+                                    Log(Log::Error) << "-- end actions";
+                                } else if (cmd == "action" && split.size() > 3) {
+                                    const auto& a = split[3];
+                                    for (const auto& action : dev->actions()) {
+                                        if (action->name() == a) {
+                                            Log(Log::Error) << "executing action" << a;
+                                            action->execute();
+                                            return;
+                                        }
+                                    }
+                                    Log(Log::Error) << "no such action" << a;
+                                }
+                                return;
+                            }
+                        }
+                        Log(Log::Error) << "no such device" << id;
                     }
 
                     const std::string& action = split.front();

@@ -18,7 +18,7 @@ public:
     typedef std::vector<ArgumentDescriptor> Descriptors;
     typedef std::function<void(const Arguments&)> Function;
 
-    void execute(const Arguments& args);
+    void execute(const Arguments& args = Arguments());
 
     std::string name() const;
     const Descriptors& descriptors() const;

@@ -19,6 +19,8 @@ public:
 
     bool isValid() const;
 
+    typedef std::unordered_map<std::string, std::shared_ptr<Device> > Devices;
+
     enum MessageType { Message_Status, Message_Error };
 
     std::string name() const;
@@ -32,6 +34,8 @@ public:
     virtual bool start() = 0;
     virtual bool stop() { return true; }
 
+    const Devices& devices() const;
+
 protected:
     Platform(const std::string& name, const Options& options);
 
@@ -44,14 +48,25 @@ protected:
 
     std::mutex& mutex();
 
+    // device to platform
+    virtual uint8_t deviceFeatures(const Device*/* device*/) const { return 0; }
+    virtual bool setDeviceName(Device*/* device*/, const std::string& /*name*/) { return false; }
+
+    // platform to device
+    static void changeDeviceGroup(const std::shared_ptr<Device>& dev, const std::string& group);
+    static void changeDeviceName(const std::shared_ptr<Device>& dev, const std::string& name);
+    static void addDeviceAction(const std::shared_ptr<Device>& dev, std::shared_ptr<Action>&& action);
+
 private:
     Signal<const std::shared_ptr<Device>&> mOnDeviceAdded, mOnDeviceRemoved;
     Signal<MessageType, const std::string&> mOnMessage;
     Actions mActions;
     std::mutex mMutex;
-    std::unordered_map<std::string, std::shared_ptr<Device> > mDevices;
+    Devices mDevices;
     std::string mName;
     bool mValid;
+
+    friend class Device;
 };
 
 inline Platform::Platform(const std::string& name, const Options&)
@@ -136,6 +151,26 @@ inline void Platform::removeDevice(const std::string& uniqueId)
 inline void Platform::sendMessage(MessageType type, const std::string& msg)
 {
     mOnMessage.emit(MessageType(type), msg);
+}
+
+inline const Platform::Devices& Platform::devices() const
+{
+    return mDevices;
+}
+
+inline void Platform::changeDeviceGroup(const std::shared_ptr<Device>& dev, const std::string& group)
+{
+    dev->changeGroup(group);
+}
+
+inline void Platform::changeDeviceName(const std::shared_ptr<Device>& dev, const std::string& name)
+{
+    dev->changeName(name);
+}
+
+inline void Platform::addDeviceAction(const std::shared_ptr<Device>& dev, std::shared_ptr<Action>&& action)
+{
+    dev->addAction(std::forward<std::shared_ptr<Action> >(action));
 }
 
 #endif // PLATFORM

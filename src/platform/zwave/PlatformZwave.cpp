@@ -8,6 +8,8 @@
 #include <ozw/value_classes/ValueStore.h>
 #include <ozw/value_classes/Value.h>
 #include <ozw/value_classes/ValueBool.h>
+#include <ozw/command_classes/CommandClass.h>
+#include <ozw/command_classes/CommandClasses.h>
 #include <ozw/platform/Log.h>
 #include <log/Log.h>
 #include <cassert>
@@ -15,7 +17,7 @@
 using namespace reckoning::log;
 
 // taken from http://z-wave.sigmadesigns.com/wp-content/uploads/2016/08/SDS13740-1-Z-Wave-Plus-Device-and-Command-Class-Types-and-Defines-Specification.pdf
-enum class GenericDeviceClass {
+enum class GenericDevice {
     AV_Control_Point = 0x03,
     Display = 0x04,
     Entry_Control = 0x40,
@@ -44,19 +46,19 @@ enum class GenericDeviceClass {
     Sensor_Notification = 0x07
 };
 
-enum class SpecificTypeAvControlPoint {
+enum class SpecificAvControlPoint {
     Not_Used = 0x00,
     Doorbell = 0x12,
     Satellite_Receiver = 0x04,
     Satellite_Receiver_V2 = 0x11
 };
 
-enum class SpecificTypeDisplay {
+enum class SpecificDisplay {
     Not_Used = 0x00,
     Simple_Display = 0x01
 };
 
-enum class SpecificTypeEntryControl {
+enum class SpecificEntryControl {
     Not_Used = 0x00,
     Door_Lock = 0x01,
     Advanced_Door_Lock = 0x02,
@@ -71,7 +73,7 @@ enum class SpecificTypeEntryControl {
     Secure_Keypad = 0x0B
 };
 
-enum class SpecificTypeSpecificController {
+enum class SpecificSpecificController {
     Not_Used = 0x00,
     Portable_Remote_Controller = 0x01,
     Portable_Scene_Controller = 0x02,
@@ -80,38 +82,38 @@ enum class SpecificTypeSpecificController {
     Remote_Control_Simple = 0x06
 };
 
-enum class SpecificTypeMeter {
+enum class SpecificMeter {
     Not_Used = 0x00,
     Simple_Meter = 0x01,
     Adv_Energy_Control = 0x02,
     Whole_Home_Meter_Simple = 0x03
 };
 
-enum class SpecificTypeMeterPulse {
+enum class SpecificMeterPulse {
     Not_Used = 0x00
 };
 
-enum class SpecificTypeNonInteroperable {
+enum class SpecificNonInteroperable {
     Not_Used = 0x00
 };
 
-enum class SpecificTypeRepeaterSlave {
+enum class SpecificRepeaterSlave {
     Not_Used = 0x00,
     Repeater_Slave = 0x01,
     Virtual_Node = 0x02
 };
 
-enum class SpecificTypeSecurityPanel {
+enum class SpecificSecurityPanel {
     Not_Used = 0x00,
     Zoned_Security_Panel = 0x01
 };
 
-enum class SpecificTypeSemiInteroperable {
+enum class SpecificSemiInteroperable {
     Not_Used = 0x00,
     Energy_Production = 0x01
 };
 
-enum class SpecificTypeSensorAlarm {
+enum class SpecificSensorAlarm {
     Not_Used = 0x00,
     Adv_Zensor_Net_Alarm_Sensor = 0x05,
     Adv_Zensor_Net_Smoke_Sensor = 0x0A,
@@ -126,18 +128,18 @@ enum class SpecificTypeSensorAlarm {
     Alarm_Sensor = 0x0B
 };
 
-enum class SpecificTypeSensorBinary {
+enum class SpecificSensorBinary {
     Not_Used = 0x00,
     Routing_Sensor_Binary = 0x01
 };
 
-enum class SpecificTypeSensorMultilevel {
+enum class SpecificSensorMultilevel {
     Not_Used = 0x00,
     Routing_Sensor_Multilevel = 0x01,
     Chimney_Fan = 0x02
 };
 
-enum class SpecificTypeStaticController {
+enum class SpecificStaticController {
     Not_Used = 0x00,
     Pc_Controller = 0x01,
     Scene_Controller = 0x02,
@@ -148,7 +150,7 @@ enum class SpecificTypeStaticController {
     Gateway = 0x07
 };
 
-enum class SpecificTypeSwitchBinary {
+enum class SpecificSwitchBinary {
     Not_Used = 0x00,
     Power_Switch_Binary = 0x01,
     Scene_Switch_Binary = 0x03,
@@ -159,7 +161,7 @@ enum class SpecificTypeSwitchBinary {
     Irrigation_Controller = 0x07
 };
 
-enum class SpecificTypeSwitchMultilevel {
+enum class SpecificSwitchMultilevel {
     Not_Used = 0x00,
     Class_A_Motor_Control = 0x05,
     Class_B_Motor_Control = 0x06,
@@ -171,7 +173,7 @@ enum class SpecificTypeSwitchMultilevel {
     Color_Tunable_Multilevel = 0x02
 };
 
-enum class SpecificTypeSwitchRemote {
+enum class SpecificSwitchRemote {
     Not_Used = 0x00,
     Switch_Remote_Binary = 0x01,
     Switch_Remote_Multilevel = 0x02,
@@ -179,13 +181,13 @@ enum class SpecificTypeSwitchRemote {
     Switch_Remote_Toggle_Multilevel = 0x04
 };
 
-enum class SpecificTypeSwitchToggle {
+enum class SpecificSwitchToggle {
     Not_Used = 0x00,
     Switch_Toggle_Binary = 0x01,
     Switch_Toggle_Multilevel = 0x02
 };
 
-enum class SpecificTypeThermostat {
+enum class SpecificThermostat {
     Not_Used = 0x00,
     Setback_Schedule_Thermostat = 0x03,
     Setback_Thermostat = 0x05,
@@ -195,42 +197,146 @@ enum class SpecificTypeThermostat {
     Thermostat_Heating = 0x01
 };
 
-enum class SpecificTypeVentilation {
+enum class SpecificVentilation {
     Not_Used = 0x00,
     Residential_HRV = 0x01
 };
 
-enum class SpecificTypeWindowCovering {
+enum class SpecificWindowCovering {
     Not_Used = 0x00,
     Simple_Window_Covering = 0x01
 };
 
-enum class SpecificTypeZipNode {
+enum class SpecificZipNode {
     Not_Used = 0x00,
     Zip_Adv_Node = 0x02,
     Zip_Tun_Node = 0x01
 };
 
-enum class SpecificTypeWallController {
+enum class SpecificWallController {
     Not_Used = 0x00,
     Basic_Wall_Controller = 0x01
 };
 
-enum class SpecificTypeNetworkExtender {
+enum class SpecificNetworkExtender {
     Not_Used = 0x00,
     Secure_Extender = 0x01
 };
 
-enum class SpecificTypeAppliance {
+enum class SpecificAppliance {
     Not_Used = 0x00,
     General_Appliance = 0x01,
     Kitchen_Appliance = 0x02,
     Laundry_Appliance = 0x03
 };
 
-enum class SpecificTypeSensorNotification {
+enum class SpecificSensorNotification {
     Not_Used = 0x00,
     Notification_Sensor = 0x01
+};
+
+enum class CommandClass {
+    No_Operation = 0x00,
+    Basic = 0x20,
+    Controller_Replication = 0x21,
+    Application_Status = 0x22,
+    Zip_Services = 0x23,
+    Zip_Server = 0x24,
+    Switch_Binary = 0x25,
+    Switch_Multilevel = 0x26,
+    Switch_Multilevel_V2 = 0x26,
+    Switch_All = 0x27,
+    Switch_Toggle_Binary = 0x28,
+    Switch_Toggle_Multilevel = 0x29,
+    Chimney_Fan = 0x2A,
+    Scene_Activation = 0x2B,
+    Scene_Actuator_Conf = 0x2C,
+    Scene_Controller_Conf = 0x2D,
+    Zip_Client = 0x2E,
+    Zip_Adv_Services = 0x2F,
+    Sensor_Binary = 0x30,
+    Sensor_Multilevel = 0x31,
+    Sensor_Multilevel_V2 = 0x31,
+    Meter = 0x32,
+    Zip_Adv_Server = 0x33,
+    Zip_Adv_Client = 0x34,
+    Meter_Pulse = 0x35,
+    Meter_Tbl_Config = 0x3C,
+    Meter_Tbl_Monitor = 0x3D,
+    Meter_Tbl_Push = 0x3E,
+    Thermostat_Heating = 0x38,
+    Thermostat_Mode = 0x40,
+    Thermostat_Operating_State = 0x42,
+    Thermostat_Setpoint = 0x43,
+    Thermostat_Fan_Mode = 0x44,
+    Thermostat_Fan_State = 0x45,
+    Climate_Control_Schedule = 0x46,
+    Thermostat_Setback = 0x47,
+    Door_Lock_Logging = 0x4C,
+    Schedule_Entry_Lock = 0x4E,
+    Basic_Window_Covering = 0x50,
+    Mtp_Window_Covering = 0x51,
+    Association_Grp_Info = 0x59,
+    Device_Reset_Locally = 0x5A,
+    Central_Scene = 0x5B,
+    Ip_Association = 0x5C,
+    Antitheft = 0x5D,
+    Zwaveplus_Info = 0x5E,
+    Multi_Channel_V2 = 0x60,
+    Multi_Instance = 0x60,
+    Door_Lock = 0x62,
+    User_Code = 0x63,
+    Barrier_Operator = 0x66,
+    Configuration = 0x70,
+    Configuration_V2 = 0x70,
+    Alarm = 0x71,
+    Manufacturer_Specific = 0x72,
+    Powerlevel = 0x73,
+    Protection = 0x75,
+    Protection_V2 = 0x75,
+    Lock = 0x76,
+    Node_Naming = 0x77,
+    Firmware_Update_Md = 0x7A,
+    Grouping_Name = 0x7B,
+    Remote_Association_Activate = 0x7C,
+    Remote_Association = 0x7D,
+    Battery = 0x80,
+    Clock = 0x81,
+    Hail = 0x82,
+    Wake_Up = 0x84,
+    Wake_Up_V2 = 0x84,
+    Association = 0x85,
+    Association_V2 = 0x85,
+    Version = 0x86,
+    Indicator = 0x87,
+    Proprietary = 0x88,
+    Language = 0x89,
+    Time = 0x8A,
+    Time_Parameters = 0x8B,
+    Geographic_Location = 0x8C,
+    Composite = 0x8D,
+    Multi_Channel_Association_V2 = 0x8E,
+    Multi_Instance_Association = 0x8E,
+    Multi_Cmd = 0x8F,
+    Energy_Production = 0x90,
+    Manufacturer_Proprietary = 0x91,
+    Screen_Md = 0x92,
+    Screen_Md_V2 = 0x92,
+    Screen_Attributes = 0x93,
+    Screen_Attributes_V2 = 0x93,
+    Simple_Av_Control = 0x94,
+    Av_Content_Directory_Md = 0x95,
+    Av_Renderer_Status = 0x96,
+    Av_Content_Search_Md = 0x97,
+    Security = 0x98,
+    Av_Tagging_Md = 0x99,
+    Ip_Configuration = 0x9A,
+    Association_Command_Configuration = 0x9B,
+    Sensor_Alarm = 0x9C,
+    Silence_Alarm = 0x9D,
+    Sensor_Configuration = 0x9E,
+    Mark = 0xEF,
+    Non_Interoperable = 0xF0
 };
 
 struct NodeInfo
@@ -247,6 +353,8 @@ struct PlatformZwaveData
 
     std::vector<std::unique_ptr<NodeInfo> > nodes;
     NodeInfo* findNode(const OpenZWave::Notification* notification);
+
+    std::string devicePrefix;
 
     // stuff accessed from the main thread
     std::atomic<uint32_t> homeId;
@@ -424,7 +532,64 @@ void PlatformZwave::onNotification(const OpenZWave::Notification* notification, 
         break;
     case OpenZWave::Notification::Type_NodeQueriesComplete: {
         auto zmanager = OpenZWave::Manager::Get();
+
+        auto findCommandClass = [](NodeInfo* nodeInfo, CommandClass cls) -> const OpenZWave::ValueID* {
+            for (const auto& v : nodeInfo->values) {
+                if (static_cast<CommandClass>(v.GetCommandClassId()) == cls)
+                    return &v;
+            }
+            return nullptr;
+        };
+
         if (NodeInfo* nodeInfo = data->findNode(notification)) {
+            const auto generic = static_cast<GenericDevice>(zmanager->GetNodeGeneric(nodeInfo->homeId, nodeInfo->nodeId));
+
+            std::shared_ptr<Device> dev = Device::create(data->devicePrefix + std::to_string(nodeInfo->nodeId), "Unknown",
+                                                         zmanager->GetNodeName(nodeInfo->homeId, nodeInfo->nodeId));
+
+            switch (generic) {
+            case GenericDevice::Switch_Binary: {
+                const auto specific = static_cast<SpecificSwitchBinary>(zmanager->GetNodeSpecific(nodeInfo->homeId, nodeInfo->nodeId));
+                if (specific == SpecificSwitchBinary::Power_Switch_Binary) {
+                    changeDeviceGroup(dev, "Binary Switch");
+                }
+
+                // find the Switch_All command class
+                auto valueId = findCommandClass(nodeInfo, CommandClass::Switch_All);
+                if (!valueId) {
+                    Log(Log::Error) << "unable to find command class Switch_All for Switch_Binary";
+                    return;
+                }
+
+                // add our state, event and actions
+                auto turnOnCommand = Action::create("turnon", [zmanager, valueId](const Action::Arguments& /*args*/) {
+                        zmanager->SetValue(*valueId, true);
+                    });
+                auto turnOffCommand = Action::create("turnoff", [zmanager, valueId](const Action::Arguments& /*args*/) {
+                        zmanager->SetValue(*valueId, false);
+                    });
+                auto setCommand = Action::create("set", [zmanager, valueId](const Action::Arguments& args) {
+                        assert(args.size() == 1 && args[0].type() == typeid(bool));
+                        zmanager->SetValue(*valueId, std::any_cast<bool>(args[0]));
+                    });
+                auto toggleCommand = Action::create("toggle", [zmanager, valueId](const Action::Arguments& /*args*/) {
+                        bool on;
+                        if (zmanager->GetValueAsBool(*valueId, &on)) {
+                            zmanager->SetValue(*valueId, !on);
+                        }
+                    });
+                addDeviceAction(dev, std::move(turnOnCommand));
+                addDeviceAction(dev, std::move(turnOffCommand));
+                addDeviceAction(dev, std::move(setCommand));
+                addDeviceAction(dev, std::move(toggleCommand));
+
+                break; }
+            default:
+                break;
+            }
+
+            data->zwave->addDevice(std::move(dev));
+
             Log(Log::Info) << "node complete"
                            << zmanager->GetNodeType(nodeInfo->homeId, nodeInfo->nodeId)
                            << zmanager->GetNodeBasic(nodeInfo->homeId, nodeInfo->nodeId)
@@ -449,6 +614,7 @@ void PlatformZwave::onNotification(const OpenZWave::Notification* notification, 
         break;
     case OpenZWave::Notification::Type_DriverReady:
         data->homeId = notification->GetHomeId();
+        data->devicePrefix = "zwave-" + std::to_string(notification->GetHomeId()) + "-";
         // ready
         break;
     case OpenZWave::Notification::Type_DriverFailed:
