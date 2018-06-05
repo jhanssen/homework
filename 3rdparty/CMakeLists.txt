@@ -2,12 +2,14 @@ cmake_minimum_required(VERSION 3.9)
 
 include(ExternalProject)
 
-ExternalProject_Add(project_ozw
+ExternalProject_Add(external_ozw
     SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/openzwave
     DOWNLOAD_COMMAND ""
     CONFIGURE_COMMAND ""
+    BUILD_BYPRODUCTS ${CMAKE_CURRENT_LIST_DIR}/openzwave/libopenzwave.a
     BUILD_IN_SOURCE 1
-    BUILD_COMMAND make)
+    BUILD_COMMAND make
+    INSTALL_COMMAND "")
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/openzwave-includes/ozw)
 file(GLOB_RECURSE OZW_HEADERS ${CMAKE_CURRENT_LIST_DIR}/openzwave/cpp/src/*.h)
 set(OZW_DIRECTORIES "")
@@ -31,7 +33,8 @@ endforeach()
 add_library(ozw STATIC IMPORTED GLOBAL)
 set_property(TARGET ozw PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${OZW_INCLUDES})
 set_property(TARGET ozw PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_LIST_DIR}/openzwave/libopenzwave.a)
-add_dependencies(ozw project_ozw)
+add_dependencies(ozw external_ozw)
+
 if (APPLE)
     find_library(COREFOUNDATION_LIBRARY CoreFoundation)
     find_library(IOKIT_LIBRARY IOKit)
@@ -47,10 +50,12 @@ if (NOT CURSES_FOUND)
     message(FATAL_ERROR "libedit needs ncurses")
 endif()
 
-ExternalProject_Add(project_libedit
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/libedit-install/include)
+ExternalProject_Add(external_libedit
     SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/libedit
     DOWNLOAD_COMMAND ""
     CONFIGURE_COMMAND ${CMAKE_CURRENT_LIST_DIR}/libedit/configure --prefix=${CMAKE_CURRENT_BINARY_DIR}/libedit-install
+    BUILD_BYPRODUCTS ${CMAKE_CURRENT_BINARY_DIR}/libedit-install/lib/libedit.a
     BUILD_COMMAND make
     INSTALL_DIR ${CMAKE_CURRENT_BINARY_DIR}/libedit-install
     INSTALL_COMMAND make install)
@@ -58,3 +63,4 @@ add_library(libedit STATIC IMPORTED GLOBAL)
 set_property(TARGET libedit PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_BINARY_DIR}/libedit-install/lib/libedit.a)
 set_property(TARGET libedit PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_BINARY_DIR}/libedit-install/include)
 set_property(TARGET libedit PROPERTY INTERFACE_LINK_LIBRARIES ${CURSES_LIBRARIES})
+add_dependencies(libedit external_libedit)
