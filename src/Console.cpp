@@ -285,9 +285,29 @@ unsigned char Console::complete(EditLine* edit, int)
     const auto& alternatives = completion->mAlternatives;
     const size_t num = alternatives.size();
     if (num == 1) {
-        el_insertstr(edit, alternatives.front().substr(completion->mOffset).c_str());
+        el_insertstr(edit, (alternatives.front().substr(completion->mOffset) + " ").c_str());
         return CC_REFRESH;
     } else if (num > 1) {
+        // if all our alternatives have a common base, insert that
+        std::string base = alternatives.front();
+        for (size_t i = 1; i < num; ++i) {
+            size_t common = 0;
+            const std::string& cur = alternatives.at(i);
+            const size_t len = std::min(base.size(), cur.size());
+            while (common < len && base[common] == cur[common])
+                ++common;
+            if (!common) {
+                base.clear();
+                break;
+            }
+            if (common == base.size())
+                continue;
+            base = base.substr(0, common);
+        }
+        if (base.size() > completion->mOffset) {
+            el_insertstr(edit, base.substr(completion->mOffset).c_str());
+        }
+
         struct winsize ws;
         if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == -1)
             ws.ws_col = 80; // ???
