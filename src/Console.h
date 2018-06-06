@@ -53,7 +53,7 @@ public:
         std::condition_variable mCond;
 
         std::string mPrefix, mGlobalBuffer;
-        size_t mGlobalCursorPosition, mTokenCursorPosition, mTokenELement;
+        size_t mGlobalCursorPosition, mTokenCursorPosition, mTokenElement;
         std::vector<std::string> mTokens;
 
         std::vector<std::string> mAlternatives;
@@ -133,12 +133,12 @@ inline const std::vector<std::string>& Console::Completion::tokens() const
 
 inline std::string Console::Completion::tokenAtCursor()
 {
-    return mTokenIsEmpty ? std::string() : mTokens[mTokenELement];
+    return mTokenIsEmpty ? std::string() : mTokens[mTokenElement];
 }
 
 inline size_t Console::Completion::tokenElement() const
 {
-    return mTokenELement;
+    return mTokenElement;
 }
 
 inline size_t Console::Completion::tokenCursorPosition() const

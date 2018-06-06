@@ -336,7 +336,7 @@ unsigned char Console::complete(EditLine* edit, int)
 
 Console::Completion::Completion(const std::string& prefix, std::string&& buffer, size_t position)
     : mPrefix(prefix), mGlobalBuffer(std::forward<std::string>(buffer)), mGlobalCursorPosition(position),
-      mTokenCursorPosition(0), mTokenELement(0), mCompleted(false), mTokenIsEmpty(false)
+      mTokenCursorPosition(0), mTokenElement(0), mCompleted(false), mTokenIsEmpty(false)
 {
     const auto sub = mGlobalBuffer.substr(0, mGlobalCursorPosition);
     // split, including whitespace
@@ -367,7 +367,7 @@ Console::Completion::Completion(const std::string& prefix, std::string&& buffer,
         mTokenIsEmpty = true;
 
     mTokenCursorPosition = local;
-    mTokenELement = argno;
+    mTokenElement = argno;
 
     // split, excluding whitespace
     mTokens = split(sub, true);
