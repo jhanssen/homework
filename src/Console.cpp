@@ -285,7 +285,7 @@ unsigned char Console::complete(EditLine* edit, int)
     const auto& alternatives = completion->mAlternatives;
     const size_t num = alternatives.size();
     if (num == 1) {
-        el_insertstr(edit, alternatives.front().c_str());
+        el_insertstr(edit, alternatives.front().substr(completion->mOffset).c_str());
         return CC_REFRESH;
     } else if (num > 1) {
         struct winsize ws;

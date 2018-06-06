@@ -28,7 +28,8 @@ static inline std::vector<std::string> split(const std::string& str, bool skip =
             if (cur > prev) {
                 // push to list
                 data.push_back(std::string(prev, cur - prev));
-            } else if (!skip && !done) {
+            }
+            if (!skip && !done) {
                 data.push_back(std::string());
             }
             prev = cur + 1;
@@ -68,32 +69,117 @@ void Homework::start()
             Log(Log::Error) << "console requires an UTF-8 locale";
         } else {
             mConsole = std::make_shared<Console>(platforms);
+
+            // add exit as a global completion
+            platforms.push_back("exit");
+
             std::weak_ptr<Loop> loop = Loop::loop();
             mConsole->onQuit().connect([loop]() {
                     if (auto l = loop.lock()) {
                         l->exit();
                     }
                 });
-            mConsole->onCompletionRequest().connect([platforms](const std::shared_ptr<Console::Completion>& request) {
+            mConsole->onCompletionRequest().connect([platforms, this](const std::shared_ptr<Console::Completion>& request) {
                     //Log(Log::Info) << "request." << request->buffer() << request->cursorPosition();
                     const auto sub = request->buffer().substr(0, request->cursorPosition());
-                    const auto list = split(sub, false);
+                    auto list = split(sub, false);
                     if (list.empty()) {
                         request->complete();
                         return;
                     }
                     const auto& prefix = request->prefix();
+                    size_t alternativeOffset = request->cursorPosition();
                     std::vector<std::string> alternatives;
                     if (prefix.empty()) {
                         // complete on prefixes
                         for (const auto& p : platforms) {
                             if (p.size() > sub.size() && !strncmp(sub.c_str(), p.c_str(), sub.size()))
-                                alternatives.push_back(p.substr(request->cursorPosition()));
+                                alternatives.push_back(p);
                         }
                     } else {
                         // complete on platform?
+                        std::shared_ptr<Platform> platform;
+                        for (const auto& p : mPlatforms) {
+                            if (p->name() == prefix) {
+                                platform = p;
+                                break;
+                            }
+                        }
+                        if (!platform) {
+                            request->complete();
+                            return;
+                        }
+                        // what word is our cursor in?
+                        size_t offset = 0, element = 0, argno = 0, local = 0, len;
+                        for (element = 0; element < list.size(); ++element) {
+                            const auto& e = list[element];
+                            len = e.empty() ? 1 : e.size();
+
+                            if (request->cursorPosition() <= offset + len) {
+                                // yup
+                                if (e.empty()) {
+                                    local = 0;
+                                    ++element;
+                                } else {
+                                    local = request->cursorPosition() - offset;
+                                }
+                                break;
+                            }
+                            offset += len;
+                            if (!e.empty())
+                                ++argno;
+                        }
+
+                        auto localsub = element < list.size() ? list[element] : std::string();
+                        alternativeOffset = local;
+
+                        // resplit, ignoring whitespace elements
+                        list = split(sub);
+
+                        if (argno == 0) {
+                            std::vector<std::string> toplevel;
+                            toplevel.push_back("device");
+                            for (const auto& a : platform->actions()) {
+                                toplevel.push_back(a->name());
+                            }
+                            for (const auto& p : toplevel) {
+                                if (localsub.empty() || (p.size() > localsub.size() && !strncmp(localsub.c_str(), p.c_str(), localsub.size())))
+                                    alternatives.push_back(p);
+                            }
+                        } else if (list[0] == "device") {
+                            // device command is of the form
+                            // 'device <id> <action_name> <arguments>'
+                            const auto& devices = platform->devices();
+                            for (const auto& device : devices) {
+                                if (argno == 1) {
+                                    // complete on device id
+                                    if (localsub.empty() || (device.first.size() > localsub.size() && !strncmp(localsub.c_str(), device.first.c_str(), localsub.size())))
+                                        alternatives.push_back(device.first);
+                                } else if (list[1] == device.first) {
+                                    if (argno == 2) {
+                                        // complete on command
+                                        std::vector<std::string> cmds = { "action" };
+                                        for (const auto& p : cmds) {
+                                            if (localsub.empty() || (p.size() > localsub.size() && !strncmp(localsub.c_str(), p.c_str(), localsub.size())))
+                                                alternatives.push_back(p);
+                                        }
+                                    } else if (argno == 3 && list[2] == "action") {
+                                        // complete on action name
+                                        const auto& dev = device.second;
+                                        for (const auto& action : dev->actions()) {
+                                            const auto& p = action->name();
+                                            if (localsub.empty() || (p.size() > localsub.size() && !strncmp(localsub.c_str(), p.c_str(), localsub.size())))
+                                                alternatives.push_back(p);
+                                        }
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+
+                        //Log(Log::Error) << localsub << local;
                     }
-                    request->complete(std::move(alternatives));
+                    request->complete(std::move(alternatives), alternativeOffset);
                 });
             Loop::loop()->addTimer(10000ms, Loop::Interval, []() {
                     Log(Log::Info) << "yes.";
@@ -137,44 +223,50 @@ void Homework::start()
                         return;
                     }
 
-                    if (cmd == "devices") {
-                        Log(Log::Error) << "-- devices";
-                        if (platform) {
+                    if (list.front() == "device") {
+                        if (list.size() == 1) {
+                            Log(Log::Info) << "-- devices";
+                            if (platform) {
+                                const auto& devices = platform->devices();
+                                for (const auto& device : devices) {
+                                    Log(Log::Error) << device.first << ":" << device.second->name();
+                                }
+                            }
+                            Log(Log::Info) << "-- end devices";
+                        } else if (list.size() > 2) {
+                            const auto& id = list[1];
+                            const auto& cmd = list[2];
                             const auto& devices = platform->devices();
                             for (const auto& device : devices) {
-                                Log(Log::Error) << device.first << ":" << device.second->name();
-                            }
-                        }
-                        Log(Log::Error) << "-- end devices";
-                        return;
-                    } else if (list.front() == "device" && list.size() > 2) {
-                        const auto& id = list[1];
-                        const auto& cmd = list[2];
-                        const auto& devices = platform->devices();
-                        for (const auto& device : devices) {
-                            if (device.first == id) {
-                                const auto& dev = device.second;
-                                if (cmd == "actions") {
-                                    Log(Log::Error) << "-- actions";
-                                    for (const auto& action : dev->actions()) {
-                                        Log(Log::Error) << action->name();
-                                    }
-                                    Log(Log::Error) << "-- end actions";
-                                } else if (cmd == "action" && list.size() > 3) {
-                                    const auto& a = list[3];
-                                    for (const auto& action : dev->actions()) {
-                                        if (action->name() == a) {
-                                            Log(Log::Error) << "executing action" << a;
-                                            action->execute();
-                                            return;
+                                if (device.first == id) {
+                                    const auto& dev = device.second;
+                                    if (cmd == "action") {
+                                        if (list.size() == 3) {
+                                            Log(Log::Info) << "-- actions";
+                                            for (const auto& action : dev->actions()) {
+                                                Log(Log::Info) << action->name();
+                                            }
+                                            Log(Log::Info) << "-- end actions";
+                                        } else if (list.size() > 3) {
+                                            const auto& a = list[3];
+                                            for (const auto& action : dev->actions()) {
+                                                if (action->name() == a) {
+                                                    Log(Log::Info) << "executing action" << a;
+                                                    action->execute();
+                                                    return;
+                                                }
+                                            }
                                         }
                                     }
-                                    Log(Log::Error) << "no such action" << a;
+                                    Log(Log::Error) << "invalid action" << cmd;
+                                    return;
                                 }
-                                return;
                             }
+                            Log(Log::Error) << "no such device" << id;
+                        } else {
+                            Log(Log::Error) << "malformed device command";
                         }
-                        Log(Log::Error) << "no such device" << id;
+                        return;
                     }
 
                     const std::string& action = list.front();

@@ -32,8 +32,8 @@ public:
         size_t cursorPosition() const;
 
         void complete();
-        void complete(std::string&& result);
-        void complete(std::vector<std::string>&& alternatives);
+        void complete(std::string&& result, size_t offset = 0);
+        void complete(std::vector<std::string>&& alternatives, size_t offset);
 
     private:
         static std::shared_ptr<Completion> create(const std::string& prefix, std::string&& buffer, size_t position);
@@ -44,7 +44,7 @@ public:
         std::condition_variable mCond;
 
         std::string mPrefix, mBuffer;
-        size_t mPosition;
+        size_t mPosition, mOffset;
 
         std::vector<std::string> mAlternatives;
         bool mCompleted;
@@ -93,6 +93,7 @@ inline std::shared_ptr<Console::Completion> Console::Completion::create(const st
     completion->mPrefix = prefix;
     completion->mBuffer = std::forward<std::string>(buffer);
     completion->mPosition = position;
+    completion->mOffset = 0;
     completion->mCompleted = false;
     return completion;
 }
@@ -127,18 +128,20 @@ inline void Console::Completion::complete()
     mCond.notify_one();
 }
 
-inline void Console::Completion::complete(std::string&& result)
+inline void Console::Completion::complete(std::string&& result, size_t offset)
 {
     std::unique_lock<std::mutex> locker(mMutex);
     mAlternatives.push_back(std::forward<std::string>(result));
+    mOffset = offset;
     mCompleted = true;
     mCond.notify_one();
 }
 
-inline void Console::Completion::complete(std::vector<std::string>&& alternatives)
+inline void Console::Completion::complete(std::vector<std::string>&& alternatives, size_t offset)
 {
     std::unique_lock<std::mutex> locker(mMutex);
     mAlternatives = std::forward<std::vector<std::string> >(alternatives);
+    mOffset = offset;
     mCompleted = true;
     mCond.notify_one();
 }
