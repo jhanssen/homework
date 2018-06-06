@@ -306,6 +306,7 @@ void Homework::start()
                                                 Log(Log::Info) << action->name();
                                             }
                                             Log(Log::Info) << "-- end actions";
+                                            return;
                                         } else if (list.size() > 3) {
                                             const auto& a = list[3];
                                             for (const auto& action : dev->actions()) {
