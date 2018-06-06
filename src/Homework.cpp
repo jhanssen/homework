@@ -250,20 +250,9 @@ void Homework::start()
                     }
                     request->complete(std::move(alternatives), alternativeOffset);
                 });
-            Loop::loop()->addTimer(10000ms, Loop::Interval, []() {
-                    Log(Log::Info) << "yes.";
-                });
             mConsole->onCommand().connect([this](const std::string& prefix, std::string&& cmd) {
                     //printf("command %s\n", cmd.c_str());
                     // split on space, send action to platform
-
-                    if (cmd == "wakeup") {
-                        Loop::loop()->addTimer(500ms, [this]() {
-                                //printf("wakey\n");
-                                mConsole->wakeup();
-                            });
-                        return;
-                    }
 
                     std::shared_ptr<Platform> platform;
                     if (!prefix.empty()) {
