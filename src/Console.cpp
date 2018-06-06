@@ -5,6 +5,8 @@
 #include <log/Log.h>
 #include <util/Socket.h>
 #include <sys/select.h>
+#include <sys/ioctl.h>
+#include <cstdio>
 #include <errno.h>
 #include <stdlib.h>
 #include <fcntl.h>
@@ -264,5 +266,50 @@ const char* Console::prompt(EditLine* edit)
 
 unsigned char Console::complete(EditLine* edit, int)
 {
+    assert(edit);
+    const LineInfo* lineInfo = el_line(edit);
+    assert(lineInfo);
+    Console* console = nullptr;
+    el_get(edit, EL_CLIENTDATA, &console);
+    assert(console);
+
+    std::string buffer(lineInfo->buffer, lineInfo->lastchar);
+    const int cursorPosition = lineInfo->cursor - lineInfo->buffer;
+    assert(cursorPosition >= 0);
+
+    // ask for completion
+    auto completion = Completion::create(std::move(buffer), static_cast<size_t>(cursorPosition));
+    console->mOnCompletionRequest.emit(completion);
+    completion->wait();
+
+    // if exactly one result
+    const auto& alternatives = completion->mAlternatives;
+    const size_t num = alternatives.size();
+    if (num == 1) {
+        el_insertstr(edit, alternatives.front().c_str());
+        return CC_REFRESH;
+    } else if (num > 1) {
+        struct winsize ws;
+        if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == -1)
+            ws.ws_col = 80; // ???
+
+        size_t longest = 0;
+        for (const auto& str : alternatives) {
+            longest = std::max(str.size(), longest);
+        }
+
+        const int column = longest + 5;
+        const int columns = std::max<int>(2, ws.ws_col / column);
+        printf("\n");
+        for (size_t i = 0; i < num; ++i) {
+            const std::string &alternative = alternatives.at(i);
+            const std::string fill(column - alternative.size(), ' ');
+            printf("%s%s", alternative.c_str(), fill.c_str());
+            if (i + 1 == num || (i + 1) % columns == 0)
+                printf("\n");
+        }
+        return CC_REDISPLAY;
+    }
+
     return CC_ERROR;
 }
