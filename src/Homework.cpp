@@ -155,10 +155,7 @@ void Homework::start()
                     //Log(Log::Info) << "request." << request->buffer() << request->cursorPosition();
                     const auto sub = request->buffer().substr(0, request->cursorPosition());
                     auto list = split(sub, false);
-                    if (list.empty()) {
-                        request->complete();
-                        return;
-                    }
+
                     const auto& prefix = request->prefix();
                     size_t alternativeOffset = request->cursorPosition();
                     std::vector<std::string> alternatives;
