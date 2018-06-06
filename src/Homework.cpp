@@ -208,6 +208,7 @@ void Homework::start()
                         if (argno == 0) {
                             std::vector<std::string> toplevel;
                             toplevel.push_back("device");
+                            toplevel.push_back("exit");
                             for (const auto& a : platform->actions()) {
                                 toplevel.push_back(a->name());
                             }
