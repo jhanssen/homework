@@ -12,6 +12,34 @@ using namespace reckoning::args;
 using namespace reckoning::event;
 using namespace std::chrono_literals;
 
+static inline std::vector<std::string> split(const std::string& str, bool skip = true)
+{
+    std::vector<std::string> data;
+    const char* cur = str.c_str();
+    const char* prev = cur;
+    bool done = false;
+    for (; !done; ++cur) {
+        switch (*cur) {
+        case '\0':
+            done = true;
+            // fall through
+        case '\t':
+        case ' ':
+            if (cur > prev) {
+                // push to list
+                data.push_back(std::string(prev, cur - prev));
+            } else if (!skip && !done) {
+                data.push_back(std::string());
+            }
+            prev = cur + 1;
+            break;
+        default:
+            break;
+        }
+    }
+    return data;
+}
+
 Homework::Homework(Options&& options)
     : mOptions(std::forward<Options>(options))
 {
@@ -39,12 +67,33 @@ void Homework::start()
         if (!locale || !strcasestr(locale, "UTF-8") || !strcasestr(locale, "utf-8")) {
             Log(Log::Error) << "console requires an UTF-8 locale";
         } else {
-            mConsole = std::make_shared<Console>(std::move(platforms));
+            mConsole = std::make_shared<Console>(platforms);
             std::weak_ptr<Loop> loop = Loop::loop();
             mConsole->onQuit().connect([loop]() {
                     if (auto l = loop.lock()) {
                         l->exit();
                     }
+                });
+            mConsole->onCompletionRequest().connect([platforms](const std::shared_ptr<Console::Completion>& request) {
+                    //Log(Log::Info) << "request." << request->buffer() << request->cursorPosition();
+                    const auto sub = request->buffer().substr(0, request->cursorPosition());
+                    const auto list = split(sub, false);
+                    if (list.empty()) {
+                        request->complete();
+                        return;
+                    }
+                    const auto& prefix = request->prefix();
+                    std::vector<std::string> alternatives;
+                    if (prefix.empty()) {
+                        // complete on prefixes
+                        for (const auto& p : platforms) {
+                            if (p.size() > sub.size() && !strncmp(sub.c_str(), p.c_str(), sub.size()))
+                                alternatives.push_back(p.substr(request->cursorPosition()));
+                        }
+                    } else {
+                        // complete on platform?
+                    }
+                    request->complete(std::move(alternatives));
                 });
             Loop::loop()->addTimer(10000ms, Loop::Interval, []() {
                     Log(Log::Info) << "yes.";
@@ -75,30 +124,9 @@ void Homework::start()
                         }
                     }
 
-                    std::vector<std::string> split;
+                    auto list = split(cmd);
 
-                    const char* cur = cmd.c_str();
-                    const char* prev = cur;
-                    bool done = false;
-                    for (; !done; ++cur) {
-                        switch (*cur) {
-                        case '\0':
-                            done = true;
-                            // fall through
-                        case '\t':
-                        case ' ':
-                            if (cur > prev) {
-                                // push to list
-                                split.push_back(std::string(prev, cur - prev));
-                            }
-                            prev = cur + 1;
-                            break;
-                        default:
-                            break;
-                        }
-                    }
-
-                    if (prefix.empty() || split.empty()) {
+                    if (prefix.empty() || list.empty()) {
                         // bail out for now
                         Log(Log::Error) << "invalid command" << prefix << cmd;
                         return;
@@ -119,9 +147,9 @@ void Homework::start()
                         }
                         Log(Log::Error) << "-- end devices";
                         return;
-                    } else if (split.front() == "device" && split.size() > 2) {
-                        const auto& id = split[1];
-                        const auto& cmd = split[2];
+                    } else if (list.front() == "device" && list.size() > 2) {
+                        const auto& id = list[1];
+                        const auto& cmd = list[2];
                         const auto& devices = platform->devices();
                         for (const auto& device : devices) {
                             if (device.first == id) {
@@ -132,8 +160,8 @@ void Homework::start()
                                         Log(Log::Error) << action->name();
                                     }
                                     Log(Log::Error) << "-- end actions";
-                                } else if (cmd == "action" && split.size() > 3) {
-                                    const auto& a = split[3];
+                                } else if (cmd == "action" && list.size() > 3) {
+                                    const auto& a = list[3];
                                     for (const auto& action : dev->actions()) {
                                         if (action->name() == a) {
                                             Log(Log::Error) << "executing action" << a;
@@ -149,14 +177,14 @@ void Homework::start()
                         Log(Log::Error) << "no such device" << id;
                     }
 
-                    const std::string& action = split.front();
+                    const std::string& action = list.front();
                     for (const auto& a : platform->actions()) {
                         if (a->name() == action) {
                             // go
                             Action::Arguments args;
                             const auto& actionArguments = a->descriptors();
-                            if (split.size() > 1) {
-                                if (split.size() - 1 != actionArguments.size()) {
+                            if (list.size() > 1) {
+                                if (list.size() - 1 != actionArguments.size()) {
                                     Log(Log::Error) << "argument mismatch, action" << action
                                                     << "requires" << actionArguments.size() << "arguments";
                                     return;
@@ -164,9 +192,9 @@ void Homework::start()
                                 auto argumentError = [](int i, const char* type) {
                                     Log(Log::Error) << "argument at position" << i << "needs to be of type" << type;
                                 };
-                                args.reserve(split.size() - 1);
-                                for (size_t i = 1; i < split.size(); ++i) {
-                                    args.push_back(Parser::guessValue(split[i]));
+                                args.reserve(list.size() - 1);
+                                for (size_t i = 1; i < list.size(); ++i) {
+                                    args.push_back(Parser::guessValue(list[i]));
                                     // verify argument type
                                     switch (actionArguments[i - 1].type) {
                                     case ArgumentDescriptor::Bool:
@@ -196,7 +224,7 @@ void Homework::start()
                                     case ArgumentDescriptor::StringOptions:
                                         if (args.back().type() != typeid(std::string)) {
                                             // coerce
-                                            args.back() = std::any(split[i]);
+                                            args.back() = std::any(list[i]);
                                         }
                                         break;
                                     }

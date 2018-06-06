@@ -16,9 +16,8 @@ using namespace reckoning;
 using namespace reckoning::event;
 using namespace reckoning::log;
 
-Console::Console(std::vector<std::string>&& prefixes)
-    : mPrefixes(std::forward<std::vector<std::string> >(prefixes)),
-      mHistory(nullptr), mEditLine(nullptr)
+Console::Console(const std::vector<std::string>& prefixes)
+    : mPrefixes(prefixes), mHistory(nullptr), mEditLine(nullptr)
 {
     mStopped = false;
     mPrompt = "> ";
@@ -68,7 +67,7 @@ Console::Console(std::vector<std::string>&& prefixes)
 
     mThread = std::thread([this]() {
             int count;
-            std::string prefix, cmd;
+            std::string cmd;
 
             for (;;) {
                 if (mStopped)
@@ -90,12 +89,12 @@ Console::Console(std::vector<std::string>&& prefixes)
                     case '\n':
                         cmd = std::string(ch, cur - ch);
                         if (cmd == "exit") {
-                            if (prefix.empty()) {
+                            if (mPrefix.empty()) {
                                 // done with this
                                 mOnQuit.emit();
                                 return;
                             }
-                            prefix.clear();
+                            mPrefix.clear();
                             mPrompt = "> ";
                             //el_set(mEditLine, EL_REFRESH);
                             count = 0;
@@ -106,7 +105,7 @@ Console::Console(std::vector<std::string>&& prefixes)
                                 history(mHistory, &histEvent, H_SAVE, mHistoryFile.c_str());
                             }
 
-                            prefix = cmd;
+                            mPrefix = cmd;
                             mPrompt = cmd + "> ";
                             //el_set(mEditLine, EL_REFRESH);
                             count = 0;
@@ -125,7 +124,7 @@ Console::Console(std::vector<std::string>&& prefixes)
                         history(mHistory, &histEvent, H_ENTER, ncmd.c_str());
                         history(mHistory, &histEvent, H_SAVE, mHistoryFile.c_str());
                     }
-                    mOnCommand.emit(prefix, std::move(ncmd));
+                    mOnCommand.emit(mPrefix, std::move(ncmd));
                 }
             }
         });
@@ -278,7 +277,7 @@ unsigned char Console::complete(EditLine* edit, int)
     assert(cursorPosition >= 0);
 
     // ask for completion
-    auto completion = Completion::create(std::move(buffer), static_cast<size_t>(cursorPosition));
+    auto completion = Completion::create(console->mPrefix, std::move(buffer), static_cast<size_t>(cursorPosition));
     console->mOnCompletionRequest.emit(completion);
     completion->wait();
 

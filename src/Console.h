@@ -16,7 +16,7 @@ using reckoning::event::Signal;
 class Console
 {
 public:
-    Console(std::vector<std::string>&& prefixes);
+    Console(const std::vector<std::string>& prefixes);
     ~Console();
 
     Signal<>& onQuit();
@@ -27,6 +27,7 @@ public:
     class Completion
     {
     public:
+        std::string prefix() const;
         std::string buffer() const;
         size_t cursorPosition() const;
 
@@ -35,14 +36,14 @@ public:
         void complete(std::vector<std::string>&& alternatives);
 
     private:
-        static std::shared_ptr<Completion> create(std::string&& buffer, size_t position);
+        static std::shared_ptr<Completion> create(const std::string& prefix, std::string&& buffer, size_t position);
         void wait();
 
     private:
         std::mutex mMutex;
         std::condition_variable mCond;
 
-        std::string mBuffer;
+        std::string mPrefix, mBuffer;
         size_t mPosition;
 
         std::vector<std::string> mAlternatives;
@@ -67,7 +68,7 @@ private:
     Signal<const std::shared_ptr<Completion>&> mOnCompletionRequest;
     History* mHistory;
     EditLine* mEditLine;
-    std::string mHistoryFile, mPrompt;
+    std::string mHistoryFile, mPrompt, mPrefix;
     int mPipe[2];
 };
 
@@ -86,9 +87,10 @@ inline Signal<const std::shared_ptr<Console::Completion>&>& Console::onCompletio
     return mOnCompletionRequest;
 }
 
-inline std::shared_ptr<Console::Completion> Console::Completion::create(std::string&& buffer, size_t position)
+inline std::shared_ptr<Console::Completion> Console::Completion::create(const std::string& prefix, std::string&& buffer, size_t position)
 {
     std::shared_ptr<Completion> completion(new Completion);
+    completion->mPrefix = prefix;
     completion->mBuffer = std::forward<std::string>(buffer);
     completion->mPosition = position;
     completion->mCompleted = false;
@@ -101,6 +103,11 @@ inline void Console::Completion::wait()
     while (!mCompleted) {
         mCond.wait(locker);
     }
+}
+
+inline std::string Console::Completion::prefix() const
+{
+    return mPrefix;
 }
 
 inline std::string Console::Completion::buffer() const
