@@ -281,10 +281,10 @@ unsigned char Console::complete(EditLine* edit, int)
     console->mOnCompletionRequest.emit(completion);
     completion->wait();
 
-    // if exactly one result
     const auto& alternatives = completion->mAlternatives;
     const size_t num = alternatives.size();
     if (num == 1) {
+        // if exactly one result, insert that
         el_insertstr(edit, (alternatives.front().substr(completion->mOffset) + " ").c_str());
         return CC_REFRESH;
     } else if (num > 1) {
@@ -321,7 +321,7 @@ unsigned char Console::complete(EditLine* edit, int)
         const int columns = std::max<int>(2, ws.ws_col / column);
         printf("\n");
         for (size_t i = 0; i < num; ++i) {
-            const std::string &alternative = alternatives.at(i);
+            const std::string& alternative = alternatives.at(i);
             const std::string fill(column - alternative.size(), ' ');
             printf("%s%s", alternative.c_str(), fill.c_str());
             if (i + 1 == num || (i + 1) % columns == 0)
