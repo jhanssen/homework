@@ -28,6 +28,8 @@ public:
     const std::vector<int>& intOptions() const;
     const std::vector<double>& doubleOptions() const;
     const std::vector<std::string>& stringOptions() const;
+
+    static const char* typeToName(Type t);
 };
 
 inline ArgumentDescriptor::ArgumentDescriptor(Type t)
@@ -121,6 +123,22 @@ inline const std::vector<std::string>& ArgumentDescriptor::stringOptions() const
 {
     assert(type == StringOptions);
     return *std::any_cast<std::vector<std::string> >(&data);
+}
+
+inline const char* ArgumentDescriptor::typeToName(Type t)
+{
+    switch (t) {
+    case Bool:
+        return "boolean";
+    case IntOptions:
+    case IntRange:
+        return "integer";
+    case DoubleOptions:
+    case DoubleRange:
+        return "double";
+    case StringOptions:
+        return "string";
+    }
 }
 
 #endif // ARGUMENTDESCRIPTOR_H

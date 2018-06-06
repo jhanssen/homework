@@ -41,6 +41,78 @@ static inline std::vector<std::string> split(const std::string& str, bool skip =
     return data;
 }
 
+static inline Action::Arguments parseArguments(const Action::Descriptors& descriptors,
+                                               const std::vector<std::string>& list,
+                                               size_t startOffset, bool* ok)
+{
+    Action::Arguments args;
+    if (list.size() - startOffset != descriptors.size()) {
+        Log(Log::Error) << "argument mismatch, action requires"
+                        << descriptors.size() << "arguments";
+        if (descriptors.size() > list.size() - startOffset) {
+            const auto& desc = descriptors[list.size() - startOffset];
+            Log(Log::Error) << "  next argument should be of type" << ArgumentDescriptor::typeToName(desc.type);
+        }
+        if (ok)
+            *ok = false;
+        return args;
+    }
+    if (descriptors.empty()) {
+        if (ok)
+            *ok = true;
+        return args;
+    }
+    auto argumentError = [](int i, const char* type) {
+        Log(Log::Error) << "argument at position" << i << "needs to be of type" << type;
+    };
+    args.reserve(list.size() - startOffset);
+    for (size_t i = startOffset; i < list.size(); ++i) {
+        args.push_back(Parser::guessValue(list[i]));
+        // verify argument type
+        switch (descriptors[i - startOffset].type) {
+        case ArgumentDescriptor::Bool:
+            if (args.back().type() != typeid(bool)) {
+                argumentError(i - startOffset, "bool");
+                if (ok)
+                    *ok = false;
+                return args;
+            }
+            break;
+        case ArgumentDescriptor::IntOptions:
+        case ArgumentDescriptor::IntRange:
+            // ### need to verify that the number is in our options or range
+            if (args.back().type() != typeid(int64_t)) {
+                argumentError(i - startOffset, "int");
+                if (ok)
+                    *ok = false;
+                return args;
+            }
+            break;
+        case ArgumentDescriptor::DoubleOptions:
+        case ArgumentDescriptor::DoubleRange:
+            if (args.back().type() == typeid(int64_t)) {
+                // force double
+                args.back() = std::any(static_cast<double>(std::any_cast<int64_t>(args.back())));
+            } else if (args.back().type() != typeid(double)) {
+                argumentError(i - startOffset, "double");
+                if (ok)
+                    *ok = false;
+                return args;
+            }
+            break;
+        case ArgumentDescriptor::StringOptions:
+            if (args.back().type() != typeid(std::string)) {
+                // coerce
+                args.back() = std::any(list[i]);
+            }
+            break;
+        }
+    }
+    if (ok)
+        *ok = true;
+    return args;
+}
+
 Homework::Homework(Options&& options)
     : mOptions(std::forward<Options>(options))
 {
@@ -251,8 +323,12 @@ void Homework::start()
                                             const auto& a = list[3];
                                             for (const auto& action : dev->actions()) {
                                                 if (action->name() == a) {
+                                                    bool ok;
+                                                    Action::Arguments args = parseArguments(action->descriptors(), list, 4, &ok);
+                                                    if (!ok)
+                                                        return;
                                                     Log(Log::Info) << "executing action" << a;
-                                                    action->execute();
+                                                    action->execute(args);
                                                     return;
                                                 }
                                             }
@@ -273,59 +349,10 @@ void Homework::start()
                     for (const auto& a : platform->actions()) {
                         if (a->name() == action) {
                             // go
-                            Action::Arguments args;
-                            const auto& actionArguments = a->descriptors();
-                            if (list.size() > 1) {
-                                if (list.size() - 1 != actionArguments.size()) {
-                                    Log(Log::Error) << "argument mismatch, action" << action
-                                                    << "requires" << actionArguments.size() << "arguments";
-                                    return;
-                                }
-                                auto argumentError = [](int i, const char* type) {
-                                    Log(Log::Error) << "argument at position" << i << "needs to be of type" << type;
-                                };
-                                args.reserve(list.size() - 1);
-                                for (size_t i = 1; i < list.size(); ++i) {
-                                    args.push_back(Parser::guessValue(list[i]));
-                                    // verify argument type
-                                    switch (actionArguments[i - 1].type) {
-                                    case ArgumentDescriptor::Bool:
-                                        if (args.back().type() != typeid(bool)) {
-                                            argumentError(i - 1, "bool");
-                                            return;
-                                        }
-                                        break;
-                                    case ArgumentDescriptor::IntOptions:
-                                    case ArgumentDescriptor::IntRange:
-                                        // ### need to verify that the number is in our options or range
-                                        if (args.back().type() != typeid(int64_t)) {
-                                            argumentError(i - 1, "int");
-                                            return;
-                                        }
-                                        break;
-                                    case ArgumentDescriptor::DoubleOptions:
-                                    case ArgumentDescriptor::DoubleRange:
-                                        if (args.back().type() == typeid(int64_t)) {
-                                            // force double
-                                            args.back() = std::any(static_cast<double>(std::any_cast<int64_t>(args.back())));
-                                        } else if (args.back().type() != typeid(double)) {
-                                            argumentError(i - 1, "double");
-                                            return;
-                                        }
-                                        break;
-                                    case ArgumentDescriptor::StringOptions:
-                                        if (args.back().type() != typeid(std::string)) {
-                                            // coerce
-                                            args.back() = std::any(list[i]);
-                                        }
-                                        break;
-                                    }
-                                }
-                            } else if (!actionArguments.empty()) {
-                                Log(Log::Error) << "argument mismatch, action" << action
-                                                << "requires" << actionArguments.size() << "arguments";
+                            bool ok;
+                            Action::Arguments args = parseArguments(a->descriptors(), list, 1, &ok);
+                            if (!ok)
                                 return;
-                            }
                             a->execute(args);
                             return;
                         }
