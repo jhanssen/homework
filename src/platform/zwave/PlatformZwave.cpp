@@ -571,6 +571,8 @@ void PlatformZwave::onNotification(const OpenZWave::Notification* notification, 
                 auto setCommand = Action::create("set", [zmanager, valueId](const Action::Arguments& args) {
                         assert(args.size() == 1 && args[0].type() == typeid(bool));
                         zmanager->SetValue(*valueId, std::any_cast<bool>(args[0]));
+                    }, Action::Descriptors {
+                        ArgumentDescriptor { ArgumentDescriptor::Bool }
                     });
                 auto toggleCommand = Action::create("toggle", [zmanager, valueId](const Action::Arguments& /*args*/) {
                         bool on;
