@@ -1,4 +1,5 @@
 #include "Console.h"
+#include "Split.h"
 #include <Homedir.h>
 #include <stddef.h>
 #include <event/Loop.h>
@@ -285,7 +286,7 @@ unsigned char Console::complete(EditLine* edit, int)
     const size_t num = alternatives.size();
     if (num == 1) {
         // if exactly one result, insert that
-        el_insertstr(edit, (alternatives.front().substr(completion->mOffset) + " ").c_str());
+        el_insertstr(edit, (alternatives.front().substr(completion->mTokenCursorPosition) + " ").c_str());
         return CC_REFRESH;
     } else if (num > 1) {
         // if all our alternatives have a common base, insert that
@@ -304,8 +305,8 @@ unsigned char Console::complete(EditLine* edit, int)
                 continue;
             base = base.substr(0, common);
         }
-        if (base.size() > completion->mOffset) {
-            el_insertstr(edit, base.substr(completion->mOffset).c_str());
+        if (base.size() > completion->mTokenCursorPosition) {
+            el_insertstr(edit, base.substr(completion->mTokenCursorPosition).c_str());
         }
 
         struct winsize ws;
@@ -331,4 +332,43 @@ unsigned char Console::complete(EditLine* edit, int)
     }
 
     return CC_ERROR;
+}
+
+Console::Completion::Completion(const std::string& prefix, std::string&& buffer, size_t position)
+    : mPrefix(prefix), mGlobalBuffer(std::forward<std::string>(buffer)), mGlobalCursorPosition(position),
+      mTokenCursorPosition(0), mTokenELement(0), mCompleted(false), mTokenIsEmpty(false)
+{
+    const auto sub = mGlobalBuffer.substr(0, mGlobalCursorPosition);
+    // split, including whitespace
+    auto list = split(sub, false);
+
+    // what word is our cursor in?
+    size_t offset = 0, element = 0, argno = 0, local = 0, len;
+    for (element = 0; element < list.size(); ++element) {
+        const auto& e = list[element];
+        len = e.empty() ? 1 : e.size();
+
+        if (mGlobalCursorPosition <= offset + len) {
+            // yup
+            if (e.empty()) {
+                local = 0;
+                ++element;
+            } else {
+                local = mGlobalCursorPosition - offset;
+            }
+            break;
+        }
+        offset += len;
+        if (!e.empty())
+            ++argno;
+    }
+
+    if (element >= list.size() || list[element].empty())
+        mTokenIsEmpty = true;
+
+    mTokenCursorPosition = local;
+    mTokenELement = argno;
+
+    // split, excluding whitespace
+    mTokens = split(sub, true);
 }

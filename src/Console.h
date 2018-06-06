@@ -27,27 +27,37 @@ public:
     class Completion
     {
     public:
-        std::string prefix() const;
-        std::string buffer() const;
+        const std::string& prefix() const;
+
+        const std::string& buffer() const;
         size_t cursorPosition() const;
 
+        const std::vector<std::string>& tokens() const;
+        std::string tokenAtCursor();
+        size_t tokenElement() const;
+        size_t tokenCursorPosition() const;
+
         void complete();
-        void complete(std::string&& result, size_t offset = 0);
-        void complete(std::vector<std::string>&& alternatives, size_t offset);
+        void complete(std::string&& result);
+        void complete(std::vector<std::string>&& alternatives);
 
     private:
         static std::shared_ptr<Completion> create(const std::string& prefix, std::string&& buffer, size_t position);
+
+        Completion(const std::string& prefix, std::string&& buffer, size_t position);
+
         void wait();
 
     private:
         std::mutex mMutex;
         std::condition_variable mCond;
 
-        std::string mPrefix, mBuffer;
-        size_t mPosition, mOffset;
+        std::string mPrefix, mGlobalBuffer;
+        size_t mGlobalCursorPosition, mTokenCursorPosition, mTokenELement;
+        std::vector<std::string> mTokens;
 
         std::vector<std::string> mAlternatives;
-        bool mCompleted;
+        bool mCompleted, mTokenIsEmpty;
 
         friend class Console;
     };
@@ -89,12 +99,7 @@ inline Signal<const std::shared_ptr<Console::Completion>&>& Console::onCompletio
 
 inline std::shared_ptr<Console::Completion> Console::Completion::create(const std::string& prefix, std::string&& buffer, size_t position)
 {
-    std::shared_ptr<Completion> completion(new Completion);
-    completion->mPrefix = prefix;
-    completion->mBuffer = std::forward<std::string>(buffer);
-    completion->mPosition = position;
-    completion->mOffset = 0;
-    completion->mCompleted = false;
+    std::shared_ptr<Completion> completion(new Completion(prefix, std::forward<std::string>(buffer), position));
     return completion;
 }
 
@@ -106,19 +111,39 @@ inline void Console::Completion::wait()
     }
 }
 
-inline std::string Console::Completion::prefix() const
+inline const std::string& Console::Completion::prefix() const
 {
     return mPrefix;
 }
 
-inline std::string Console::Completion::buffer() const
+inline const std::string& Console::Completion::buffer() const
 {
-    return mBuffer;
+    return mGlobalBuffer;
 }
 
 inline size_t Console::Completion::cursorPosition() const
 {
-    return mPosition;
+    return mGlobalCursorPosition;
+}
+
+inline const std::vector<std::string>& Console::Completion::tokens() const
+{
+    return mTokens;
+}
+
+inline std::string Console::Completion::tokenAtCursor()
+{
+    return mTokenIsEmpty ? std::string() : mTokens[mTokenELement];
+}
+
+inline size_t Console::Completion::tokenElement() const
+{
+    return mTokenELement;
+}
+
+inline size_t Console::Completion::tokenCursorPosition() const
+{
+    return mTokenCursorPosition;
 }
 
 inline void Console::Completion::complete()
@@ -128,20 +153,18 @@ inline void Console::Completion::complete()
     mCond.notify_one();
 }
 
-inline void Console::Completion::complete(std::string&& result, size_t offset)
+inline void Console::Completion::complete(std::string&& result)
 {
     std::unique_lock<std::mutex> locker(mMutex);
     mAlternatives.push_back(std::forward<std::string>(result));
-    mOffset = offset;
     mCompleted = true;
     mCond.notify_one();
 }
 
-inline void Console::Completion::complete(std::vector<std::string>&& alternatives, size_t offset)
+inline void Console::Completion::complete(std::vector<std::string>&& alternatives)
 {
     std::unique_lock<std::mutex> locker(mMutex);
     mAlternatives = std::forward<std::vector<std::string> >(alternatives);
-    mOffset = offset;
     mCompleted = true;
     mCond.notify_one();
 }

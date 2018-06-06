@@ -1,5 +1,6 @@
 #include "Homework.h"
 #include "Console.h"
+#include "Split.h"
 #include <event/Loop.h>
 #include <log/Log.h>
 #include <args/Parser.h>
@@ -11,35 +12,6 @@ using namespace reckoning::log;
 using namespace reckoning::args;
 using namespace reckoning::event;
 using namespace std::chrono_literals;
-
-static inline std::vector<std::string> split(const std::string& str, bool skip = true)
-{
-    std::vector<std::string> data;
-    const char* cur = str.c_str();
-    const char* prev = cur;
-    bool done = false;
-    for (; !done; ++cur) {
-        switch (*cur) {
-        case '\0':
-            done = true;
-            // fall through
-        case '\t':
-        case ' ':
-            if (cur > prev) {
-                // push to list
-                data.push_back(std::string(prev, cur - prev));
-            }
-            if (!skip && !done) {
-                data.push_back(std::string());
-            }
-            prev = cur + 1;
-            break;
-        default:
-            break;
-        }
-    }
-    return data;
-}
 
 static inline Action::Arguments parseArguments(const Action::Descriptors& descriptors,
                                                const std::vector<std::string>& list,
@@ -154,10 +126,8 @@ void Homework::start()
             mConsole->onCompletionRequest().connect([platforms, this](const std::shared_ptr<Console::Completion>& request) {
                     //Log(Log::Info) << "request." << request->buffer() << request->cursorPosition();
                     const auto sub = request->buffer().substr(0, request->cursorPosition());
-                    auto list = split(sub, false);
 
                     const auto& prefix = request->prefix();
-                    size_t alternativeOffset = request->cursorPosition();
                     std::vector<std::string> alternatives;
                     if (prefix.empty()) {
                         // complete on prefixes
@@ -178,34 +148,12 @@ void Homework::start()
                             request->complete();
                             return;
                         }
-                        // what word is our cursor in?
-                        size_t offset = 0, element = 0, argno = 0, local = 0, len;
-                        for (element = 0; element < list.size(); ++element) {
-                            const auto& e = list[element];
-                            len = e.empty() ? 1 : e.size();
 
-                            if (request->cursorPosition() <= offset + len) {
-                                // yup
-                                if (e.empty()) {
-                                    local = 0;
-                                    ++element;
-                                } else {
-                                    local = request->cursorPosition() - offset;
-                                }
-                                break;
-                            }
-                            offset += len;
-                            if (!e.empty())
-                                ++argno;
-                        }
+                        auto tokenString = request->tokenAtCursor();
+                        const auto tokenElement = request->tokenElement();
+                        const auto& tokens = request->tokens();
 
-                        auto localsub = element < list.size() ? list[element] : std::string();
-                        alternativeOffset = local;
-
-                        // resplit, ignoring whitespace elements
-                        list = split(sub);
-
-                        if (argno == 0) {
+                        if (tokenElement == 0) {
                             std::vector<std::string> toplevel;
                             toplevel.push_back("device");
                             toplevel.push_back("exit");
@@ -213,32 +161,32 @@ void Homework::start()
                                 toplevel.push_back(a->name());
                             }
                             for (const auto& p : toplevel) {
-                                if (localsub.empty() || (p.size() > localsub.size() && !strncmp(localsub.c_str(), p.c_str(), localsub.size())))
+                                if (tokenString.empty() || (p.size() > tokenString.size() && !strncmp(tokenString.c_str(), p.c_str(), tokenString.size())))
                                     alternatives.push_back(p);
                             }
-                        } else if (list[0] == "device") {
+                        } else if (tokens[0] == "device") {
                             // device command is of the form
                             // 'device <id> <action_name> <arguments>'
                             const auto& devices = platform->devices();
                             for (const auto& device : devices) {
-                                if (argno == 1) {
+                                if (tokenElement == 1) {
                                     // complete on device id
-                                    if (localsub.empty() || (device.first.size() > localsub.size() && !strncmp(localsub.c_str(), device.first.c_str(), localsub.size())))
+                                    if (tokenString.empty() || (device.first.size() > tokenString.size() && !strncmp(tokenString.c_str(), device.first.c_str(), tokenString.size())))
                                         alternatives.push_back(device.first);
-                                } else if (list[1] == device.first) {
-                                    if (argno == 2) {
+                                } else if (tokens[1] == device.first) {
+                                    if (tokenElement == 2) {
                                         // complete on command
                                         std::vector<std::string> cmds = { "action" };
                                         for (const auto& p : cmds) {
-                                            if (localsub.empty() || (p.size() > localsub.size() && !strncmp(localsub.c_str(), p.c_str(), localsub.size())))
+                                            if (tokenString.empty() || (p.size() > tokenString.size() && !strncmp(tokenString.c_str(), p.c_str(), tokenString.size())))
                                                 alternatives.push_back(p);
                                         }
-                                    } else if (argno == 3 && list[2] == "action") {
+                                    } else if (tokenElement == 3 && tokens[2] == "action") {
                                         // complete on action name
                                         const auto& dev = device.second;
                                         for (const auto& action : dev->actions()) {
                                             const auto& p = action->name();
-                                            if (localsub.empty() || (p.size() > localsub.size() && !strncmp(localsub.c_str(), p.c_str(), localsub.size())))
+                                            if (tokenString.empty() || (p.size() > tokenString.size() && !strncmp(tokenString.c_str(), p.c_str(), tokenString.size())))
                                                 alternatives.push_back(p);
                                         }
                                     }
@@ -249,7 +197,7 @@ void Homework::start()
 
                         //Log(Log::Error) << localsub << local;
                     }
-                    request->complete(std::move(alternatives), alternativeOffset);
+                    request->complete(std::move(alternatives));
                 });
             mConsole->onCommand().connect([this](const std::string& prefix, std::string&& cmd) {
                     //printf("command %s\n", cmd.c_str());
