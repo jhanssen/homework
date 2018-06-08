@@ -25,6 +25,7 @@ public:
 protected:
     Rule(const std::string& name);
 
+private:
     std::string mName;
     Signal<>::Connection mEventConnection;
     std::shared_ptr<Event> mEvent;
