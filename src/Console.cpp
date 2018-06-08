@@ -1,374 +1,287 @@
 #include "Console.h"
+#include "Homework.h"
+#include "Editline.h"
 #include "Split.h"
-#include <Homedir.h>
-#include <stddef.h>
 #include <event/Loop.h>
 #include <log/Log.h>
-#include <util/Socket.h>
-#include <sys/select.h>
-#include <sys/ioctl.h>
-#include <cstdio>
-#include <errno.h>
-#include <stdlib.h>
-#include <fcntl.h>
-#include <cassert>
 
-using namespace reckoning;
 using namespace reckoning::event;
 using namespace reckoning::log;
 
-Console::Console(const std::vector<std::string>& prefixes)
-    : mPrefixes(prefixes), mHistory(nullptr), mEditLine(nullptr)
+static inline Action::Arguments parseArguments(const Action::Descriptors& descriptors,
+                                               const std::vector<std::string>& list,
+                                               size_t startOffset, bool* ok)
 {
-    mStopped = false;
-    mPrompt = "> ";
-
-    int e = pipe(mPipe);
-    if (e == -1) {
-        Log(Log::Error) << "failed to create pipe for console" << errno;
-        mPipe[0] = -1;
-        mPipe[1] = -1;
-        return;
+    if (list.size() - startOffset != descriptors.size()) {
+        Log(Log::Error) << "argument mismatch, action requires"
+                        << descriptors.size() << "arguments";
+        if (descriptors.size() > list.size() - startOffset) {
+            const auto& desc = descriptors[list.size() - startOffset];
+            Log(Log::Error) << "  next argument should be of type" << ArgumentDescriptor::typeToName(desc.type);
+        }
+        if (ok)
+            *ok = false;
+        return Action::Arguments();
     }
-    if (!util::socket::setFlag(mPipe[0], O_NONBLOCK)) {
-        Log(Log::Error) << "unable to set console pipe to non-blocking";
-        return;
+    if (descriptors.empty()) {
+        if (ok)
+            *ok = true;
+        return Action::Arguments();
     }
-    if (!util::socket::setFlag(STDIN_FILENO, O_NONBLOCK)) {
-        Log(Log::Error) << "unable to set stdin to non-blocking";
-        return;
-    }
-
-    mHistory = history_init();
-    mEditLine = el_init("homework", stdin, stdout, stderr);
-    if (!mHistory || !mEditLine) {
-        Log(Log::Error) << "failed to set up libedit";
-        return;
-    }
-    HistEvent histEvent;
-    history(mHistory, &histEvent, H_SETSIZE, 1024 * 32);
-    history(mHistory, &histEvent, H_SETUNIQUE, 1);
-
-    el_set(mEditLine, EL_SIGNAL, 1);
-    el_set(mEditLine, EL_EDITOR, "emacs");
-    el_set(mEditLine, EL_HIST, history, mHistory);
-    el_set(mEditLine, EL_CLIENTDATA, this);
-    el_wset(mEditLine, EL_GETCFN, &Console::getChar);
-    el_set(mEditLine, EL_PROMPT_ESC, &Console::prompt, '\1');
-    el_wset(mEditLine, EL_ADDFN, L"ed-complete", L"help", &Console::complete);
-    el_set(mEditLine, EL_BIND, "^I", "ed-complete", 0);
-
-    const auto home = homedir();
-    if (!home.empty()) {
-        mHistoryFile = home + "/.homework.history";
-        history(mHistory, &histEvent, H_LOAD, mHistoryFile.c_str());
-        const std::string elrc = home + "/.editrc";
-        el_source(mEditLine, elrc.c_str());
-    }
-
-    mThread = std::thread([this]() {
-            int count;
-            std::string cmd;
-
-            for (;;) {
-                if (mStopped)
-                    return;
-
-                const char* ch = el_gets(mEditLine, &count);
-                if (!ch || count <= 0) {
-                    mOnQuit.emit();
-                    break;
-                }
-                const char* cur = ch;
-                bool done = false;
-                while (!done) {
-                    switch (*cur) {
-                    case ' ':
-                    case '\t':
-                    case '\0':
-                    case '\r':
-                    case '\n':
-                        cmd = std::string(ch, cur - ch);
-                        if (cmd == "exit") {
-                            if (mPrefix.empty()) {
-                                // done with this
-                                mOnQuit.emit();
-                                return;
-                            }
-                            mPrefix.clear();
-                            mPrompt = "> ";
-                            //el_set(mEditLine, EL_REFRESH);
-                            count = 0;
-                        } else if (std::find(mPrefixes.begin(), mPrefixes.end(), cmd) != mPrefixes.end()) {
-                            if (!mHistoryFile.empty()) {
-                                HistEvent histEvent;
-                                history(mHistory, &histEvent, H_ENTER, cmd.c_str());
-                                history(mHistory, &histEvent, H_SAVE, mHistoryFile.c_str());
-                            }
-
-                            mPrefix = cmd;
-                            mPrompt = cmd + "> ";
-                            //el_set(mEditLine, EL_REFRESH);
-                            count = 0;
-                        }
-                        done = true;
-                        continue;
-                    }
-                    ++cur;
-                }
-                while (count > 0 && (ch[count - 1] == '\n' || ch[count - 1] == '\r'))
-                    --count;
-                if (count > 0) {
-                    std::string ncmd(ch, count);
-                    if (!mHistoryFile.empty()) {
-                        HistEvent histEvent;
-                        history(mHistory, &histEvent, H_ENTER, ncmd.c_str());
-                        history(mHistory, &histEvent, H_SAVE, mHistoryFile.c_str());
-                    }
-                    mOnCommand.emit(mPrefix, std::move(ncmd));
-                }
+    auto argumentError = [](int i, const char* type) {
+        Log(Log::Error) << "argument at position" << i << "needs to be of type" << type;
+    };
+    Action::Arguments args;
+    args.reserve(list.size() - startOffset);
+    for (size_t i = startOffset; i < list.size(); ++i) {
+        args.push_back(Parser::guessValue(list[i]));
+        // verify argument type
+        switch (descriptors[i - startOffset].type) {
+        case ArgumentDescriptor::Bool:
+            if (args.back().type() != typeid(bool)) {
+                argumentError(i - startOffset, "bool");
+                if (ok)
+                    *ok = false;
+                return Action::Arguments();
             }
-        });
-    Log::setLogHandler([this](Log::Output, std::string&& msg) {
-            std::lock_guard<std::mutex> locker(mMutex);
-            mOutputs.push_back(std::forward<std::string>(msg));
-            wakeup();
-        });
+            break;
+        case ArgumentDescriptor::IntOptions:
+        case ArgumentDescriptor::IntRange:
+            // ### need to verify that the number is in our options or range
+            if (args.back().type() != typeid(int64_t)) {
+                argumentError(i - startOffset, "int");
+                if (ok)
+                    *ok = false;
+                return Action::Arguments();
+            }
+            break;
+        case ArgumentDescriptor::DoubleOptions:
+        case ArgumentDescriptor::DoubleRange:
+            if (args.back().type() == typeid(int64_t)) {
+                // force double
+                args.back() = std::any(static_cast<double>(std::any_cast<int64_t>(args.back())));
+            } else if (args.back().type() != typeid(double)) {
+                argumentError(i - startOffset, "double");
+                if (ok)
+                    *ok = false;
+                return Action::Arguments();
+            }
+            break;
+        case ArgumentDescriptor::StringOptions:
+            if (args.back().type() != typeid(std::string)) {
+                // coerce
+                args.back() = std::any(list[i]);
+            }
+            break;
+        }
+    }
+    if (ok)
+        *ok = true;
+    return args;
+}
+
+Console::Console(Homework* homework)
+    : mHomework(homework)
+{
 }
 
 Console::~Console()
 {
-    if (mThread.joinable()) {
-        mStopped = true;
-        wakeup();
-        mThread.join();
-    }
-
-    if (mHistory) {
-        history_end(mHistory);
-    }
-    if (mEditLine) {
-        el_end(mEditLine);
-    }
-    int e;
-    if (mPipe[0] != -1) {
-        eintrwrap(e, close(mPipe[0]));
-    }
-    if (mPipe[1] != -1) {
-        eintrwrap(e, close(mPipe[1]));
-    }
 }
 
-void Console::wakeup()
+void Console::start()
 {
-    if (mPipe[1] == -1)
-        return;
-    int e;
-    char c = 'w';
-    eintrwrap(e, write(mPipe[1], &c, 1));
-}
-
-int Console::getChar(EditLine* edit, wchar_t* out)
-{
-    Console* console = nullptr;
-    el_get(edit, EL_CLIENTDATA, &console);
-    assert(console != nullptr);
-
-    const int max = std::max(console->mPipe[0], STDIN_FILENO);
-
-    enum ReadState { ReadOk, ReadIncomplete, ReadEof };
-    auto readChar = [](wchar_t* out) -> ReadState {
-        wint_t c = getwc(stdin);
-        if (c == WEOF) {
-            *out = L'\0';
-            return feof(stdin) ? ReadEof : ReadIncomplete;
-        }
-        *out = static_cast<wchar_t>(c);
-        return ReadOk;
-    };
-
-    switch (readChar(out)) {
-    case ReadOk:
-        return 1;
-    case ReadEof:
-        return 0;
-    case ReadIncomplete:
-        // select
-        break;
+    std::vector<std::string> platforms;
+    for (const auto& platform : mHomework->platforms()) {
+        platforms.push_back(platform->name());
     }
 
-    int s;
-    fd_set rdset;
-    std::vector<std::string> outputs;
+    mEditline = std::make_shared<Editline>(platforms);
 
-    for (;;) {
-        FD_ZERO(&rdset);
-        FD_SET(console->mPipe[0], &rdset);
-        FD_SET(STDIN_FILENO, &rdset);
-        eintrwrap(s, select(max + 1, &rdset, nullptr, nullptr, nullptr));
-        if (s == -1) {
-            // badness
-            Log(Log::Error) << "failed to select for console" << errno;
-            *out = L'\0';
-            return 0;
-        }
-        if (FD_ISSET(console->mPipe[0], &rdset)) {
-            // drain pipe
-            int e;
-            char c;
-            do {
-                eintrwrap(e, read(console->mPipe[0], &c, 1));
-            } while (e == 1);
+    // add exit as a global completion
+    platforms.push_back("exit");
 
-            {
-                std::lock_guard<std::mutex> locker(console->mMutex);
-                outputs = std::move(console->mOutputs);
+    std::weak_ptr<Loop> loop = Loop::loop();
+    mEditline->onQuit().connect([loop]() {
+            if (auto l = loop.lock()) {
+                l->exit();
             }
-            if (!outputs.empty()) {
-                // clear line, cursor to start of line
-                printf("\33[2K\33[A\n");
-                for (const auto& str : outputs) {
-                    printf("%s", str.c_str());
+        });
+    mEditline->onCompletionRequest().connect([platforms, this](const std::shared_ptr<Editline::Completion>& request) {
+            //Log(Log::Info) << "request." << request->buffer() << request->cursorPosition();
+            const auto sub = request->buffer().substr(0, request->cursorPosition());
+
+            const auto& prefix = request->prefix();
+            std::vector<std::string> alternatives;
+            if (prefix.empty()) {
+                // complete on prefixes
+                for (const auto& p : platforms) {
+                    if (p.size() > sub.size() && !strncmp(sub.c_str(), p.c_str(), sub.size()))
+                        alternatives.push_back(p);
                 }
-                outputs.clear();
-
-                el_set(console->mEditLine, EL_REFRESH);
-            }
-
-            if (console->mStopped) {
-                *out = L'\0';
-                return -1;
-            }
-        }
-        if (FD_ISSET(STDIN_FILENO, &rdset)) {
-            switch (readChar(out)) {
-            case ReadOk:
-                return 1;
-            case ReadEof:
-                return 0;
-            case ReadIncomplete:
-                return -1;
-            }
-        }
-    }
-    *out = L'\0';
-    return -1;
-}
-
-const char* Console::prompt(EditLine* edit)
-{
-    Console* console = nullptr;
-    el_get(edit, EL_CLIENTDATA, &console);
-    assert(console != nullptr);
-
-    return console->mPrompt.c_str();
-}
-
-unsigned char Console::complete(EditLine* edit, int)
-{
-    assert(edit);
-    const LineInfo* lineInfo = el_line(edit);
-    assert(lineInfo);
-    Console* console = nullptr;
-    el_get(edit, EL_CLIENTDATA, &console);
-    assert(console);
-
-    std::string buffer(lineInfo->buffer, lineInfo->lastchar);
-    const int cursorPosition = lineInfo->cursor - lineInfo->buffer;
-    assert(cursorPosition >= 0);
-
-    // ask for completion
-    auto completion = Completion::create(console->mPrefix, std::move(buffer), static_cast<size_t>(cursorPosition));
-    console->mOnCompletionRequest.emit(completion);
-    completion->wait();
-
-    const auto& alternatives = completion->mAlternatives;
-    const size_t num = alternatives.size();
-    if (num == 1) {
-        // if exactly one result, insert that
-        el_insertstr(edit, (alternatives.front().substr(completion->mTokenCursorPosition) + " ").c_str());
-        return CC_REFRESH;
-    } else if (num > 1) {
-        // if all our alternatives have a common base, insert that
-        std::string base = alternatives.front();
-        for (size_t i = 1; i < num; ++i) {
-            size_t common = 0;
-            const std::string& cur = alternatives.at(i);
-            const size_t len = std::min(base.size(), cur.size());
-            while (common < len && base[common] == cur[common])
-                ++common;
-            if (!common) {
-                base.clear();
-                break;
-            }
-            if (common == base.size())
-                continue;
-            base = base.substr(0, common);
-        }
-        if (base.size() > completion->mTokenCursorPosition) {
-            el_insertstr(edit, base.substr(completion->mTokenCursorPosition).c_str());
-        }
-
-        struct winsize ws;
-        if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == -1)
-            ws.ws_col = 80; // ???
-
-        size_t longest = 0;
-        for (const auto& str : alternatives) {
-            longest = std::max(str.size(), longest);
-        }
-
-        const int column = longest + 5;
-        const int columns = std::max<int>(2, ws.ws_col / column);
-        printf("\n");
-        for (size_t i = 0; i < num; ++i) {
-            const std::string& alternative = alternatives.at(i);
-            const std::string fill(column - alternative.size(), ' ');
-            printf("%s%s", alternative.c_str(), fill.c_str());
-            if (i + 1 == num || (i + 1) % columns == 0)
-                printf("\n");
-        }
-        return CC_REDISPLAY;
-    }
-
-    return CC_ERROR;
-}
-
-Console::Completion::Completion(const std::string& prefix, std::string&& buffer, size_t position)
-    : mPrefix(prefix), mGlobalBuffer(std::forward<std::string>(buffer)), mGlobalCursorPosition(position),
-      mTokenCursorPosition(0), mTokenElement(0), mCompleted(false), mTokenIsEmpty(false)
-{
-    const auto sub = mGlobalBuffer.substr(0, mGlobalCursorPosition);
-    // split, including whitespace
-    auto list = split(sub, false);
-
-    // what word is our cursor in?
-    size_t offset = 0, element = 0, argno = 0, local = 0, len;
-    for (element = 0; element < list.size(); ++element) {
-        const auto& e = list[element];
-        len = e.empty() ? 1 : e.size();
-
-        if (mGlobalCursorPosition <= offset + len) {
-            // yup
-            if (e.empty()) {
-                local = 0;
-                ++element;
             } else {
-                local = mGlobalCursorPosition - offset;
+                // complete on platform?
+                std::shared_ptr<Platform> platform;
+                for (const auto& p : mHomework->platforms()) {
+                    if (p->name() == prefix) {
+                        platform = p;
+                        break;
+                    }
+                }
+                if (!platform) {
+                    request->complete();
+                    return;
+                }
+
+                auto tokenString = request->tokenAtCursor();
+                const auto tokenElement = request->tokenElement();
+                const auto& tokens = request->tokens();
+
+                if (tokenElement == 0) {
+                    std::vector<std::string> toplevel;
+                    toplevel.push_back("device");
+                    toplevel.push_back("exit");
+                    for (const auto& a : platform->actions()) {
+                        toplevel.push_back(a->name());
+                    }
+                    for (const auto& p : toplevel) {
+                        if (tokenString.empty() || (p.size() > tokenString.size() && !strncmp(tokenString.c_str(), p.c_str(), tokenString.size())))
+                            alternatives.push_back(p);
+                    }
+                } else if (tokens[0] == "device") {
+                    // device command is of the form
+                    // 'device <id> <action_name> <arguments>'
+                    const auto& devices = platform->devices();
+                    for (const auto& device : devices) {
+                        if (tokenElement == 1) {
+                            // complete on device id
+                            if (tokenString.empty() || (device.first.size() > tokenString.size() && !strncmp(tokenString.c_str(), device.first.c_str(), tokenString.size())))
+                                alternatives.push_back(device.first);
+                        } else if (tokens[1] == device.first) {
+                            if (tokenElement == 2) {
+                                // complete on command
+                                std::vector<std::string> cmds = { "action" };
+                                for (const auto& p : cmds) {
+                                    if (tokenString.empty() || (p.size() > tokenString.size() && !strncmp(tokenString.c_str(), p.c_str(), tokenString.size())))
+                                        alternatives.push_back(p);
+                                }
+                            } else if (tokenElement == 3 && tokens[2] == "action") {
+                                // complete on action name
+                                const auto& dev = device.second;
+                                for (const auto& action : dev->actions()) {
+                                    const auto& p = action->name();
+                                    if (tokenString.empty() || (p.size() > tokenString.size() && !strncmp(tokenString.c_str(), p.c_str(), tokenString.size())))
+                                        alternatives.push_back(p);
+                                }
+                            }
+                            break;
+                        }
+                    }
+                }
+
+                //Log(Log::Error) << localsub << local;
             }
-            break;
-        }
-        offset += len;
-        if (!e.empty())
-            ++argno;
-    }
+            request->complete(std::move(alternatives));
+        });
+    mEditline->onCommand().connect([this](const std::string& prefix, std::string&& cmd) {
+            //printf("command %s\n", cmd.c_str());
+            // split on space, send action to platform
 
-    if (element >= list.size() || list[element].empty())
-        mTokenIsEmpty = true;
+            std::shared_ptr<Platform> platform;
+            if (!prefix.empty()) {
+                for (const auto& p : mHomework->platforms()) {
+                    if (p->name() == prefix) {
+                        platform = p;
+                        break;
+                    }
+                }
+                if (!platform) {
+                    Log(Log::Error) << "no platform for" << prefix;
+                    return;
+                }
+            }
 
-    mTokenCursorPosition = local;
-    mTokenElement = argno;
+            auto list = split(cmd);
 
-    // split, excluding whitespace
-    mTokens = split(sub, true);
+            if (prefix.empty() || list.empty()) {
+                // bail out for now
+                Log(Log::Error) << "invalid command" << prefix << cmd;
+                return;
+            }
+
+            if (!platform) {
+                Log(Log::Error) << "no platform for" << prefix;
+                return;
+            }
+
+            if (list.front() == "device") {
+                if (list.size() == 1) {
+                    Log(Log::Info) << "-- devices";
+                    if (platform) {
+                        const auto& devices = platform->devices();
+                        for (const auto& device : devices) {
+                            Log(Log::Error) << device.first << ":" << device.second->name();
+                        }
+                    }
+                    Log(Log::Info) << "-- end devices";
+                } else if (list.size() > 2) {
+                    const auto& id = list[1];
+                    const auto& cmd = list[2];
+                    const auto& devices = platform->devices();
+                    for (const auto& device : devices) {
+                        if (device.first == id) {
+                            const auto& dev = device.second;
+                            if (cmd == "action") {
+                                if (list.size() == 3) {
+                                    Log(Log::Info) << "-- actions";
+                                    for (const auto& action : dev->actions()) {
+                                        Log(Log::Info) << action->name();
+                                    }
+                                    Log(Log::Info) << "-- end actions";
+                                    return;
+                                } else if (list.size() > 3) {
+                                    const auto& a = list[3];
+                                    for (const auto& action : dev->actions()) {
+                                        if (action->name() == a) {
+                                            bool ok;
+                                            Action::Arguments args = parseArguments(action->descriptors(), list, 4, &ok);
+                                            if (!ok)
+                                                return;
+                                            Log(Log::Info) << "executing action" << a;
+                                            action->execute(args);
+                                            return;
+                                        }
+                                    }
+                                }
+                            }
+                            Log(Log::Error) << "invalid action" << cmd;
+                            return;
+                        }
+                    }
+                    Log(Log::Error) << "no such device" << id;
+                } else {
+                    Log(Log::Error) << "malformed device command";
+                }
+                return;
+            }
+
+            const std::string& action = list.front();
+            for (const auto& a : platform->actions()) {
+                if (a->name() == action) {
+                    // go
+                    bool ok;
+                    Action::Arguments args = parseArguments(a->descriptors(), list, 1, &ok);
+                    if (!ok)
+                        return;
+                    a->execute(args);
+                    return;
+                }
+            }
+            Log(Log::Error) << "action not found" << action;
+        });
+
+}
+
+void Console::stop()
+{
 }

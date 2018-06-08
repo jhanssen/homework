@@ -9,6 +9,7 @@ add_subdirectory(reckoning)
 set(SOURCES
     main.cpp
     Console.cpp
+    Editline.cpp
     Homework.cpp)
 
 include_directories(
