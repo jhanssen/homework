@@ -22,6 +22,9 @@ public:
     void addAction(const std::shared_ptr<Action>& action, Action::Arguments&& args);
     void addAction(const std::shared_ptr<Action>& action, const Action::Arguments& args);
 
+    void disable();
+    void enable();
+
 protected:
     Rule(const std::string& name);
 
@@ -52,13 +55,7 @@ inline void Rule::setEvent(const std::shared_ptr<Event>& event)
 {
     mEventConnection.disconnect();
     mEvent = event;
-    mEventConnection = mEvent->onTriggered().connect([this]() {
-            if (!mCondition || mCondition->execute()) {
-                for (auto a : mActions) {
-                    a.first->execute(a.second);
-                }
-            }
-        });
+    enable();
 }
 
 inline void Rule::setCondition(const std::shared_ptr<Condition>& condition)
@@ -74,6 +71,22 @@ inline void Rule::addAction(const std::shared_ptr<Action>& action, Action::Argum
 inline void Rule::addAction(const std::shared_ptr<Action>& action, const Action::Arguments& args)
 {
     mActions.push_back(std::make_pair(action, args));
+}
+
+inline void Rule::disable()
+{
+    mEventConnection.disconnect();
+}
+
+inline void Rule::enable()
+{
+    mEventConnection = mEvent->onTriggered().connect([this]() {
+            if (!mCondition || mCondition->execute()) {
+                for (auto a : mActions) {
+                    a.first->execute(a.second);
+                }
+            }
+        });
 }
 
 #endif // RULE_H
