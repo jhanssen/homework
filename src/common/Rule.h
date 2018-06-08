@@ -13,6 +13,8 @@ using reckoning::util::Creatable;
 class Rule : public std::enable_shared_from_this<Rule>, public Creatable<Rule>
 {
 public:
+    typedef std::vector<std::pair<std::shared_ptr<Action>, Action::Arguments> > Actions;
+
     ~Rule();
 
     std::string name() const;
@@ -21,6 +23,12 @@ public:
     void setCondition(const std::shared_ptr<Condition>& condition);
     void addAction(const std::shared_ptr<Action>& action, Action::Arguments&& args);
     void addAction(const std::shared_ptr<Action>& action, const Action::Arguments& args);
+
+    const std::shared_ptr<Event>& event() const;
+    const std::shared_ptr<Condition>& condition() const;
+    const Actions& actions() const;
+    size_t actionSize() const;
+    bool removeAction(size_t action);
 
     void disable();
     void enable();
@@ -33,7 +41,7 @@ private:
     Signal<>::Connection mEventConnection;
     std::shared_ptr<Event> mEvent;
     std::shared_ptr<Condition> mCondition;
-    std::vector<std::pair<std::shared_ptr<Action>, Action::Arguments> > mActions;
+    Actions mActions;
 };
 
 inline Rule::Rule(const std::string& name)
@@ -71,6 +79,35 @@ inline void Rule::addAction(const std::shared_ptr<Action>& action, Action::Argum
 inline void Rule::addAction(const std::shared_ptr<Action>& action, const Action::Arguments& args)
 {
     mActions.push_back(std::make_pair(action, args));
+}
+
+const std::shared_ptr<Event>& Rule::event() const
+{
+    return mEvent;
+}
+
+const std::shared_ptr<Condition>& Rule::condition() const
+{
+    return mCondition;
+}
+
+const Rule::Actions& Rule::actions() const
+{
+    return mActions;
+}
+
+size_t Rule::actionSize() const
+{
+    return mActions.size();
+}
+
+bool Rule::removeAction(size_t action)
+{
+    if (action < mActions.size()) {
+        mActions.erase(mActions.begin() + action);
+        return true;
+    }
+    return false;
 }
 
 inline void Rule::disable()
