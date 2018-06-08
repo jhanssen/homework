@@ -2,9 +2,12 @@
 #define CONDITION_H
 
 #include "State.h"
+#include <util/Creatable.h>
 #include <memory>
 
-class Condition
+using reckoning::util::Creatable;
+
+class Condition : public std::enable_shared_from_this<Condition>, public Creatable<Condition>
 {
 public:
     enum LogicalOperator {
@@ -12,13 +15,14 @@ public:
         Operator_Or
     };
 
-    Condition();
-
     void add(LogicalOperator op, const std::shared_ptr<State>& state, const std::any& value);
     void add(LogicalOperator op, const std::shared_ptr<Condition>& condition);
     void add(LogicalOperator op, std::shared_ptr<Condition>&& condition);
 
     bool execute() const;
+
+protected:
+    Condition();
 
 private:
     struct Data
