@@ -80,10 +80,13 @@ inline void Rule::disable()
 
 inline void Rule::enable()
 {
-    mEventConnection = mEvent->onTriggered().connect([this]() {
-            if (!mCondition || mCondition->execute()) {
-                for (auto a : mActions) {
-                    a.first->execute(a.second);
+    std::weak_ptr<Rule> weakRule = shared_from_this();
+    mEventConnection = mEvent->onTriggered().connect([weakRule]() {
+            if (auto rule = weakRule.lock()) {
+                if (!rule->mCondition || rule->mCondition->execute()) {
+                    for (auto a : rule->mActions) {
+                        a.first->execute(a.second);
+                    }
                 }
             }
         });
