@@ -81,27 +81,27 @@ inline void Rule::addAction(const std::shared_ptr<Action>& action, const Action:
     mActions.push_back(std::make_pair(action, args));
 }
 
-const std::shared_ptr<Event>& Rule::event() const
+inline const std::shared_ptr<Event>& Rule::event() const
 {
     return mEvent;
 }
 
-const std::shared_ptr<Condition>& Rule::condition() const
+inline const std::shared_ptr<Condition>& Rule::condition() const
 {
     return mCondition;
 }
 
-const Rule::Actions& Rule::actions() const
+inline const Rule::Actions& Rule::actions() const
 {
     return mActions;
 }
 
-size_t Rule::actionSize() const
+inline size_t Rule::actionSize() const
 {
     return mActions.size();
 }
 
-bool Rule::removeAction(size_t action)
+inline bool Rule::removeAction(size_t action)
 {
     if (action < mActions.size()) {
         mActions.erase(mActions.begin() + action);
