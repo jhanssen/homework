@@ -117,6 +117,8 @@ inline void Rule::disable()
 
 inline void Rule::enable()
 {
+    if (mEventConnection.connected())
+        return;
     std::weak_ptr<Rule> weakRule = shared_from_this();
     mEventConnection = mEvent->onTriggered().connect([weakRule]() {
             if (auto rule = weakRule.lock()) {
