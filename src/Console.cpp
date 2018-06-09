@@ -160,18 +160,28 @@ void Console::start()
                         } else if (tokens[1] == device.first) {
                             if (tokenElement == 2) {
                                 // complete on command
-                                std::vector<std::string> cmds = { "action" };
+                                std::vector<std::string> cmds = { "action", "state" };
                                 for (const auto& p : cmds) {
                                     if (tokenString.empty() || (p.size() > tokenString.size() && !strncmp(tokenString.c_str(), p.c_str(), tokenString.size())))
                                         alternatives.push_back(p);
                                 }
-                            } else if (tokenElement == 3 && tokens[2] == "action") {
-                                // complete on action name
-                                const auto& dev = device.second;
-                                for (const auto& action : dev->actions()) {
-                                    const auto& p = action->name();
-                                    if (tokenString.empty() || (p.size() > tokenString.size() && !strncmp(tokenString.c_str(), p.c_str(), tokenString.size())))
-                                        alternatives.push_back(p);
+                            } else if (tokenElement == 3) {
+                                if (tokens[2] == "action") {
+                                    // complete on action name
+                                    const auto& dev = device.second;
+                                    for (const auto& action : dev->actions()) {
+                                        const auto& p = action->name();
+                                        if (tokenString.empty() || (p.size() > tokenString.size() && !strncmp(tokenString.c_str(), p.c_str(), tokenString.size())))
+                                            alternatives.push_back(p);
+                                    }
+                                } else if (tokens[2] == "state") {
+                                    // complete on state name
+                                    const auto& dev = device.second;
+                                    for (const auto& state : dev->states()) {
+                                        const auto& p = state->name();
+                                        if (tokenString.empty() || (p.size() > tokenString.size() && !strncmp(tokenString.c_str(), p.c_str(), tokenString.size())))
+                                            alternatives.push_back(p);
+                                    }
                                 }
                             }
                             break;
@@ -252,6 +262,37 @@ void Console::start()
                                             return;
                                         }
                                     }
+                                }
+                            } else if (cmd == "state") {
+                                if (list.size() == 3) {
+                                    Log(Log::Info) << "-- state";
+                                    for (const auto& state : dev->states()) {
+                                        Log(Log::Info) << state->name();
+                                    }
+                                    Log(Log::Info) << "-- end state";
+                                    return;
+                                } else if (list.size() > 3) {
+                                    const auto& s = list[3];
+                                    for (const auto& state : dev->states()) {
+                                        if (state->name() == s) {
+                                            switch (state->type()) {
+                                            case State::Bool:
+                                                Log(Log::Info) << "state" << s << state->value<bool>();
+                                                break;
+                                            case State::Int:
+                                                Log(Log::Info) << "state" << s << state->value<int>();
+                                                break;
+                                            case State::Double:
+                                                Log(Log::Info) << "state" << s << state->value<double>();
+                                                break;
+                                            case State::String:
+                                                Log(Log::Info) << "state" << s << state->value<std::string>();
+                                                break;
+                                            }
+                                            return;
+                                        }
+                                    }
+
                                 }
                             }
                             Log(Log::Error) << "invalid action" << cmd;
