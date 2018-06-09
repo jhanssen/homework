@@ -57,6 +57,13 @@ protected:
     static void changeDeviceGroup(const std::shared_ptr<Device>& dev, const std::string& group);
     static void changeDeviceName(const std::shared_ptr<Device>& dev, const std::string& name);
     static void addDeviceAction(const std::shared_ptr<Device>& dev, std::shared_ptr<Action>&& action);
+    static void addDeviceEvent(const std::shared_ptr<Device>& dev, std::shared_ptr<Event>&& event);
+    static void addDeviceState(const std::shared_ptr<Device>& dev, std::shared_ptr<State>&& state);
+
+    // platform to state
+    static void changeState(const std::shared_ptr<State>& dev, std::any&& value);
+
+    std::shared_ptr<State> findDeviceState(const std::string& uniqueId, const std::string& stateName);
 
 private:
     Signal<const std::shared_ptr<Device>&> mOnDeviceAdded, mOnDeviceRemoved;
@@ -155,6 +162,20 @@ inline bool Platform::hasDevice(const std::string& uniqueId)
     return mDevices.find(uniqueId) != mDevices.end();
 }
 
+inline std::shared_ptr<State> Platform::findDeviceState(const std::string& uniqueId, const std::string& stateName)
+{
+    std::lock_guard<std::mutex> locker(mMutex);
+    auto device = mDevices.find(uniqueId);
+    if (device != mDevices.end()) {
+        auto ptr = device->second;
+        for (const auto& state : ptr->mStates) {
+            if (state->name() == stateName)
+                return state;
+        }
+    }
+    return std::shared_ptr<State>();
+}
+
 inline void Platform::sendMessage(MessageType type, const std::string& msg)
 {
     mOnMessage.emit(MessageType(type), msg);
@@ -178,6 +199,21 @@ inline void Platform::changeDeviceName(const std::shared_ptr<Device>& dev, const
 inline void Platform::addDeviceAction(const std::shared_ptr<Device>& dev, std::shared_ptr<Action>&& action)
 {
     dev->addAction(std::forward<std::shared_ptr<Action> >(action));
+}
+
+inline void Platform::addDeviceEvent(const std::shared_ptr<Device>& dev, std::shared_ptr<Event>&& event)
+{
+    dev->addEvent(std::forward<std::shared_ptr<Event> >(event));
+}
+
+inline void Platform::addDeviceState(const std::shared_ptr<Device>& dev, std::shared_ptr<State>&& state)
+{
+    dev->addState(std::forward<std::shared_ptr<State> >(state));
+}
+
+inline void Platform::changeState(const std::shared_ptr<State>& state, std::any&& value)
+{
+    state->changeState(std::forward<std::any>(value));
 }
 
 #endif // PLATFORM

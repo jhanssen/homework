@@ -426,12 +426,46 @@ inline void PlatformZwave::makeDevice(NodeInfo* nodeInfo, const std::string& uni
         addDeviceAction(dev, std::move(setCommand));
         addDeviceAction(dev, std::move(toggleCommand));
 
+        bool on;
+        if (zmanager->GetValueAsBool(*valueId, &on)) {
+            auto onState = State::create("on", on);
+            addDeviceState(dev, std::move(onState));
+        } else {
+            auto onState = State::create("on", false);
+            addDeviceState(dev, std::move(onState));
+        }
+
         break; }
     default:
         break;
     }
 
     addDevice(std::move(dev));
+}
+
+inline void PlatformZwave::updateDevice(NodeInfo* nodeInfo, const std::string& uniqueId, const OpenZWave::ValueID* valueId)
+{
+    auto zmanager = OpenZWave::Manager::Get();
+
+    const auto generic = static_cast<GenericDevice>(zmanager->GetNodeGeneric(nodeInfo->homeId, nodeInfo->nodeId));
+    switch (generic) {
+    case GenericDevice::Switch_Binary: {
+        if (static_cast<CommandClass>(valueId->GetCommandClassId()) == CommandClass::Switch_Binary) {
+            // find the "on" value
+            auto state = findDeviceState(uniqueId, "on");
+            if (state) {
+                bool on;
+                if (zmanager->GetValueAsBool(*valueId, &on)) {
+                    changeState(state, std::any(on));
+                }
+            }
+        }
+
+        break; }
+    default:
+        // no
+        break;
+    }
 }
 
 PlatformZwave::PlatformZwave(const Options& options)
@@ -557,7 +591,8 @@ void PlatformZwave::onNotification(const OpenZWave::Notification* notification, 
         break;
     case OpenZWave::Notification::Type_ValueChanged:
         if (NodeInfo* nodeInfo = data->findNode(notification)) {
-            // fun stuff
+            const std::string uniqueId = data->devicePrefix + std::to_string(notification->GetNodeId());
+            data->zwave->updateDevice(nodeInfo, uniqueId, &notification->GetValueID());
         }
         break;
     case OpenZWave::Notification::Type_SceneEvent:

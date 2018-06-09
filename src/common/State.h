@@ -4,6 +4,7 @@
 #include <event/Signal.h>
 #include <util/Any.h>
 #include <util/Creatable.h>
+#include <mutex>
 #include <memory>
 #include <string>
 
@@ -35,7 +36,6 @@ protected:
     explicit State(const std::string& name, const std::string& value);
 
     void changeState(std::any&& v);
-    void setDevice(const std::shared_ptr<Device>&);
 
 private:
     Type mType;
@@ -43,8 +43,10 @@ private:
     std::any mValue;
     Signal<std::shared_ptr<State>&&> mOnStateChanged;
     std::weak_ptr<Device> mDevice;
+    static std::mutex sMutex;
 
     friend class Device;
+    friend class Platform;
 };
 
 inline State::State(const std::string& name, bool value)
@@ -80,6 +82,7 @@ inline std::string State::name() const
 template<typename T>
 inline T State::value() const
 {
+    std::lock_guard<std::mutex> locker(sMutex);
     if (mValue.type() == typeid(T))
         return std::any_cast<T>(mValue);
     return T();
@@ -87,6 +90,7 @@ inline T State::value() const
 
 inline bool State::operator==(const std::any& value) const
 {
+    std::lock_guard<std::mutex> locker(sMutex);
     if (mValue.type() == value.type()) {
         switch (mType) {
         case Bool:
@@ -107,11 +111,6 @@ inline Signal<std::shared_ptr<State>&&>& State::onStateChanged()
     return mOnStateChanged;
 }
 
-inline void State::setDevice(const std::shared_ptr<Device>& device)
-{
-    mDevice = device;
-}
-
 inline std::shared_ptr<Device> State::device() const
 {
     return mDevice.lock();
@@ -119,12 +118,15 @@ inline std::shared_ptr<Device> State::device() const
 
 inline void State::changeState(std::any&& v)
 {
+    {
+        std::lock_guard<std::mutex> locker(sMutex);
 #if defined(HAVE_ANY_CAST)
-    assert(!mValue.has_value() || v.type() == mValue.type());
+        assert(!mValue.has_value() || v.type() == mValue.type());
 #elif defined(HAVE_EXPERIMENTAL_ANY_CAST)
-    assert(!mValue.empty() || v.type() == mValue.type());
+        assert(!mValue.empty() || v.type() == mValue.type());
 #endif
-    mValue = std::forward<std::any>(v);
+        mValue = std::forward<std::any>(v);
+    }
     mOnStateChanged.emit(shared_from_this());
 }
 
