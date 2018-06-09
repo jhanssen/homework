@@ -54,9 +54,9 @@ Editline::Editline(const std::vector<std::string>& prefixes)
     el_set(mEditLine, EL_HIST, history, mHistory);
     el_set(mEditLine, EL_CLIENTDATA, this);
     el_set(mEditLine, EL_PROMPT_ESC, &Editline::prompt, '\1');
-    el_set(mEditLine, EL_BIND, "^I", "ed-complete", 0);
     el_wset(mEditLine, EL_GETCFN, &Editline::getChar);
     el_wset(mEditLine, EL_ADDFN, L"ed-complete", L"help", &Editline::complete);
+    el_set(mEditLine, EL_BIND, "^I", "ed-complete", 0);
 
     const auto home = homedir();
     if (!home.empty()) {
