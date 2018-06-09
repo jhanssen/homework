@@ -8,6 +8,7 @@
 using reckoning::util::Creatable;
 
 struct PlatformZwaveData;
+struct NodeInfo;
 
 class PlatformZwave : public Platform, public Creatable<PlatformZwave>
 {
@@ -22,6 +23,8 @@ protected:
 
 private:
     static void onNotification(const OpenZWave::Notification* notification, void* ctx);
+
+    void makeDevice(NodeInfo* nodeInfo, const std::string& uniqueId);
 
 private:
     int mPollInterval;

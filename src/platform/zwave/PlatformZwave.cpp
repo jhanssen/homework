@@ -371,6 +371,69 @@ NodeInfo* PlatformZwaveData::findNode(const OpenZWave::Notification* notificatio
     return nullptr;
 }
 
+inline void PlatformZwave::makeDevice(NodeInfo* nodeInfo, const std::string& uniqueId)
+{
+    auto zmanager = OpenZWave::Manager::Get();
+
+    auto findCommandClass = [](NodeInfo* nodeInfo, CommandClass cls) -> const OpenZWave::ValueID* {
+        for (const auto& v : nodeInfo->values) {
+            if (static_cast<CommandClass>(v.GetCommandClassId()) == cls)
+                return &v;
+        }
+        return nullptr;
+    };
+
+    const auto generic = static_cast<GenericDevice>(zmanager->GetNodeGeneric(nodeInfo->homeId, nodeInfo->nodeId));
+
+    std::shared_ptr<Device> dev = Device::create(uniqueId, "Unknown",
+                                                 zmanager->GetNodeName(nodeInfo->homeId, nodeInfo->nodeId));
+
+    switch (generic) {
+    case GenericDevice::Switch_Binary: {
+        const auto specific = static_cast<SpecificSwitchBinary>(zmanager->GetNodeSpecific(nodeInfo->homeId, nodeInfo->nodeId));
+        if (specific == SpecificSwitchBinary::Power_Switch_Binary) {
+            Platform::changeDeviceGroup(dev, "Binary Switch");
+        }
+
+        // find the Switch_All command class
+        auto valueId = findCommandClass(nodeInfo, CommandClass::Switch_Binary);
+        if (!valueId) {
+            Log(Log::Error) << "unable to find command class Switch_Binary for Switch_Binary";
+            return;
+        }
+
+        // add our state, event and actions
+        auto turnOnCommand = Action::create("turnon", [zmanager, valueId](const Action::Arguments& /*args*/) {
+                zmanager->SetValue(*valueId, true);
+            });
+        auto turnOffCommand = Action::create("turnoff", [zmanager, valueId](const Action::Arguments& /*args*/) {
+                zmanager->SetValue(*valueId, false);
+            });
+        auto setCommand = Action::create("set", [zmanager, valueId](const Action::Arguments& args) {
+                assert(args.size() == 1 && args[0].type() == typeid(bool));
+                zmanager->SetValue(*valueId, std::any_cast<bool>(args[0]));
+            }, Action::Descriptors {
+                ArgumentDescriptor { ArgumentDescriptor::Bool }
+            });
+        auto toggleCommand = Action::create("toggle", [zmanager, valueId](const Action::Arguments& /*args*/) {
+                bool on;
+                if (zmanager->GetValueAsBool(*valueId, &on)) {
+                    zmanager->SetValue(*valueId, !on);
+                }
+            });
+        addDeviceAction(dev, std::move(turnOnCommand));
+        addDeviceAction(dev, std::move(turnOffCommand));
+        addDeviceAction(dev, std::move(setCommand));
+        addDeviceAction(dev, std::move(toggleCommand));
+
+        break; }
+    default:
+        break;
+    }
+
+    addDevice(std::move(dev));
+}
+
 PlatformZwave::PlatformZwave(const Options& options)
     : Platform("zwave", options), mData(nullptr)
 {
@@ -526,79 +589,48 @@ void PlatformZwave::onNotification(const OpenZWave::Notification* notification, 
             ++it;
         }
         break; }
+    case OpenZWave::Notification::Type_NodeNaming: {
+        auto zmanager = OpenZWave::Manager::Get();
+
+        if (NodeInfo* nodeInfo = data->findNode(notification)) {
+            Log(Log::Info) << "node naming"
+                           << "id" << nodeInfo->nodeId
+                           << "type" << zmanager->GetNodeType(nodeInfo->homeId, nodeInfo->nodeId)
+                           << "basic" << zmanager->GetNodeBasic(nodeInfo->homeId, nodeInfo->nodeId)
+                           << "generic" << zmanager->GetNodeGeneric(nodeInfo->homeId, nodeInfo->nodeId)
+                           << "specific" << zmanager->GetNodeSpecific(nodeInfo->homeId, nodeInfo->nodeId);
+
+            const std::string uniqueId = data->devicePrefix + std::to_string(notification->GetNodeId());
+            if (!data->zwave->hasDevice(uniqueId)) {
+                data->zwave->makeDevice(nodeInfo, uniqueId);
+
+                for (const auto& v : nodeInfo->values) {
+                    Log(Log::Info) << "  value type" << v.GetType() << v.GetCommandClassId();
+                }
+            }
+        }
+        break; }
     case OpenZWave::Notification::Type_NodeProtocolInfo:
-    case OpenZWave::Notification::Type_NodeNaming:
     case OpenZWave::Notification::Type_NodeEvent:
         break;
     case OpenZWave::Notification::Type_NodeQueriesComplete: {
         auto zmanager = OpenZWave::Manager::Get();
 
-        auto findCommandClass = [](NodeInfo* nodeInfo, CommandClass cls) -> const OpenZWave::ValueID* {
-            for (const auto& v : nodeInfo->values) {
-                if (static_cast<CommandClass>(v.GetCommandClassId()) == cls)
-                    return &v;
-            }
-            return nullptr;
-        };
-
         if (NodeInfo* nodeInfo = data->findNode(notification)) {
-            const auto generic = static_cast<GenericDevice>(zmanager->GetNodeGeneric(nodeInfo->homeId, nodeInfo->nodeId));
-
-            std::shared_ptr<Device> dev = Device::create(data->devicePrefix + std::to_string(nodeInfo->nodeId), "Unknown",
-                                                         zmanager->GetNodeName(nodeInfo->homeId, nodeInfo->nodeId));
-
-            switch (generic) {
-            case GenericDevice::Switch_Binary: {
-                const auto specific = static_cast<SpecificSwitchBinary>(zmanager->GetNodeSpecific(nodeInfo->homeId, nodeInfo->nodeId));
-                if (specific == SpecificSwitchBinary::Power_Switch_Binary) {
-                    changeDeviceGroup(dev, "Binary Switch");
-                }
-
-                // find the Switch_All command class
-                auto valueId = findCommandClass(nodeInfo, CommandClass::Switch_Binary);
-                if (!valueId) {
-                    Log(Log::Error) << "unable to find command class Switch_Binary for Switch_Binary";
-                    return;
-                }
-
-                // add our state, event and actions
-                auto turnOnCommand = Action::create("turnon", [zmanager, valueId](const Action::Arguments& /*args*/) {
-                        zmanager->SetValue(*valueId, true);
-                    });
-                auto turnOffCommand = Action::create("turnoff", [zmanager, valueId](const Action::Arguments& /*args*/) {
-                        zmanager->SetValue(*valueId, false);
-                    });
-                auto setCommand = Action::create("set", [zmanager, valueId](const Action::Arguments& args) {
-                        assert(args.size() == 1 && args[0].type() == typeid(bool));
-                        zmanager->SetValue(*valueId, std::any_cast<bool>(args[0]));
-                    }, Action::Descriptors {
-                        ArgumentDescriptor { ArgumentDescriptor::Bool }
-                    });
-                auto toggleCommand = Action::create("toggle", [zmanager, valueId](const Action::Arguments& /*args*/) {
-                        bool on;
-                        if (zmanager->GetValueAsBool(*valueId, &on)) {
-                            zmanager->SetValue(*valueId, !on);
-                        }
-                    });
-                addDeviceAction(dev, std::move(turnOnCommand));
-                addDeviceAction(dev, std::move(turnOffCommand));
-                addDeviceAction(dev, std::move(setCommand));
-                addDeviceAction(dev, std::move(toggleCommand));
-
-                break; }
-            default:
-                break;
-            }
-
-            data->zwave->addDevice(std::move(dev));
-
             Log(Log::Info) << "node complete"
-                           << zmanager->GetNodeType(nodeInfo->homeId, nodeInfo->nodeId)
-                           << zmanager->GetNodeBasic(nodeInfo->homeId, nodeInfo->nodeId)
-                           << zmanager->GetNodeGeneric(nodeInfo->homeId, nodeInfo->nodeId)
-                           << zmanager->GetNodeSpecific(nodeInfo->homeId, nodeInfo->nodeId);
-            for (const auto& v : nodeInfo->values) {
-                Log(Log::Info) << "  value type" << v.GetType() << v.GetCommandClassId();
+                           << "id" << nodeInfo->nodeId
+                           << "type" << zmanager->GetNodeType(nodeInfo->homeId, nodeInfo->nodeId)
+                           << "basic" << zmanager->GetNodeBasic(nodeInfo->homeId, nodeInfo->nodeId)
+                           << "generic" << zmanager->GetNodeGeneric(nodeInfo->homeId, nodeInfo->nodeId)
+                           << "specific" << zmanager->GetNodeSpecific(nodeInfo->homeId, nodeInfo->nodeId);
+
+            const std::string uniqueId = data->devicePrefix + std::to_string(notification->GetNodeId());
+            if (!data->zwave->hasDevice(uniqueId)) {
+                data->zwave->makeDevice(nodeInfo, uniqueId);
+
+                for (const auto& v : nodeInfo->values) {
+                    Log(Log::Info) << "  value type" << v.GetType() << v.GetCommandClassId();
+                }
             }
         }
         break; }

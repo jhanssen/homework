@@ -39,10 +39,11 @@ public:
 protected:
     Platform(const std::string& name, const Options& options);
 
-    void addAction(std::shared_ptr<Action>&& action);
     void addDevice(const std::shared_ptr<Device>& device);
     void removeDevice(const std::shared_ptr<Device>& device);
     void removeDevice(const std::string& uniqueId);
+    bool hasDevice(const std::string& uniqueId);
+    void addAction(std::shared_ptr<Action>&& action);
     void sendMessage(MessageType type, const std::string& msg);
     void setValid(bool valid);
 
@@ -146,6 +147,12 @@ inline void Platform::removeDevice(const std::string& uniqueId)
         mDevices.erase(device);
         mOnDeviceRemoved.emit(ptr);
     }
+}
+
+inline bool Platform::hasDevice(const std::string& uniqueId)
+{
+    std::lock_guard<std::mutex> locker(mMutex);
+    return mDevices.find(uniqueId) != mDevices.end();
 }
 
 inline void Platform::sendMessage(MessageType type, const std::string& msg)
