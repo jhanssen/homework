@@ -2,10 +2,12 @@
 #define RULE_H
 
 #include <Event.h>
+#include <State.h>
 #include <Condition.h>
 #include <Action.h>
 #include <event/Signal.h>
 #include <util/Creatable.h>
+#include <cassert>
 
 using reckoning::event::Signal;
 using reckoning::util::Creatable;
@@ -19,7 +21,8 @@ public:
 
     std::string name() const;
 
-    void setEvent(const std::shared_ptr<Event>& event);
+    void setTrigger(const std::shared_ptr<Event>& event);
+    void setTrigger(const std::shared_ptr<State>& state);
     void setCondition(const std::shared_ptr<Condition>& condition);
     void addAction(const std::shared_ptr<Action>& action, Action::Arguments&& args);
     void addAction(const std::shared_ptr<Action>& action, const Action::Arguments& args);
@@ -38,8 +41,9 @@ protected:
 
 private:
     std::string mName;
-    Signal<>::Connection mEventConnection;
+    Signal<>::Connection mTriggerConnection;
     std::shared_ptr<Event> mEvent;
+    std::shared_ptr<State> mState;
     std::shared_ptr<Condition> mCondition;
     Actions mActions;
 };
@@ -51,7 +55,7 @@ inline Rule::Rule(const std::string& name)
 
 inline Rule::~Rule()
 {
-    mEventConnection.disconnect();
+    mTriggerConnection.disconnect();
 }
 
 inline std::string Rule::name() const
@@ -59,10 +63,19 @@ inline std::string Rule::name() const
     return mName;
 }
 
-inline void Rule::setEvent(const std::shared_ptr<Event>& event)
+inline void Rule::setTrigger(const std::shared_ptr<Event>& event)
 {
-    mEventConnection.disconnect();
+    mTriggerConnection.disconnect();
+    mState.reset();
     mEvent = event;
+    enable();
+}
+
+inline void Rule::setTrigger(const std::shared_ptr<State>& state)
+{
+    mTriggerConnection.disconnect();
+    mEvent.reset();
+    mState = state;
     enable();
 }
 
@@ -112,23 +125,37 @@ inline bool Rule::removeAction(size_t action)
 
 inline void Rule::disable()
 {
-    mEventConnection.disconnect();
+    mTriggerConnection.disconnect();
 }
 
 inline void Rule::enable()
 {
-    if (mEventConnection.connected())
+    if (mTriggerConnection.connected())
         return;
     std::weak_ptr<Rule> weakRule = shared_from_this();
-    mEventConnection = mEvent->onTriggered().connect([weakRule]() {
-            if (auto rule = weakRule.lock()) {
-                if (!rule->mCondition || rule->mCondition->execute()) {
-                    for (auto a : rule->mActions) {
-                        a.first->execute(a.second);
+    if (mEvent) {
+        assert(!mState);
+        mTriggerConnection = mEvent->onTriggered().connect([weakRule]() {
+                if (auto rule = weakRule.lock()) {
+                    if (!rule->mCondition || rule->mCondition->execute()) {
+                        for (auto a : rule->mActions) {
+                            a.first->execute(a.second);
+                        }
                     }
                 }
-            }
-        });
+            });
+    } else if (mState) {
+        assert(!mEvent);
+        mTriggerConnection = mState->onChanged().connect([weakRule]() {
+                if (auto rule = weakRule.lock()) {
+                    if (!rule->mCondition || rule->mCondition->execute()) {
+                        for (auto a : rule->mActions) {
+                            a.first->execute(a.second);
+                        }
+                    }
+                }
+            });
+    }
 }
 
 #endif // RULE_H

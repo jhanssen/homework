@@ -27,7 +27,7 @@ public:
 
     bool operator==(const std::any& value) const;
 
-    Signal<std::shared_ptr<State>&&>& onStateChanged();
+    Signal<>& onChanged();
 
 protected:
     explicit State(const std::string& name, bool value);
@@ -41,7 +41,7 @@ private:
     Type mType;
     std::string mName;
     std::any mValue;
-    Signal<std::shared_ptr<State>&&> mOnStateChanged;
+    Signal<> mOnStateChanged;
     std::weak_ptr<Device> mDevice;
     static std::mutex sMutex;
 
@@ -106,7 +106,7 @@ inline bool State::operator==(const std::any& value) const
     return false;
 }
 
-inline Signal<std::shared_ptr<State>&&>& State::onStateChanged()
+inline Signal<>& State::onChanged()
 {
     return mOnStateChanged;
 }
@@ -127,7 +127,7 @@ inline void State::changeState(std::any&& v)
 #endif
         mValue = std::forward<std::any>(v);
     }
-    mOnStateChanged.emit(shared_from_this());
+    mOnStateChanged.emit();
 }
 
 #endif // STATE_H
