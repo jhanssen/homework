@@ -18,6 +18,8 @@ class State : public std::enable_shared_from_this<State>, public Creatable<State
 public:
     enum Type { Bool, Int, Double, String };
 
+    std::string uniqueId() const;
+
     Type type() const;
     std::string name() const;
     std::shared_ptr<Device> device() const;
@@ -30,16 +32,16 @@ public:
     Signal<>& onChanged();
 
 protected:
-    explicit State(const std::string& name, bool value);
-    explicit State(const std::string& name, int value);
-    explicit State(const std::string& name, double value);
-    explicit State(const std::string& name, const std::string& value);
+    explicit State(const std::string& uniqueId, const std::string& name, bool value);
+    explicit State(const std::string& uniqueId, const std::string& name, int value);
+    explicit State(const std::string& uniqueId, const std::string& name, double value);
+    explicit State(const std::string& uniqueId, const std::string& name, const std::string& value);
 
     void changeState(std::any&& v);
 
 private:
     Type mType;
-    std::string mName;
+    std::string mUniqueId, mName;
     std::any mValue;
     Signal<> mOnStateChanged;
     std::weak_ptr<Device> mDevice;
@@ -49,29 +51,34 @@ private:
     friend class Platform;
 };
 
-inline State::State(const std::string& name, bool value)
-    : mType(Bool), mName(name), mValue(value)
+inline State::State(const std::string& uniqueId, const std::string& name, bool value)
+    : mType(Bool), mUniqueId(uniqueId), mName(name), mValue(value)
 {
 }
 
-inline State::State(const std::string& name, int value)
-    : mType(Int), mName(name), mValue(value)
+inline State::State(const std::string& uniqueId, const std::string& name, int value)
+    : mType(Int), mUniqueId(uniqueId), mName(name), mValue(value)
 {
 }
 
-inline State::State(const std::string& name, double value)
-    : mType(Double), mName(name), mValue(value)
+inline State::State(const std::string& uniqueId, const std::string& name, double value)
+    : mType(Double), mUniqueId(uniqueId), mName(name), mValue(value)
 {
 }
 
-inline State::State(const std::string& name, const std::string& value)
-    : mType(String), mName(name), mValue(value)
+inline State::State(const std::string& uniqueId, const std::string& name, const std::string& value)
+    : mType(String), mUniqueId(uniqueId), mName(name), mValue(value)
 {
 }
 
 inline State::Type State::type() const
 {
     return mType;
+}
+
+inline std::string State::uniqueId() const
+{
+    return mUniqueId;
 }
 
 inline std::string State::name() const

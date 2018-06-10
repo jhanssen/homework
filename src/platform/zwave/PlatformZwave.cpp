@@ -375,12 +375,71 @@ inline void PlatformZwave::makeDevice(NodeInfo* nodeInfo, const std::string& uni
 {
     auto zmanager = OpenZWave::Manager::Get();
 
-    auto findCommandClass = [](NodeInfo* nodeInfo, CommandClass cls) -> const OpenZWave::ValueID* {
+    auto findCommandClass = [](NodeInfo* nodeInfo, CommandClass cls) -> std::vector<const OpenZWave::ValueID*> {
+        std::vector<const OpenZWave::ValueID*> ret;
         for (const auto& v : nodeInfo->values) {
             if (static_cast<CommandClass>(v.GetCommandClassId()) == cls)
-                return &v;
+                ret.push_back(&v);
         }
-        return nullptr;
+        return ret;
+    };
+
+    auto makeValueId = [&uniqueId](const OpenZWave::ValueID& valueId) -> std::string {
+        return uniqueId + "-" + std::to_string(valueId.GetCommandClassId()) + "-" + std::to_string(valueId.GetIndex());
+    };
+
+    auto makeStates = [&makeValueId, zmanager](std::shared_ptr<Device>& dev, const std::vector<const OpenZWave::ValueID*>& valueIds) {
+        for (auto valueId : valueIds) {
+            const std::string uniqueValueId = makeValueId(*valueId);
+            const std::string& label = zmanager->GetValueLabel(*valueId);
+            switch (valueId->GetType()) {
+            case OpenZWave::ValueID::ValueType_Bool: {
+                bool value;
+                if (zmanager->GetValueAsBool(*valueId, &value)) {
+                    auto state = State::create(uniqueValueId, label, value);
+                    addDeviceState(dev, std::move(state));
+                }
+                break; }
+            case OpenZWave::ValueID::ValueType_Byte: {
+                uint8_t value;
+                if (zmanager->GetValueAsByte(*valueId, &value)) {
+                    auto state = State::create(uniqueValueId, label, value);
+                    addDeviceState(dev, std::move(state));
+                }
+                break; }
+            case OpenZWave::ValueID::ValueType_Decimal: {
+                float value;
+                if (zmanager->GetValueAsFloat(*valueId, &value)) {
+                    auto state = State::create(uniqueValueId, label, value);
+                    addDeviceState(dev, std::move(state));
+                }
+                break; }
+            case OpenZWave::ValueID::ValueType_Int: {
+                int32_t value;
+                if (zmanager->GetValueAsInt(*valueId, &value)) {
+                    auto state = State::create(uniqueValueId, label, value);
+                    addDeviceState(dev, std::move(state));
+                }
+                break; }
+            case OpenZWave::ValueID::ValueType_Short: {
+                int16_t value;
+                if (zmanager->GetValueAsShort(*valueId, &value)) {
+                    auto state = State::create(uniqueValueId, label, value);
+                    addDeviceState(dev, std::move(state));
+                }
+                break; }
+            case OpenZWave::ValueID::ValueType_String: {
+                std::string value;
+                if (zmanager->GetValueAsString(*valueId, &value)) {
+                    auto state = State::create(uniqueValueId, label, value);
+                    addDeviceState(dev, std::move(state));
+                }
+                break; }
+            default:
+                Log(Log::Error) << "unhandled value type" << valueId->GetType();
+                break;
+            }
+        }
     };
 
     const auto generic = static_cast<GenericDevice>(zmanager->GetNodeGeneric(nodeInfo->homeId, nodeInfo->nodeId));
@@ -396,11 +455,19 @@ inline void PlatformZwave::makeDevice(NodeInfo* nodeInfo, const std::string& uni
         }
 
         // find the Switch_All command class
-        auto valueId = findCommandClass(nodeInfo, CommandClass::Switch_Binary);
-        if (!valueId) {
+        auto valueIds = findCommandClass(nodeInfo, CommandClass::Switch_Binary);
+        if (valueIds.empty()) {
             Log(Log::Error) << "unable to find command class Switch_Binary for Switch_Binary";
             return;
         }
+
+        auto valueId = valueIds.front();
+        if (valueId->GetType() != OpenZWave::ValueID::ValueType_Bool) {
+            Log(Log::Error) << "Switch_Binary type is not bool";
+            return;
+        }
+
+        const std::string uniqueValueId = makeValueId(*valueId);
 
         // add our state, event and actions
         auto turnOnCommand = Action::create("turnon", [zmanager, valueId](const Action::Arguments& /*args*/) {
@@ -428,12 +495,21 @@ inline void PlatformZwave::makeDevice(NodeInfo* nodeInfo, const std::string& uni
 
         bool on;
         if (zmanager->GetValueAsBool(*valueId, &on)) {
-            auto onState = State::create("on", on);
+            auto onState = State::create(uniqueValueId, "on", on);
             addDeviceState(dev, std::move(onState));
         } else {
-            auto onState = State::create("on", false);
+            auto onState = State::create(uniqueValueId, "on", false);
             addDeviceState(dev, std::move(onState));
         }
+
+        break; }
+    case GenericDevice::Sensor_Multilevel: {
+        Platform::changeDeviceGroup(dev, "Sensor");
+
+        auto valueIds = findCommandClass(nodeInfo, CommandClass::Sensor_Multilevel);
+        makeStates(dev, valueIds);
+        valueIds = findCommandClass(nodeInfo, CommandClass::Alarm);
+        makeStates(dev, valueIds);
 
         break; }
     default:
