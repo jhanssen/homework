@@ -8,6 +8,19 @@
 using namespace reckoning::event;
 using namespace reckoning::log;
 
+static inline std::string replace(const std::string& s, char from, char to)
+{
+    std::string copy(s);
+    char* c = &copy[0];
+    const char* end = c + copy.size();
+    while (c < end) {
+        if (*c == from)
+            *c = to;
+        ++c;
+    }
+    return copy;
+}
+
 static inline Action::Arguments parseArguments(const Action::Descriptors& descriptors,
                                                const std::vector<std::string>& list,
                                                size_t startOffset, bool* ok)
@@ -170,7 +183,7 @@ void Console::start()
                                     // complete on action name
                                     const auto& dev = device.second;
                                     for (const auto& action : dev->actions()) {
-                                        const auto& p = action->name();
+                                        const auto& p = replace(action->name(), ' ', '_');
                                         if (tokenString.empty() || (p.size() > tokenString.size() && !strncmp(tokenString.c_str(), p.c_str(), tokenString.size())))
                                             alternatives.push_back(p);
                                     }
@@ -178,7 +191,7 @@ void Console::start()
                                     // complete on state name
                                     const auto& dev = device.second;
                                     for (const auto& state : dev->states()) {
-                                        const auto& p = state->name();
+                                        const auto& p = replace(state->name(), ' ', '_');
                                         if (tokenString.empty() || (p.size() > tokenString.size() && !strncmp(tokenString.c_str(), p.c_str(), tokenString.size())))
                                             alternatives.push_back(p);
                                     }
@@ -245,12 +258,12 @@ void Console::start()
                                 if (list.size() == 3) {
                                     Log(Log::Info) << "-- actions";
                                     for (const auto& action : dev->actions()) {
-                                        Log(Log::Info) << action->name();
+                                        Log(Log::Info) << replace(action->name(), ' ', '_');
                                     }
                                     Log(Log::Info) << "-- end actions";
                                     return;
                                 } else if (list.size() > 3) {
-                                    const auto& a = list[3];
+                                    const auto& a = replace(list[3], '_', ' ');
                                     for (const auto& action : dev->actions()) {
                                         if (action->name() == a) {
                                             bool ok;
@@ -267,12 +280,12 @@ void Console::start()
                                 if (list.size() == 3) {
                                     Log(Log::Info) << "-- state";
                                     for (const auto& state : dev->states()) {
-                                        Log(Log::Info) << state->name();
+                                        Log(Log::Info) << replace(state->name(), ' ', '_');
                                     }
                                     Log(Log::Info) << "-- end state";
                                     return;
                                 } else if (list.size() > 3) {
-                                    const auto& s = list[3];
+                                    const auto& s = replace(list[3], '_', ' ');
                                     for (const auto& state : dev->states()) {
                                         if (state->name() == s) {
                                             switch (state->type()) {
