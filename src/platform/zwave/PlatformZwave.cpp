@@ -700,7 +700,8 @@ void PlatformZwave::onNotification(const OpenZWave::Notification* notification, 
     case OpenZWave::Notification::Type_ValueChanged:
         Log(Log::Info) << "value changed for device" << notification->GetNodeId()
                        << "value type" << notification->GetValueID().GetType()
-                       << "value class" << notification->GetValueID().GetCommandClassId();
+                       << "value class" << notification->GetValueID().GetCommandClassId()
+                       << "value index" << notification->GetValueID().GetIndex();
         if (NodeInfo* nodeInfo = data->findNode(notification)) {
             const std::string uniqueId = data->devicePrefix + std::to_string(notification->GetNodeId());
             data->zwave->updateDevice(nodeInfo, uniqueId, &notification->GetValueID());
