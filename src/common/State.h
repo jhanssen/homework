@@ -7,6 +7,7 @@
 #include <mutex>
 #include <memory>
 #include <string>
+#include <typeinfo>
 
 using reckoning::event::Signal;
 using reckoning::util::Creatable;
@@ -21,6 +22,8 @@ public:
     std::string uniqueId() const;
 
     Type type() const;
+    bool isType(const std::type_info& info);
+
     std::string name() const;
     std::shared_ptr<Device> device() const;
 
@@ -74,6 +77,11 @@ inline State::State(const std::string& uniqueId, const std::string& name, const 
 inline State::Type State::type() const
 {
     return mType;
+}
+
+inline bool State::isType(const std::type_info& info)
+{
+    return mValue.type() == info;
 }
 
 inline std::string State::uniqueId() const

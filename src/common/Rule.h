@@ -20,6 +20,7 @@ public:
     ~Rule();
 
     std::string name() const;
+    bool isValid() const;
 
     void setTrigger(const std::shared_ptr<Event>& event);
     void setTrigger(const std::shared_ptr<State>& state);
@@ -61,6 +62,11 @@ inline Rule::~Rule()
 inline std::string Rule::name() const
 {
     return mName;
+}
+
+inline bool Rule::isValid() const
+{
+    return !mEvent.expired() && !mState.expired();
 }
 
 inline void Rule::setTrigger(const std::shared_ptr<Event>& event)

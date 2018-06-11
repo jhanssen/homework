@@ -35,6 +35,7 @@ public:
     virtual bool stop() { return true; }
 
     const Devices& devices() const;
+    std::shared_ptr<Device> findDevice(const std::string& uniqueId);
 
 protected:
     Platform(const std::string& name, const Options& options);
@@ -160,6 +161,16 @@ inline bool Platform::hasDevice(const std::string& uniqueId)
 {
     std::lock_guard<std::mutex> locker(mMutex);
     return mDevices.find(uniqueId) != mDevices.end();
+}
+
+inline std::shared_ptr<Device> Platform::findDevice(const std::string& uniqueId)
+{
+    std::lock_guard<std::mutex> locker(mMutex);
+    auto device = mDevices.find(uniqueId);
+    if (device != mDevices.end()) {
+        return device->second;
+    }
+    return std::shared_ptr<Device>();
 }
 
 inline std::shared_ptr<State> Platform::findDeviceState(const std::string& uniqueDeviceId, const std::string& uniqueStateId)

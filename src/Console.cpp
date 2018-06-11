@@ -231,8 +231,14 @@ void Console::start()
                         l->exit();
                     }
                 } else {
-                    mPrefix.clear();
-                    mEditline->setPrompt("> ");
+                    const size_t sub = mPrefix.rfind(':');
+                    if (sub == std::string::npos || sub == 0) {
+                        mPrefix.clear();
+                        mEditline->setPrompt("> ");
+                    } else {
+                        mPrefix = mPrefix.substr(sub - 1);
+                        mEditline->setPrompt(mPrefix + "> ");
+                    }
                 }
                 return;
             }
@@ -245,22 +251,132 @@ void Console::start()
 
             if (mPrefix == "rule") {
                 if (list.front() == "add") {
+                    if (list.size() < 2) {
+                        Log(Log::Error) << "rule add needs a name";
+                        return;
+                    }
+                    mCurrentRule = Rule::create(list[1]);
+                    mPrefix = "rule:add";
+                    mEditline->setPrompt(mPrefix + "> ");
                 } else if (list.front() == "remove") {
                 } else if (list.front() == "list") {
                 }
                 return;
-            }
-
-            std::shared_ptr<Platform> platform;
-            if (!mPrefix.empty()) {
-                for (const auto& p : mHomework->platforms()) {
-                    if (p->name() == mPrefix) {
-                        platform = p;
-                        break;
+            } else if (mPrefix == "rule:add") {
+                if (list.front() == "state") {
+                    // set state to trigger off of, format "state <platform> <device> <state name>"
+                    if (list.size() > 3) {
+                        const auto platform = mHomework->findPlatform(list[1]);
+                        if (platform) {
+                            const auto device = platform->findDevice(list[2]);
+                            if (device) {
+                                const auto state = device->findState(list[3]);
+                                mCurrentRule->setTrigger(state);
+                                Log(Log::Error) << "trigger added";
+                                return;
+                            }
+                        }
                     }
+                    Log(Log::Error) << "failed to find state";
+                } else if (list.front() == "action") {
+                    // add action to trigger, format "action <platform> <device> <action name> <value>..."
+                    if (list.size() > 4) {
+                        const auto platform = mHomework->findPlatform(list[1]);
+                        if (platform) {
+                            const auto device = platform->findDevice(list[2]);
+                            if (device) {
+                                const auto action = device->findAction(list[3]);
+                                if (action) {
+                                    bool ok;
+                                    Action::Arguments args = parseArguments(action->descriptors(), list, 4, &ok);
+                                    if (!ok)
+                                        return;
+                                    mCurrentRule->addAction(action, std::move(args));
+                                    Log(Log::Error) << "action added";
+                                    return;
+                                }
+                            }
+                        }
+                    }
+                    Log(Log::Error) << "failed to find action";
+                } else if (list.front() == "condition") {
+                    mCurrentCondition.clear();
+                    mCurrentCondition.push_back(Condition::create());
+                    mPrefix = "rule:add:condition";
+                    mEditline->setPrompt(mPrefix + "[0]> ");
+                } else if (list.front() == "save") {
+                    // save rule, check that the rule is valid
+                    if (!mCurrentRule->isValid()) {
+                        Log(Log::Error) << "rule not valid, did you add a trigger (event/state) and action?";
+                        return;
+                    }
+                    mCurrentRule->enable();
+                    mHomework->addRule(std::move(mCurrentRule));
+                    mPrefix.clear();
+                    mEditline->setPrompt("> ");
                 }
+                return;
+            } else if (mPrefix == "rule:add:condition") {
+                // condition dialog
+                Condition::LogicalOperator op = Condition::Operator_And;
+                if (list.front() == "and") {
+                    list.erase(list.begin(), list.begin() + 1);
+                } else if (list.front() == "or") {
+                    op = Condition::Operator_Or;
+                    list.erase(list.begin(), list.begin() + 1);
+                }
+                if (list.empty()) {
+                    Log(Log::Error) << "malformed condition";
+                    return;
+                }
+                if (list.front() == "condition") {
+                    // sub condition
+                    auto condition = Condition::create();
+                    mCurrentCondition.back()->add(op, condition);
+                    mCurrentCondition.push_back(condition);
+                    mEditline->setPrompt(mPrefix + "[" + std::to_string(mCurrentCondition.size() - 1) + "]> ");
+                    return;
+                } else if (list.front() == "save") {
+                    if (mCurrentCondition.size() == 1) {
+                        // save
+                        mCurrentRule->setCondition(mCurrentCondition[0]);
+
+                        const size_t sub = mPrefix.rfind(':');
+                        assert(sub > 0 && sub != std::string::npos);
+                        mPrefix = mPrefix.substr(sub - 1);
+                        mEditline->setPrompt(mPrefix + "> ");
+                    } else {
+                        mEditline->setPrompt(mPrefix + "[" + std::to_string(mCurrentCondition.size() - 1) + "]> ");
+                    }
+                    mCurrentCondition.pop_back();
+                } else if (list.front() == "state") {
+                    // add state to check, format "state <platform> <device> <state name> <value>"
+                    if (list.size() > 4) {
+                        const auto platform = mHomework->findPlatform(list[1]);
+                        if (platform) {
+                            const auto device = platform->findDevice(list[2]);
+                            if (device) {
+                                const auto state = device->findState(list[3]);
+                                if (state) {
+                                    const auto value = Parser::guessValue(list[4]);
+                                    if (state->isType(typeid(value))) {
+                                        mCurrentCondition.back()->add(op, state, value);
+                                        Log(Log::Error) << "condition added";
+                                        return;
+                                    } else {
+                                        Log(Log::Error) << "invalid state type, expected" << state->type();
+                                        return;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    Log(Log::Error) << "failed to find state";
+                }
+                return;
             }
 
+            std::shared_ptr<Platform> platform = mHomework->findPlatform(mPrefix);
             if (!platform) {
                 Log(Log::Error) << "no platform for" << mPrefix;
                 return;

@@ -38,9 +38,11 @@ public:
     typedef std::vector<std::shared_ptr<Event> > Events;
     const Events& events() const;
 
+    std::shared_ptr<Action> findAction(const std::string& name);
     typedef std::vector<std::shared_ptr<Action> > Actions;
     const Actions& actions() const;
 
+    std::shared_ptr<State> findState(const std::string& uniqueId);
     typedef std::vector<std::shared_ptr<State> > States;
     const States& states() const;
 
@@ -118,6 +120,15 @@ inline const Device::Events& Device::events() const
     return mEvents;
 }
 
+inline std::shared_ptr<Action> Device::findAction(const std::string& name)
+{
+    for (const auto& a : mActions) {
+        if (a->name() == name)
+            return a;
+    }
+    return std::shared_ptr<Action>();
+}
+
 inline const Device::Actions& Device::actions() const
 {
     return mActions;
@@ -126,6 +137,15 @@ inline const Device::Actions& Device::actions() const
 inline const Device::States& Device::states() const
 {
     return mStates;
+}
+
+inline std::shared_ptr<State> Device::findState(const std::string& uniqueId)
+{
+    for (const auto& s : mStates) {
+        if (s->uniqueId() == uniqueId)
+            return s;
+    }
+    return std::shared_ptr<State>();
 }
 
 inline void Device::addEvent(std::shared_ptr<Event>&& event)
