@@ -63,7 +63,7 @@ protected:
     // platform to state
     static void changeState(const std::shared_ptr<State>& dev, std::any&& value);
 
-    std::shared_ptr<State> findDeviceState(const std::string& uniqueId, const std::string& stateName);
+    std::shared_ptr<State> findDeviceState(const std::string& uniqueDeviceId, const std::string& uniqueStateId);
 
 private:
     Signal<const std::shared_ptr<Device>&> mOnDeviceAdded, mOnDeviceRemoved;
@@ -162,14 +162,14 @@ inline bool Platform::hasDevice(const std::string& uniqueId)
     return mDevices.find(uniqueId) != mDevices.end();
 }
 
-inline std::shared_ptr<State> Platform::findDeviceState(const std::string& uniqueId, const std::string& stateName)
+inline std::shared_ptr<State> Platform::findDeviceState(const std::string& uniqueDeviceId, const std::string& uniqueStateId)
 {
     std::lock_guard<std::mutex> locker(mMutex);
-    auto device = mDevices.find(uniqueId);
+    auto device = mDevices.find(uniqueDeviceId);
     if (device != mDevices.end()) {
         auto ptr = device->second;
         for (const auto& state : ptr->mStates) {
-            if (state->name() == stateName)
+            if (state->uniqueId() == uniqueStateId)
                 return state;
         }
     }
