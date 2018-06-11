@@ -104,15 +104,18 @@ Console::~Console()
 
 void Console::start()
 {
-    std::vector<std::string> platforms;
+    std::vector<std::string> prefixes;
+    // add preexisting prefixes
+    prefixes.push_back("rule");
+
     for (const auto& platform : mHomework->platforms()) {
-        platforms.push_back(platform->name());
+        prefixes.push_back(platform->name());
     }
 
-    mEditline = std::make_shared<Editline>(platforms);
+    mEditline = std::make_shared<Editline>(prefixes);
 
     // add exit as a global completion
-    platforms.push_back("exit");
+    prefixes.push_back("exit");
 
     std::weak_ptr<Loop> loop = Loop::loop();
     mEditline->onQuit().connect([loop]() {
@@ -120,7 +123,7 @@ void Console::start()
                 l->exit();
             }
         });
-    mEditline->onCompletionRequest().connect([platforms, this](const std::shared_ptr<Editline::Completion>& request) {
+    mEditline->onCompletionRequest().connect([prefixes, this](const std::shared_ptr<Editline::Completion>& request) {
             //Log(Log::Info) << "request." << request->buffer() << request->cursorPosition();
             const auto sub = request->buffer().substr(0, request->cursorPosition());
 
@@ -128,7 +131,7 @@ void Console::start()
             std::vector<std::string> alternatives;
             if (prefix.empty()) {
                 // complete on prefixes
-                for (const auto& p : platforms) {
+                for (const auto& p : prefixes) {
                     if (p.size() > sub.size() && !strncmp(sub.c_str(), p.c_str(), sub.size()))
                         alternatives.push_back(p);
                 }
@@ -229,6 +232,14 @@ void Console::start()
             if (prefix.empty() || list.empty()) {
                 // bail out for now
                 Log(Log::Error) << "invalid command" << prefix << cmd;
+                return;
+            }
+
+            if (prefix == "rule") {
+                if (list.front() == "add") {
+                } else if (list.front() == "remove") {
+                } else if (list.front() == "list") {
+                }
                 return;
             }
 
