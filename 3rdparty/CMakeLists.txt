@@ -74,3 +74,6 @@ set_property(TARGET libedit PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_BINARY_DI
 set_property(TARGET libedit PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_BINARY_DIR}/libedit-install/include)
 set_property(TARGET libedit PROPERTY INTERFACE_LINK_LIBRARIES ${CURSES_LIBRARIES})
 add_dependencies(libedit external_libedit)
+
+set(USE_SYSTEM_TZ_DB ON CACHE BOOL "Use the operating system's timezone database" FORCE)
+add_subdirectory(date)
