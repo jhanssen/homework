@@ -5,7 +5,9 @@
 #include <Options.h>
 #include <Device.h>
 #include <Platform.h>
+#include <Rule.h>
 #include <memory>
+#include <vector>
 
 class Homework
 {
@@ -24,6 +26,8 @@ private:
     Options mOptions;
     Console mConsole;
     Platforms mPlatforms;
+
+    std::vector<std::shared_ptr<Rule> > mRules;
 };
 
 inline const Homework::Platforms& Homework::platforms() const

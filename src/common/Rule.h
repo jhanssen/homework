@@ -15,7 +15,7 @@ using reckoning::util::Creatable;
 class Rule : public std::enable_shared_from_this<Rule>, public Creatable<Rule>
 {
 public:
-    typedef std::vector<std::pair<std::shared_ptr<Action>, Action::Arguments> > Actions;
+    typedef std::vector<std::pair<std::weak_ptr<Action>, Action::Arguments> > Actions;
 
     ~Rule();
 
@@ -27,7 +27,7 @@ public:
     void addAction(const std::shared_ptr<Action>& action, Action::Arguments&& args);
     void addAction(const std::shared_ptr<Action>& action, const Action::Arguments& args);
 
-    const std::shared_ptr<Event>& event() const;
+    std::shared_ptr<Event> event() const;
     const std::shared_ptr<Condition>& condition() const;
     const Actions& actions() const;
     size_t actionSize() const;
@@ -42,8 +42,8 @@ protected:
 private:
     std::string mName;
     Signal<>::Connection mTriggerConnection;
-    std::shared_ptr<Event> mEvent;
-    std::shared_ptr<State> mState;
+    std::weak_ptr<Event> mEvent;
+    std::weak_ptr<State> mState;
     std::shared_ptr<Condition> mCondition;
     Actions mActions;
 };
@@ -94,9 +94,9 @@ inline void Rule::addAction(const std::shared_ptr<Action>& action, const Action:
     mActions.push_back(std::make_pair(action, args));
 }
 
-inline const std::shared_ptr<Event>& Rule::event() const
+inline std::shared_ptr<Event> Rule::event() const
 {
-    return mEvent;
+    return mEvent.lock();
 }
 
 inline const std::shared_ptr<Condition>& Rule::condition() const
@@ -133,24 +133,26 @@ inline void Rule::enable()
     if (mTriggerConnection.connected())
         return;
     std::weak_ptr<Rule> weakRule = shared_from_this();
-    if (mEvent) {
-        assert(!mState);
-        mTriggerConnection = mEvent->onTriggered().connect([weakRule]() {
+    if (auto event = mEvent.lock()) {
+        assert(mState.expired());
+        mTriggerConnection = event->onTriggered().connect([weakRule]() {
                 if (auto rule = weakRule.lock()) {
                     if (!rule->mCondition || rule->mCondition->execute()) {
                         for (auto a : rule->mActions) {
-                            a.first->execute(a.second);
+                            if (auto action = a.first.lock())
+                                action->execute(a.second);
                         }
                     }
                 }
             });
-    } else if (mState) {
-        assert(!mEvent);
-        mTriggerConnection = mState->onChanged().connect([weakRule]() {
+    } else if (auto state = mState.lock()) {
+        assert(mEvent.expired());
+        mTriggerConnection = state->onChanged().connect([weakRule]() {
                 if (auto rule = weakRule.lock()) {
                     if (!rule->mCondition || rule->mCondition->execute()) {
                         for (auto a : rule->mActions) {
-                            a.first->execute(a.second);
+                            if (auto action = a.first.lock())
+                                action->execute(a.second);
                         }
                     }
                 }
