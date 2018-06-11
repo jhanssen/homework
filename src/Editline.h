@@ -16,19 +16,20 @@ using reckoning::event::Signal;
 class Editline
 {
 public:
-    Editline(const std::vector<std::string>& prefixes);
+    Editline();
     ~Editline();
 
     Signal<>& onQuit();
-    Signal<const std::string&, std::string&&>& onCommand();
+    Signal<std::string&&>& onCommand();
 
-    void wakeup();
+    void setPrompt(const std::string& prompt);
+
+    enum WakeupType { Wakeup_Wakeup, Wakeup_Prompt };
+    void wakeup(WakeupType type = Wakeup_Wakeup);
 
     class Completion
     {
     public:
-        const std::string& prefix() const;
-
         const std::string& buffer() const;
         size_t cursorPosition() const;
 
@@ -42,9 +43,9 @@ public:
         void complete(std::vector<std::string>&& alternatives);
 
     private:
-        static std::shared_ptr<Completion> create(const std::string& prefix, std::string&& buffer, size_t position);
+        static std::shared_ptr<Completion> create(std::string&& buffer, size_t position);
 
-        Completion(const std::string& prefix, std::string&& buffer, size_t position);
+        Completion(std::string&& buffer, size_t position);
 
         void wait();
 
@@ -52,7 +53,7 @@ public:
         std::mutex mMutex;
         std::condition_variable mCond;
 
-        std::string mPrefix, mGlobalBuffer;
+        std::string mGlobalBuffer;
         size_t mGlobalCursorPosition, mTokenCursorPosition, mTokenElement;
         std::vector<std::string> mTokens;
 
@@ -72,13 +73,13 @@ private:
     std::atomic<bool> mStopped;
     std::thread mThread;
     std::mutex mMutex;
-    std::vector<std::string> mPrefixes, mOutputs;
+    std::vector<std::string> mOutputs;
     Signal<> mOnQuit;
-    Signal<const std::string&, std::string&&> mOnCommand;
+    Signal<std::string&&> mOnCommand;
     Signal<const std::shared_ptr<Completion>&> mOnCompletionRequest;
     History* mHistory;
     EditLine* mEditLine;
-    std::string mHistoryFile, mPrompt, mPrefix;
+    std::string mHistoryFile, mPrompt;
     int mPipe[2];
 };
 
@@ -87,7 +88,7 @@ inline Signal<>& Editline::onQuit()
     return mOnQuit;
 }
 
-inline Signal<const std::string&, std::string&&>& Editline::onCommand()
+inline Signal<std::string&&>& Editline::onCommand()
 {
     return mOnCommand;
 }
@@ -97,9 +98,9 @@ inline Signal<const std::shared_ptr<Editline::Completion>&>& Editline::onComplet
     return mOnCompletionRequest;
 }
 
-inline std::shared_ptr<Editline::Completion> Editline::Completion::create(const std::string& prefix, std::string&& buffer, size_t position)
+inline std::shared_ptr<Editline::Completion> Editline::Completion::create(std::string&& buffer, size_t position)
 {
-    std::shared_ptr<Completion> completion(new Completion(prefix, std::forward<std::string>(buffer), position));
+    std::shared_ptr<Completion> completion(new Completion(std::forward<std::string>(buffer), position));
     return completion;
 }
 
@@ -109,11 +110,6 @@ inline void Editline::Completion::wait()
     while (!mCompleted) {
         mCond.wait(locker);
     }
-}
-
-inline const std::string& Editline::Completion::prefix() const
-{
-    return mPrefix;
 }
 
 inline const std::string& Editline::Completion::buffer() const

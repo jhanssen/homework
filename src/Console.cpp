@@ -112,10 +112,7 @@ void Console::start()
         prefixes.push_back(platform->name());
     }
 
-    mEditline = std::make_shared<Editline>(prefixes);
-
-    // add exit as a global completion
-    prefixes.push_back("exit");
+    mEditline = std::make_shared<Editline>();
 
     std::weak_ptr<Loop> loop = Loop::loop();
     mEditline->onQuit().connect([loop]() {
@@ -127,19 +124,20 @@ void Console::start()
             //Log(Log::Info) << "request." << request->buffer() << request->cursorPosition();
             const auto sub = request->buffer().substr(0, request->cursorPosition());
 
-            const auto& prefix = request->prefix();
             std::vector<std::string> alternatives;
-            if (prefix.empty()) {
+            if (mPrefix.empty()) {
                 // complete on prefixes
                 for (const auto& p : prefixes) {
                     if (p.size() > sub.size() && !strncmp(sub.c_str(), p.c_str(), sub.size()))
                         alternatives.push_back(p);
                 }
+                if (sub.size() < 4 && !strncmp(sub.c_str(), "exit", sub.size()))
+                    alternatives.push_back("exit");
             } else {
                 // complete on platform?
                 std::shared_ptr<Platform> platform;
                 for (const auto& p : mHomework->platforms()) {
-                    if (p->name() == prefix) {
+                    if (p->name() == mPrefix) {
                         platform = p;
                         break;
                     }
@@ -209,33 +207,43 @@ void Console::start()
             }
             request->complete(std::move(alternatives));
         });
-    mEditline->onCommand().connect([this](const std::string& prefix, std::string&& cmd) {
+    mEditline->onCommand().connect([loop, prefixes, this](std::string&& cmd) {
             //printf("command %s\n", cmd.c_str());
             // split on space, send action to platform
 
-            std::shared_ptr<Platform> platform;
-            if (!prefix.empty()) {
-                for (const auto& p : mHomework->platforms()) {
-                    if (p->name() == prefix) {
-                        platform = p;
-                        break;
-                    }
-                }
-                if (!platform) {
-                    Log(Log::Error) << "no platform for" << prefix;
-                    return;
-                }
-            }
-
             auto list = split(cmd);
 
-            if (prefix.empty() || list.empty()) {
-                // bail out for now
-                Log(Log::Error) << "invalid command" << prefix << cmd;
+            if (mPrefix.empty() && !list.empty()) {
+                // is this one of the prefixes?
+                const auto& candidate = list.front();
+                for (const auto& prefix : prefixes) {
+                    if (candidate == prefix) {
+                        mPrefix = candidate;
+                        mEditline->setPrompt(mPrefix + "> ");
+                        return;
+                    }
+                }
+            }
+            if (!list.empty() && list.front() == "exit") {
+                if (mPrefix.empty()) {
+                    // exit homework
+                    if (auto l = loop.lock()) {
+                        l->exit();
+                    }
+                } else {
+                    mPrefix.clear();
+                    mEditline->setPrompt("> ");
+                }
                 return;
             }
 
-            if (prefix == "rule") {
+            if (mPrefix.empty() || list.empty()) {
+                // bail out for now
+                Log(Log::Error) << "invalid command" << mPrefix << cmd;
+                return;
+            }
+
+            if (mPrefix == "rule") {
                 if (list.front() == "add") {
                 } else if (list.front() == "remove") {
                 } else if (list.front() == "list") {
@@ -243,8 +251,18 @@ void Console::start()
                 return;
             }
 
+            std::shared_ptr<Platform> platform;
+            if (!mPrefix.empty()) {
+                for (const auto& p : mHomework->platforms()) {
+                    if (p->name() == mPrefix) {
+                        platform = p;
+                        break;
+                    }
+                }
+            }
+
             if (!platform) {
-                Log(Log::Error) << "no platform for" << prefix;
+                Log(Log::Error) << "no platform for" << mPrefix;
                 return;
             }
 

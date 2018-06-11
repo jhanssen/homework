@@ -2,6 +2,7 @@
 #define CONSOLE_H
 
 #include <memory>
+#include <string>
 
 class Homework;
 class Editline;
@@ -17,6 +18,7 @@ public:
 
 private:
     Homework* mHomework;
+    std::string mPrefix;
     std::shared_ptr<Editline> mEditline;
 };
 

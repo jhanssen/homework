@@ -17,8 +17,8 @@ using namespace reckoning;
 using namespace reckoning::event;
 using namespace reckoning::log;
 
-Editline::Editline(const std::vector<std::string>& prefixes)
-    : mPrefixes(prefixes), mHistory(nullptr), mEditLine(nullptr)
+Editline::Editline()
+    : mHistory(nullptr), mEditLine(nullptr)
 {
     mStopped = false;
     mPrompt = "> ";
@@ -79,43 +79,6 @@ Editline::Editline(const std::vector<std::string>& prefixes)
                     mOnQuit.emit();
                     break;
                 }
-                const char* cur = ch;
-                bool done = false;
-                while (!done) {
-                    switch (*cur) {
-                    case ' ':
-                    case '\t':
-                    case '\0':
-                    case '\r':
-                    case '\n':
-                        cmd = std::string(ch, cur - ch);
-                        if (cmd == "exit") {
-                            if (mPrefix.empty()) {
-                                // done with this
-                                mOnQuit.emit();
-                                return;
-                            }
-                            mPrefix.clear();
-                            mPrompt = "> ";
-                            //el_set(mEditLine, EL_REFRESH);
-                            count = 0;
-                        } else if (std::find(mPrefixes.begin(), mPrefixes.end(), cmd) != mPrefixes.end()) {
-                            if (!mHistoryFile.empty()) {
-                                HistEvent histEvent;
-                                history(mHistory, &histEvent, H_ENTER, cmd.c_str());
-                                history(mHistory, &histEvent, H_SAVE, mHistoryFile.c_str());
-                            }
-
-                            mPrefix = cmd;
-                            mPrompt = cmd + "> ";
-                            //el_set(mEditLine, EL_REFRESH);
-                            count = 0;
-                        }
-                        done = true;
-                        continue;
-                    }
-                    ++cur;
-                }
                 while (count > 0 && (ch[count - 1] == '\n' || ch[count - 1] == '\r'))
                     --count;
                 if (count > 0) {
@@ -125,7 +88,7 @@ Editline::Editline(const std::vector<std::string>& prefixes)
                         history(mHistory, &histEvent, H_ENTER, ncmd.c_str());
                         history(mHistory, &histEvent, H_SAVE, mHistoryFile.c_str());
                     }
-                    mOnCommand.emit(mPrefix, std::move(ncmd));
+                    mOnCommand.emit(std::move(ncmd));
                 }
             }
         });
@@ -159,13 +122,21 @@ Editline::~Editline()
     }
 }
 
-void Editline::wakeup()
+void Editline::wakeup(WakeupType type)
 {
     if (mPipe[1] == -1)
         return;
     int e;
-    char c = 'w';
+    char c = type;
     eintrwrap(e, write(mPipe[1], &c, 1));
+}
+
+void Editline::setPrompt(const std::string& prompt)
+{
+    std::lock_guard<std::mutex> locker(mMutex);
+    mPrompt = prompt;
+
+    wakeup(Wakeup_Prompt);
 }
 
 int Editline::getChar(EditLine* edit, wchar_t* out)
@@ -218,6 +189,10 @@ int Editline::getChar(EditLine* edit, wchar_t* out)
             char c;
             do {
                 eintrwrap(e, read(console->mPipe[0], &c, 1));
+                if (c == Wakeup_Prompt) {
+                    printf("\33[2K\33[A\n");
+                    el_set(console->mEditLine, EL_REFRESH);
+                }
             } while (e == 1);
 
             {
@@ -261,6 +236,7 @@ const char* Editline::prompt(EditLine* edit)
     el_get(edit, EL_CLIENTDATA, &console);
     assert(console != nullptr);
 
+    std::lock_guard<std::mutex> locker(console->mMutex);
     return console->mPrompt.c_str();
 }
 
@@ -278,7 +254,7 @@ unsigned char Editline::complete(EditLine* edit, int)
     assert(cursorPosition >= 0);
 
     // ask for completion
-    auto completion = Completion::create(console->mPrefix, std::move(buffer), static_cast<size_t>(cursorPosition));
+    auto completion = Completion::create(std::move(buffer), static_cast<size_t>(cursorPosition));
     console->mOnCompletionRequest.emit(completion);
     completion->wait();
 
@@ -334,8 +310,8 @@ unsigned char Editline::complete(EditLine* edit, int)
     return CC_ERROR;
 }
 
-Editline::Completion::Completion(const std::string& prefix, std::string&& buffer, size_t position)
-    : mPrefix(prefix), mGlobalBuffer(std::forward<std::string>(buffer)), mGlobalCursorPosition(position),
+Editline::Completion::Completion(std::string&& buffer, size_t position)
+    : mGlobalBuffer(std::forward<std::string>(buffer)), mGlobalCursorPosition(position),
       mTokenCursorPosition(0), mTokenElement(0), mCompleted(false), mTokenIsEmpty(false)
 {
     const auto sub = mGlobalBuffer.substr(0, mGlobalCursorPosition);
