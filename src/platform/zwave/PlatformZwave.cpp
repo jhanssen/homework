@@ -404,28 +404,28 @@ inline void PlatformZwave::makeDevice(NodeInfo* nodeInfo, const std::string& uni
             case OpenZWave::ValueID::ValueType_Byte: {
                 uint8_t value;
                 if (zmanager->GetValueAsByte(*valueId, &value)) {
-                    auto state = State::create(uniqueValueId, label, value);
+                    auto state = State::create(uniqueValueId, label, static_cast<int64_t>(value));
                     addDeviceState(dev, std::move(state));
                 }
                 break; }
             case OpenZWave::ValueID::ValueType_Decimal: {
                 float value;
                 if (zmanager->GetValueAsFloat(*valueId, &value)) {
-                    auto state = State::create(uniqueValueId, label, value);
+                    auto state = State::create(uniqueValueId, label, static_cast<double>(value));
                     addDeviceState(dev, std::move(state));
                 }
                 break; }
             case OpenZWave::ValueID::ValueType_Int: {
                 int32_t value;
                 if (zmanager->GetValueAsInt(*valueId, &value)) {
-                    auto state = State::create(uniqueValueId, label, value);
+                    auto state = State::create(uniqueValueId, label, static_cast<int64_t>(value));
                     addDeviceState(dev, std::move(state));
                 }
                 break; }
             case OpenZWave::ValueID::ValueType_Short: {
                 int16_t value;
                 if (zmanager->GetValueAsShort(*valueId, &value)) {
-                    auto state = State::create(uniqueValueId, label, value);
+                    auto state = State::create(uniqueValueId, label, static_cast<int64_t>(value));
                     addDeviceState(dev, std::move(state));
                 }
                 break; }
@@ -543,7 +543,7 @@ inline void PlatformZwave::updateDevice(NodeInfo* nodeInfo, const std::string& u
     case OpenZWave::ValueID::ValueType_Byte: {
         uint8_t value;
         if (zmanager->GetValueAsByte(*valueId, &value)) {
-            changeState(state, std::any(static_cast<int>(value)));
+            changeState(state, std::any(static_cast<int64_t>(value)));
         }
         break; }
     case OpenZWave::ValueID::ValueType_Decimal: {
@@ -555,13 +555,13 @@ inline void PlatformZwave::updateDevice(NodeInfo* nodeInfo, const std::string& u
     case OpenZWave::ValueID::ValueType_Int: {
         int32_t value;
         if (zmanager->GetValueAsInt(*valueId, &value)) {
-            changeState(state, std::any(value));
+            changeState(state, std::any(static_cast<int64_t>(value)));
         }
         break; }
     case OpenZWave::ValueID::ValueType_Short: {
         int16_t value;
         if (zmanager->GetValueAsShort(*valueId, &value)) {
-            changeState(state, std::any(static_cast<int>(value)));
+            changeState(state, std::any(static_cast<int64_t>(value)));
         }
         break; }
     case OpenZWave::ValueID::ValueType_String: {

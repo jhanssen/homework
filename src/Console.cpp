@@ -236,7 +236,7 @@ void Console::start()
                         mPrefix.clear();
                         mEditline->setPrompt("> ");
                     } else {
-                        mPrefix = mPrefix.substr(sub - 1);
+                        mPrefix = mPrefix.substr(0, sub);
                         mEditline->setPrompt(mPrefix + "> ");
                     }
                 }
@@ -270,17 +270,21 @@ void Console::start()
                         if (platform) {
                             const auto device = platform->findDevice(list[2]);
                             if (device) {
-                                const auto state = device->findState(list[3]);
-                                mCurrentRule->setTrigger(state);
-                                Log(Log::Error) << "trigger added";
-                                return;
+                                auto state = device->findStateById(list[3]);
+                                if (!state)
+                                    state = device->findStateByName(list[3]);
+                                if (state) {
+                                    mCurrentRule->setTrigger(state);
+                                    Log(Log::Error) << "trigger added";
+                                    return;
+                                }
                             }
                         }
                     }
                     Log(Log::Error) << "failed to find state";
                 } else if (list.front() == "action") {
                     // add action to trigger, format "action <platform> <device> <action name> <value>..."
-                    if (list.size() > 4) {
+                    if (list.size() >= 4) {
                         const auto platform = mHomework->findPlatform(list[1]);
                         if (platform) {
                             const auto device = platform->findDevice(list[2]);
@@ -343,7 +347,7 @@ void Console::start()
 
                         const size_t sub = mPrefix.rfind(':');
                         assert(sub > 0 && sub != std::string::npos);
-                        mPrefix = mPrefix.substr(sub - 1);
+                        mPrefix = mPrefix.substr(0, sub);
                         mEditline->setPrompt(mPrefix + "> ");
                     } else {
                         mEditline->setPrompt(mPrefix + "[" + std::to_string(mCurrentCondition.size() - 1) + "]> ");
@@ -356,10 +360,12 @@ void Console::start()
                         if (platform) {
                             const auto device = platform->findDevice(list[2]);
                             if (device) {
-                                const auto state = device->findState(list[3]);
+                                auto state = device->findStateById(list[3]);
+                                if (!state)
+                                    state = device->findStateByName(list[3]);
                                 if (state) {
                                     const auto value = Parser::guessValue(list[4]);
-                                    if (state->isType(typeid(value))) {
+                                    if (state->isType(value.type())) {
                                         mCurrentCondition.back()->add(op, state, value);
                                         Log(Log::Error) << "condition added";
                                         return;
@@ -438,7 +444,7 @@ void Console::start()
                                                 Log(Log::Info) << "state" << s << state->value<bool>();
                                                 break;
                                             case State::Int:
-                                                Log(Log::Info) << "state" << s << state->value<int>();
+                                                Log(Log::Info) << "state" << s << state->value<int64_t>();
                                                 break;
                                             case State::Double:
                                                 Log(Log::Info) << "state" << s << state->value<double>();

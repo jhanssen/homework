@@ -42,7 +42,8 @@ public:
     typedef std::vector<std::shared_ptr<Action> > Actions;
     const Actions& actions() const;
 
-    std::shared_ptr<State> findState(const std::string& uniqueId);
+    std::shared_ptr<State> findStateById(const std::string& uniqueId);
+    std::shared_ptr<State> findStateByName(const std::string& name);
     typedef std::vector<std::shared_ptr<State> > States;
     const States& states() const;
 
@@ -139,10 +140,19 @@ inline const Device::States& Device::states() const
     return mStates;
 }
 
-inline std::shared_ptr<State> Device::findState(const std::string& uniqueId)
+inline std::shared_ptr<State> Device::findStateById(const std::string& uniqueId)
 {
     for (const auto& s : mStates) {
         if (s->uniqueId() == uniqueId)
+            return s;
+    }
+    return std::shared_ptr<State>();
+}
+
+inline std::shared_ptr<State> Device::findStateByName(const std::string& name)
+{
+    for (const auto& s : mStates) {
+        if (s->name() == name)
             return s;
     }
     return std::shared_ptr<State>();

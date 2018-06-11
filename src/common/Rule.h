@@ -66,7 +66,7 @@ inline std::string Rule::name() const
 
 inline bool Rule::isValid() const
 {
-    return !mEvent.expired() && !mState.expired();
+    return (!mEvent.expired() || !mState.expired()) && !mActions.empty();
 }
 
 inline void Rule::setTrigger(const std::shared_ptr<Event>& event)

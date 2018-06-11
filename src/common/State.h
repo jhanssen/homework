@@ -8,6 +8,7 @@
 #include <memory>
 #include <string>
 #include <typeinfo>
+#include <cstdint>
 
 using reckoning::event::Signal;
 using reckoning::util::Creatable;
@@ -36,7 +37,7 @@ public:
 
 protected:
     explicit State(const std::string& uniqueId, const std::string& name, bool value);
-    explicit State(const std::string& uniqueId, const std::string& name, int value);
+    explicit State(const std::string& uniqueId, const std::string& name, int64_t value);
     explicit State(const std::string& uniqueId, const std::string& name, double value);
     explicit State(const std::string& uniqueId, const std::string& name, const std::string& value);
 
@@ -59,7 +60,7 @@ inline State::State(const std::string& uniqueId, const std::string& name, bool v
 {
 }
 
-inline State::State(const std::string& uniqueId, const std::string& name, int value)
+inline State::State(const std::string& uniqueId, const std::string& name, int64_t value)
     : mType(Int), mUniqueId(uniqueId), mName(name), mValue(value)
 {
 }
@@ -81,7 +82,12 @@ inline State::Type State::type() const
 
 inline bool State::isType(const std::type_info& info)
 {
-    return mValue.type() == info;
+    std::lock_guard<std::mutex> locker(sMutex);
+#if defined(HAVE_ANY_CAST)
+    return !mValue.has_value() || mValue.type() == info;
+#elif defined(HAVE_EXPERIMENTAL_ANY_CAST)
+    return mValue.empty() || mValue.type() == info;
+#endif
 }
 
 inline std::string State::uniqueId() const
@@ -111,7 +117,7 @@ inline bool State::operator==(const std::any& value) const
         case Bool:
             return std::any_cast<bool>(mValue) == std::any_cast<bool>(value);
         case Int:
-            return std::any_cast<int>(mValue) == std::any_cast<int>(value);
+            return std::any_cast<int64_t>(mValue) == std::any_cast<int64_t>(value);
         case Double:
             return std::any_cast<double>(mValue) == std::any_cast<double>(value);
         case String:
@@ -138,7 +144,7 @@ inline void State::changeState(std::any&& v)
 #if defined(HAVE_ANY_CAST)
         assert(!mValue.has_value() || v.type() == mValue.type());
 #elif defined(HAVE_EXPERIMENTAL_ANY_CAST)
-        assert(!mValue.empty() || v.type() == mValue.type());
+        assert(mValue.empty() || v.type() == mValue.type());
 #endif
         mValue = std::forward<std::any>(v);
     }
