@@ -15,11 +15,13 @@ set(SOURCES
 include_directories(
     ${CMAKE_CURRENT_LIST_DIR}/device
     ${CMAKE_CURRENT_LIST_DIR}/platform
+    ${CMAKE_CURRENT_LIST_DIR}/schedule
     ${CMAKE_CURRENT_LIST_DIR}/common)
 
 include(${CMAKE_CURRENT_LIST_DIR}/common/common.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/device/device.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/schedule/schedule.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/platform/platforms.cmake)
 
-add_executable(homework ${SOURCES} ${COMMON_SOURCES} ${DEVICE_SOURCES} ${PLATFORM_SOURCES})
-target_link_libraries(homework reckoning ozw nlohmann_json libedit date_interface)
+add_executable(homework ${SOURCES} ${COMMON_SOURCES} ${SCHEDULE_SOURCES} ${DEVICE_SOURCES} ${PLATFORM_SOURCES})
+target_link_libraries(homework reckoning ozw nlohmann_json libedit date_interface tz)
