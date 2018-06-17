@@ -4,6 +4,9 @@
 #include <cstdint>
 #include <vector>
 #include <chrono>
+#include <event/Loop.h>
+
+class ScheduleTimer;
 
 class Schedule
 {
@@ -31,17 +34,29 @@ public:
         uint16_t recurrence;
     };
 
-    void add(const Entry& entry);
+    template<typename T>
+    typename std::enable_if<std::is_invocable_r<void, T>::value, void>::type
+    add(const Entry& entry, T&& func);
 
     void realize();
 
 private:
-    std::vector<Entry> mEntries;
+    struct EntryData
+    {
+        std::shared_ptr<reckoning::event::Loop::Timer> timer;
+        std::function<void()> function;
+    };
+
+    std::vector<std::pair<Entry, EntryData> > mEntries;
+
+    friend class ScheduleTimer;
 };
 
-inline void Schedule::add(const Entry& entry)
+template<typename T>
+inline typename std::enable_if<std::is_invocable_r<void, T>::value, void>::type
+Schedule::add(const Entry& entry, T&& func)
 {
-    mEntries.push_back(entry);
+    mEntries.push_back(std::make_pair(entry, EntryData { std::shared_ptr<reckoning::event::Loop::Timer>(), std::forward<T>(func) }));
 }
 
 #endif // SCHEDULE_H
