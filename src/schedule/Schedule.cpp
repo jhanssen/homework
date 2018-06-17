@@ -32,6 +32,8 @@ protected:
         }
 
         data->function();
+        if (entry->repeat == Schedule::Entry::None)
+            return;
 
         auto loop = Loop::loop();
         if (loop) {
