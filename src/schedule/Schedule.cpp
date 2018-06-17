@@ -25,7 +25,7 @@ void Schedule::realize()
             // nothing to do
             return;
         }
-        auto t = time_of_day<minutes>(minutes{e.minute} + hours{e.hour});
+        auto t = time_of_day<minutes>(minutes{e.minute} + hours{e.hour} - utcOffset);
         auto td = t.to_duration();
         auto tp = floor<minutes>(system_clock::now()); // now
         auto dp = floor<days>(tp); // start of day
@@ -36,6 +36,7 @@ void Schedule::realize()
             return;
         }
         printf("time delta (non-recurring minutes) %ld\n", (std::chrono::minutes{duration} + (td - nowtd)).count());
+        return;
     }
 
     const bool dayDelta = (e.repeat == Entry::Day
@@ -43,15 +44,19 @@ void Schedule::realize()
                            || e.repeat == Entry::Month
                            || e.repeat == Entry::Year);
 
-    // add recurrence until we're on or after now
+    // add recurrence until we're after now
     if (dayDelta) {
-        while (d < nextd) {
+        auto compareto = nextd;
+        if (d >= compareto)
+            compareto = floor<days>(sys_days{d}) + days{1};
+
+        while (d < compareto) {
             switch (e.repeat) {
             case Entry::Day:
-                d = d.year()/wd.month()/(d.day() + days{e.recurrence});
+                d = sys_days{d} + days{e.recurrence};
                 break;
             case Entry::Week:
-                d = d.year()/wd.month()/(d.day() + weeks{e.recurrence});
+                d = sys_days{d} + weeks{e.recurrence};
                 break;
             case Entry::Month:
                 d += months{e.recurrence};
@@ -64,7 +69,7 @@ void Schedule::realize()
             }
         }
         // what is the delta from now
-         wd = year_month_weekday(d);
+        wd = year_month_weekday(d);
         e.year = static_cast<int>(wd.year());
         e.month = static_cast<unsigned int>(wd.month());
         e.weekday = (wd.weekday() - Sunday).count();
@@ -75,22 +80,25 @@ void Schedule::realize()
         // std::ostringstream strm;
         // strm << nowm << " -- " << static_cast<sys_days>(d);
         // printf("hey %s\n", strm.str().c_str());
-        auto duration = minutes{static_cast<sys_days>(d) - nowm} - utcOffset;
+        auto duration = minutes{static_cast<sys_days>(d) - nowm};
         // add the hour and minute
         printf("time until day change %ld\n", duration.count());
-        auto next = duration + hours{e.hour} + minutes{e.minute};
+        auto next = duration + (hours{e.hour} + minutes{e.minute} - utcOffset);
         printf("time delta (days) %ld\n", next.count());
     } else {
         // minute::hour
-        auto t = time_of_day<minutes>(minutes{e.minute} + hours{e.hour});
+
+        auto t = time_of_day<minutes>(minutes{e.minute} + hours{e.hour} - utcOffset);
         auto td = t.to_duration();
         auto tp = floor<minutes>(system_clock::now()); // now
         auto dp = floor<days>(tp); // start of day
         auto nowt = make_time(tp - dp); // time since start of day
         auto nowtd = nowt.to_duration();
-        // if the delta is negative, add one day
+        auto compareto = nowtd;
+        if (td > compareto)
+            compareto = td;
         // add recurrence until we're on or after now
-        while (td < nowtd) {
+        while (td <= compareto) {
             switch (e.repeat) {
             case Entry::Hour:
                 td += hours{e.recurrence};
@@ -102,14 +110,39 @@ void Schedule::realize()
                 break;
             }
         }
+        auto adjust = [](int first, int second, size_t adjust, size_t* added) -> size_t {
+            *added = 0;
+            auto res = first + second;
+            while (res < 0)
+                res += adjust;
+            while (res >= adjust) {
+                res -= adjust;
+                ++(*added);
+            }
+            return static_cast<size_t>(res);
+        };
+
+        const int utcMin = utcOffset.count() % 60;
+        const int utcHour = utcOffset.count() / 60;
+
         auto whenTime = make_time(td);
-        e.minute = whenTime.minutes().count();
-        if (whenTime.hours().count() >= 24)
-            e.hour = whenTime.hours().count() - 24;
-        else
-            e.hour = whenTime.hours().count();
 
-        printf("time delta (minute) %ld\n", (td - nowtd).count());
+        size_t addedHours, addedDays;
+        e.minute = adjust(whenTime.minutes().count(), utcMin, 60, &addedHours);
+        e.hour = adjust(whenTime.hours().count() + addedHours, utcHour, 24, &addedDays);
+        if (addedDays) {
+            wd = sys_days{wd} + days{addedDays};
+            e.year = static_cast<int>(wd.year());
+            e.month = static_cast<unsigned int>(wd.month());
+            e.weekday = (wd.weekday() - Sunday).count();
+            e.weekno = wd.weekday_indexed().index();
+            d = year_month_day{wd};
+        }
+
+        auto nowm = floor<minutes>(system_clock::now());
+        auto duration = minutes{static_cast<sys_days>(d) - nowm};
+        // add the hour and minute
+        auto next = duration + (hours{e.hour} + minutes{e.minute} - utcOffset);
+        printf("time delta (hours) %ld\n", next.count());
     }
-
 }
