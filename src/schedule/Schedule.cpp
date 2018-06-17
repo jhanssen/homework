@@ -53,7 +53,7 @@ void Schedule::realize()
                 const auto when = ceil<minutes>(now);
                 const auto delta = duration_cast<milliseconds>(when - now);
 
-                auto timer = std::make_shared<ScheduleTimer>(milliseconds{min * 60 * 1000} - delta, data);
+                auto timer = std::make_shared<ScheduleTimer>(milliseconds{min * 60 * 1000} - (minutes{1} - delta), data);
                 loop->addTimer(std::move(timer));
             } else {
                 auto timer = std::make_shared<ScheduleTimer>(milliseconds{0}, data);
