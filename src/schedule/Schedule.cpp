@@ -176,11 +176,9 @@ bool Schedule::realizeEntry(const std::shared_ptr<Loop>& loop, const std::shared
                 break;
             }
         }
-        auto adjust = [](int first, int second, size_t adjust, size_t* added) -> size_t {
+        auto adjust = [](int first, size_t adjust, size_t* added) -> size_t {
             *added = 0;
-            auto res = first + second;
-            while (res < 0)
-                res += adjust;
+            auto res = first;
             while (res >= adjust) {
                 res -= adjust;
                 ++(*added);
@@ -188,15 +186,12 @@ bool Schedule::realizeEntry(const std::shared_ptr<Loop>& loop, const std::shared
             return static_cast<size_t>(res);
         };
 
-        // const int utcMin = utcOffset.count() % 60;
-        // const int utcHour = utcOffset.count() / 60;
-
         auto whenTime = make_time(td);
         // printf("looking at %ld %ld\n", whenTime.hours().count(), whenTime.minutes().count());
 
         size_t addedHours, addedDays;
-        e.minute = adjust(whenTime.minutes().count(), 0, 60, &addedHours);
-        e.hour = adjust(whenTime.hours().count() + addedHours, 0, 24, &addedDays);
+        e.minute = adjust(whenTime.minutes().count(), 60, &addedHours);
+        e.hour = adjust(whenTime.hours().count() + addedHours, 24, &addedDays);
         if (addedDays) {
             wd = sys_days{wd} + days{addedDays};
             e.year = static_cast<int>(wd.year());
