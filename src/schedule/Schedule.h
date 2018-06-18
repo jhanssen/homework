@@ -109,6 +109,7 @@ inline std::shared_ptr<Event> Schedule::add(Entry&& entry)
     mEntries.push_back(std::make_pair(std::make_shared<Entry>(std::forward<Entry>(entry)), std::move(data)));
     if (!realizeEntry(loop, mEntries.back().first, mEntries.back().second)) {
         mEntries.pop_back();
+        return std::shared_ptr<Event>();
     }
     return event;
 }
