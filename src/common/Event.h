@@ -10,6 +10,7 @@ using reckoning::event::Signal;
 using reckoning::util::Creatable;
 
 class Device;
+class Schedule;
 
 class Event : public std::enable_shared_from_this<Event>, public Creatable<Event>
 {
@@ -28,6 +29,7 @@ private:
     Signal<> mOnTriggered;
 
     friend class Device;
+    friend class Schedule;
 };
 
 inline Event::Event(const std::string& name)

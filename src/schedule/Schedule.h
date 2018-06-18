@@ -9,6 +9,7 @@
 #include <log/Log.h>
 #include <event/Loop.h>
 #include <util/Creatable.h>
+#include <Event.h>
 
 class ScheduleTimer;
 
@@ -42,6 +43,8 @@ public:
     template<typename T>
     typename std::enable_if<std::is_invocable_r<void, T>::value, void>::type
     add(Entry&& entry, T&& func);
+
+    std::shared_ptr<Event> add(Entry&& entry);
 
     std::vector<std::shared_ptr<Entry> > entries() const;
     void remove(const std::shared_ptr<Entry>& entry);
@@ -88,6 +91,26 @@ Schedule::add(Entry&& entry, T&& func)
     if (!realizeEntry(loop, mEntries.back().first, mEntries.back().second)) {
         mEntries.pop_back();
     }
+}
+
+inline std::shared_ptr<Event> Schedule::add(Entry&& entry)
+{
+    auto loop = reckoning::event::Loop::loop();
+    if (!loop) {
+        reckoning::log::Log(reckoning::log::Log::Error) << "no current event loop";
+        return std::shared_ptr<Event>();
+    }
+
+    auto event = Event::create(entry.name);
+    auto func = [event]() {
+        event->trigger();
+    };
+    auto data = std::make_shared<EntryData>(std::shared_ptr<reckoning::event::Loop::Timer>(), std::move(func));
+    mEntries.push_back(std::make_pair(std::make_shared<Entry>(std::forward<Entry>(entry)), std::move(data)));
+    if (!realizeEntry(loop, mEntries.back().first, mEntries.back().second)) {
+        mEntries.pop_back();
+    }
+    return event;
 }
 
 inline std::vector<std::shared_ptr<Schedule::Entry> > Schedule::entries() const
