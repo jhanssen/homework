@@ -44,8 +44,12 @@ public:
     add(Entry&& entry, T&& func);
 
     std::vector<std::shared_ptr<Entry> > entries() const;
-    void removeEntry(const std::shared_ptr<Entry>& entry);
-    void removeEntry(const std::string& name);
+    void remove(const std::shared_ptr<Entry>& entry);
+    void remove(const std::string& name);
+
+    bool isActive(const std::shared_ptr<Entry>& entry) const;
+    void pause(const std::shared_ptr<Entry>& entry);
+    void resume(const std::shared_ptr<Entry>& entry);
 
 protected:
     Schedule() { }
@@ -95,7 +99,7 @@ inline std::vector<std::shared_ptr<Schedule::Entry> > Schedule::entries() const
     return ret;
 }
 
-inline void Schedule::removeEntry(const std::shared_ptr<Entry>& entry)
+inline void Schedule::remove(const std::shared_ptr<Entry>& entry)
 {
     auto e = mEntries.begin();
     const auto end = mEntries.cend();
@@ -110,7 +114,7 @@ inline void Schedule::removeEntry(const std::shared_ptr<Entry>& entry)
     }
 }
 
-inline void Schedule::removeEntry(const std::string& name)
+inline void Schedule::remove(const std::string& name)
 {
     auto e = mEntries.begin();
     const auto end = mEntries.cend();
@@ -123,6 +127,56 @@ inline void Schedule::removeEntry(const std::string& name)
         }
         ++e;
     }
+}
+
+inline void Schedule::pause(const std::shared_ptr<Entry>& entry)
+{
+    auto e = mEntries.begin();
+    const auto end = mEntries.cend();
+    while (e != end) {
+        if (e->first == entry) {
+            if (e->second->timer) {
+                e->second->timer->stop();
+                e->second->timer.reset();
+                return;
+            }
+        }
+        ++e;
+    }
+}
+
+inline void Schedule::resume(const std::shared_ptr<Entry>& entry)
+{
+    auto loop = reckoning::event::Loop::loop();
+    if (!loop) {
+        reckoning::log::Log(reckoning::log::Log::Error) << "no current event loop";
+        return;
+    }
+
+    auto e = mEntries.begin();
+    const auto end = mEntries.cend();
+    while (e != end) {
+        if (e->first == entry) {
+            if (e->second->timer)
+                e->second->timer->stop();
+            realizeEntry(loop, e->first, e->second);
+            return;
+        }
+        ++e;
+    }
+}
+
+inline bool Schedule::isActive(const std::shared_ptr<Entry>& entry) const
+{
+    auto e = mEntries.begin();
+    const auto end = mEntries.cend();
+    while (e != end) {
+        if (e->first == entry) {
+            return e->second->timer && e->second->timer->isActive();
+        }
+        ++e;
+    }
+    return false;
 }
 
 #endif // SCHEDULE_H

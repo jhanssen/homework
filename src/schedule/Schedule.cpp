@@ -36,7 +36,7 @@ protected:
         data->function();
         if (entry->repeat == Schedule::Entry::None) {
             if (schedule)
-                schedule->removeEntry(entry);
+                schedule->remove(entry);
             return;
         }
 
