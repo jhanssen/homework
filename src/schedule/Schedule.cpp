@@ -14,8 +14,9 @@ using namespace reckoning::log;
 class ScheduleTimer : public Loop::Timer
 {
 public:
-    ScheduleTimer(std::chrono::milliseconds timeout, const std::shared_ptr<Schedule::Entry>& entry, const std::shared_ptr<Schedule::EntryData>& data)
-        : Timer(timeout), mEntry(entry), mData(data)
+    ScheduleTimer(std::chrono::milliseconds timeout, const std::shared_ptr<Schedule::Entry>& entry,
+                  const std::shared_ptr<Schedule::EntryData>& data, const std::shared_ptr<Schedule>& schedule)
+        : Timer(timeout), mEntry(entry), mData(data), mSchedule(schedule)
     {
     }
 
@@ -30,41 +31,46 @@ protected:
             }
             return;
         }
+        auto schedule = mSchedule.lock();
 
         data->function();
-        if (entry->repeat == Schedule::Entry::None)
+        if (entry->repeat == Schedule::Entry::None) {
+            if (schedule)
+                schedule->removeEntry(entry);
             return;
+        }
 
         auto loop = Loop::loop();
-        if (loop) {
-            Schedule::realizeEntry(loop, entry, data);
+        if (schedule && loop) {
+            schedule->realizeEntry(loop, entry, data);
         }
     }
 
 private:
     std::weak_ptr<Schedule::Entry> mEntry;
     std::weak_ptr<Schedule::EntryData> mData;
+    std::weak_ptr<Schedule> mSchedule;
 };
 
-void Schedule::realizeEntry(const std::shared_ptr<Loop>& loop, const std::shared_ptr<Entry>& entry, const std::shared_ptr<EntryData>& data)
+bool Schedule::realizeEntry(const std::shared_ptr<Loop>& loop, const std::shared_ptr<Entry>& entry, const std::shared_ptr<EntryData>& data)
 {
     static const auto utcOffset = floor<minutes>(make_zoned(current_zone(), system_clock::now()).get_info().offset);
 
     if (data->timer && data->timer->isActive())
-        return;
+        return true;
 
-    auto makeTimer = [&entry, &data, &loop](int min) {
+    auto makeTimer = [&entry, &data, &loop, this](int min) {
         if (min > 0) {
             // how many ms until top of the minute
             const auto now = system_clock::now();
             const auto when = ceil<minutes>(now);
             const auto delta = duration_cast<milliseconds>(when - now);
 
-            auto timer = std::make_shared<ScheduleTimer>(milliseconds{min * 60 * 1000} - (minutes{1} - delta), entry, data);
+            auto timer = std::make_shared<ScheduleTimer>(milliseconds{min * 60 * 1000} - (minutes{1} - delta), entry, data, shared_from_this());
             data->timer = timer;
             loop->addTimer(std::move(timer));
         } else {
-            auto timer = std::make_shared<ScheduleTimer>(milliseconds{0}, entry, data);
+            auto timer = std::make_shared<ScheduleTimer>(milliseconds{0}, entry, data, shared_from_this());
             data->timer = timer;
             loop->addTimer(std::move(timer));
         }
@@ -82,7 +88,7 @@ void Schedule::realizeEntry(const std::shared_ptr<Loop>& loop, const std::shared
         const auto duration = static_cast<sys_days>(d) - static_cast<sys_days>(nowd);
         if (duration.count() < 0) {
             // nothing to do
-            return;
+            return false;
         }
         auto t = time_of_day<minutes>(minutes{e.minute} + hours{e.hour} - utcOffset);
         auto td = t.to_duration();
@@ -92,11 +98,11 @@ void Schedule::realizeEntry(const std::shared_ptr<Loop>& loop, const std::shared
         auto nowtd = nowt.to_duration();
         if (td < nowtd) {
             // nothing to do
-            return;
+            return false;
         }
         // printf("time delta (non-recurring minutes) %ld\n", (std::chrono::minutes{duration} + (td - nowtd)).count());
         makeTimer((std::chrono::minutes{duration} + (td - nowtd)).count());
-        return;
+        return true;
     }
 
     const bool dayDelta = (e.repeat == Entry::Day
@@ -207,6 +213,7 @@ void Schedule::realizeEntry(const std::shared_ptr<Loop>& loop, const std::shared
         // printf("time delta (hours) %ld\n", next.count());
         makeTimer(next.count());
     }
+    return true;
 }
 
 void Schedule::realize()
@@ -217,7 +224,14 @@ void Schedule::realize()
         return;
     }
 
-    for (auto& entry : mEntries) {
-        realizeEntry(loop, entry.first, entry.second);
+    auto e = mEntries.begin();
+    auto end = mEntries.end();
+    while (e != end) {
+        if (!realizeEntry(loop, e->first, e->second)) {
+            e = mEntries.erase(e);
+            end = mEntries.end();
+        } else {
+            ++e;
+        }
     }
 }

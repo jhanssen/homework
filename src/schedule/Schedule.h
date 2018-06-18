@@ -7,10 +7,11 @@
 #include <memory>
 #include <string>
 #include <event/Loop.h>
+#include <util/Creatable.h>
 
 class ScheduleTimer;
 
-class Schedule
+class Schedule : public std::enable_shared_from_this<Schedule>, public reckoning::util::Creatable<Schedule>
 {
 public:
     struct Entry
@@ -47,6 +48,9 @@ public:
 
     void realize();
 
+protected:
+    Schedule() { }
+
 private:
     struct EntryData
     {
@@ -59,7 +63,7 @@ private:
         std::function<void()> function;
     };
 
-    static void realizeEntry(const std::shared_ptr<reckoning::event::Loop>& loop, const std::shared_ptr<Entry>& entry, const std::shared_ptr<EntryData>& data);
+    bool realizeEntry(const std::shared_ptr<reckoning::event::Loop>& loop, const std::shared_ptr<Entry>& entry, const std::shared_ptr<EntryData>& data);
 
 private:
     std::vector<std::pair<std::shared_ptr<Entry>, std::shared_ptr<EntryData> > > mEntries;
