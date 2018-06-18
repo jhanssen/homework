@@ -97,12 +97,6 @@ Schedule::add(Entry&& entry, T&& func)
 
 inline std::shared_ptr<Event> Schedule::add(Entry&& entry)
 {
-    auto loop = reckoning::event::Loop::loop();
-    if (!loop) {
-        reckoning::log::Log(reckoning::log::Log::Error) << "no current event loop";
-        return std::shared_ptr<Event>();
-    }
-
     auto event = Event::create(entry.name);
     auto func = [event]() {
         event->trigger();
