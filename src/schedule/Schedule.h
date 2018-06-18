@@ -6,6 +6,7 @@
 #include <chrono>
 #include <memory>
 #include <string>
+#include <log/Log.h>
 #include <event/Loop.h>
 #include <util/Creatable.h>
 
@@ -46,8 +47,6 @@ public:
     void removeEntry(const std::shared_ptr<Entry>& entry);
     void removeEntry(const std::string& name);
 
-    void realize();
-
 protected:
     Schedule() { }
 
@@ -75,7 +74,16 @@ template<typename T>
 inline typename std::enable_if<std::is_invocable_r<void, T>::value, void>::type
 Schedule::add(Entry&& entry, T&& func)
 {
+    auto loop = reckoning::event::Loop::loop();
+    if (!loop) {
+        reckoning::log::Log(reckoning::log::Log::Error) << "no current event loop";
+        return;
+    }
+
     mEntries.push_back(std::make_pair(std::make_shared<Entry>(std::forward<Entry>(entry)), std::make_shared<EntryData>(std::shared_ptr<reckoning::event::Loop::Timer>(), std::forward<T>(func))));
+    if (!realizeEntry(loop, mEntries.back().first, mEntries.back().second)) {
+        mEntries.pop_back();
+    }
 }
 
 inline std::vector<std::shared_ptr<Schedule::Entry> > Schedule::entries() const

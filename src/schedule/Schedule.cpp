@@ -212,23 +212,3 @@ bool Schedule::realizeEntry(const std::shared_ptr<Loop>& loop, const std::shared
     }
     return true;
 }
-
-void Schedule::realize()
-{
-    auto loop = Loop::loop();
-    if (!loop) {
-        Log(Log::Error) << "no current event loop";
-        return;
-    }
-
-    auto e = mEntries.begin();
-    auto end = mEntries.end();
-    while (e != end) {
-        if (!realizeEntry(loop, e->first, e->second)) {
-            e = mEntries.erase(e);
-            end = mEntries.end();
-        } else {
-            ++e;
-        }
-    }
-}
