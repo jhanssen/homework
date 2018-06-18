@@ -41,7 +41,7 @@ public:
     };
 
     template<typename T>
-    typename std::enable_if<std::is_invocable_r<void, T>::value, void>::type
+    typename std::enable_if<std::is_invocable_r<void, T>::value, bool>::type
     add(Entry&& entry, T&& func);
 
     std::shared_ptr<Event> add(Entry&& entry);
@@ -78,19 +78,21 @@ private:
 };
 
 template<typename T>
-inline typename std::enable_if<std::is_invocable_r<void, T>::value, void>::type
+inline typename std::enable_if<std::is_invocable_r<void, T>::value, bool>::type
 Schedule::add(Entry&& entry, T&& func)
 {
     auto loop = reckoning::event::Loop::loop();
     if (!loop) {
         reckoning::log::Log(reckoning::log::Log::Error) << "no current event loop";
-        return;
+        return false;
     }
 
     mEntries.push_back(std::make_pair(std::make_shared<Entry>(std::forward<Entry>(entry)), std::make_shared<EntryData>(std::shared_ptr<reckoning::event::Loop::Timer>(), std::forward<T>(func))));
     if (!realizeEntry(loop, mEntries.back().first, mEntries.back().second)) {
         mEntries.pop_back();
+        return false;
     }
+    return true;
 }
 
 inline std::shared_ptr<Event> Schedule::add(Entry&& entry)
@@ -105,13 +107,9 @@ inline std::shared_ptr<Event> Schedule::add(Entry&& entry)
     auto func = [event]() {
         event->trigger();
     };
-    auto data = std::make_shared<EntryData>(std::shared_ptr<reckoning::event::Loop::Timer>(), std::move(func));
-    mEntries.push_back(std::make_pair(std::make_shared<Entry>(std::forward<Entry>(entry)), std::move(data)));
-    if (!realizeEntry(loop, mEntries.back().first, mEntries.back().second)) {
-        mEntries.pop_back();
-        return std::shared_ptr<Event>();
-    }
-    return event;
+    if (add(std::forward<Entry>(entry), std::move(func)))
+        return event;
+    return std::shared_ptr<Event>();
 }
 
 inline std::vector<std::shared_ptr<Schedule::Entry> > Schedule::entries() const
