@@ -62,7 +62,7 @@ bool Schedule::realizeEntry(const std::shared_ptr<Loop>& loop, const std::shared
     auto makeTimer = [&entry, &data, &loop, this](int min) {
         if (min > 0) {
             // how many ms until top of the minute
-            const auto now = system_clock::now();
+            const auto now = system_clock::now() + utcOffset;
             const auto when = ceil<minutes>(now);
             const auto delta = duration_cast<milliseconds>(when - now);
 
@@ -81,8 +81,8 @@ bool Schedule::realizeEntry(const std::shared_ptr<Loop>& loop, const std::shared
 
     year_month_weekday wd(year{e.year}, month{e.month}, weekday_indexed(weekday{e.weekday}, e.weekno));
     year_month_day d(wd);
-    year_month_day nowd(floor<days>(system_clock::now()));
-    year_month_day nextd(ceil<days>(system_clock::now()));
+    year_month_day nowd(floor<days>(system_clock::now() + utcOffset));
+    year_month_day nextd(ceil<days>(system_clock::now() + utcOffset));
 
     if (e.repeat == Entry::None) {
         const auto duration = static_cast<sys_days>(d) - static_cast<sys_days>(nowd);
@@ -90,9 +90,9 @@ bool Schedule::realizeEntry(const std::shared_ptr<Loop>& loop, const std::shared
             // nothing to do
             return false;
         }
-        auto t = time_of_day<minutes>(minutes{e.minute} + hours{e.hour} - utcOffset);
+        auto t = time_of_day<minutes>(minutes{e.minute} + hours{e.hour});
         auto td = t.to_duration();
-        auto tp = floor<minutes>(system_clock::now()); // now
+        auto tp = floor<minutes>(system_clock::now() + utcOffset); // now
         auto dp = floor<days>(tp); // start of day
         auto nowt = make_time(tp - dp); // time since start of day
         auto nowtd = nowt.to_duration();
@@ -100,7 +100,6 @@ bool Schedule::realizeEntry(const std::shared_ptr<Loop>& loop, const std::shared
             // nothing to do
             return false;
         }
-        // printf("time delta (non-recurring minutes) %ld\n", (std::chrono::minutes{duration} + (td - nowtd)).count());
         makeTimer((std::chrono::minutes{duration} + (td - nowtd)).count());
         return true;
     }
@@ -142,27 +141,27 @@ bool Schedule::realizeEntry(const std::shared_ptr<Loop>& loop, const std::shared
         e.weekno = wd.weekday_indexed().index();
 
         // right now
-        auto nowm = floor<minutes>(system_clock::now());
+        auto nowm = floor<minutes>(system_clock::now() + utcOffset);
         // std::ostringstream strm;
         // strm << nowm << " -- " << static_cast<sys_days>(d);
         // printf("hey %s\n", strm.str().c_str());
         auto duration = minutes{static_cast<sys_days>(d) - nowm};
         // add the hour and minute
         // printf("time until day change %ld\n", duration.count());
-        auto next = duration + (hours{e.hour} + minutes{e.minute} - utcOffset);
-        // printf("time delta (days) %ld\n", next.count());
+        auto next = duration + (hours{e.hour} + minutes{e.minute});
+        //printf("time delta (days) %ld\n", next.count());
         makeTimer(next.count());
     } else {
         // minute::hour
 
-        auto t = time_of_day<minutes>(minutes{e.minute} + hours{e.hour} - utcOffset);
+        auto t = time_of_day<minutes>(minutes{e.minute} + hours{e.hour});
         auto td = t.to_duration();
-        auto tp = floor<minutes>(system_clock::now()); // now
+        auto tp = floor<minutes>(system_clock::now() + utcOffset); // now
         auto dp = floor<days>(tp); // start of day
         auto nowt = make_time(tp - dp); // time since start of day
         auto nowtd = nowt.to_duration();
         auto compareto = nowtd;
-        if (td > compareto)
+        if (td > compareto || d >= nextd)
             compareto = td;
         // add recurrence until we're on or after now
         while (td <= compareto) {
@@ -189,14 +188,15 @@ bool Schedule::realizeEntry(const std::shared_ptr<Loop>& loop, const std::shared
             return static_cast<size_t>(res);
         };
 
-        const int utcMin = utcOffset.count() % 60;
-        const int utcHour = utcOffset.count() / 60;
+        // const int utcMin = utcOffset.count() % 60;
+        // const int utcHour = utcOffset.count() / 60;
 
         auto whenTime = make_time(td);
+        // printf("looking at %ld %ld\n", whenTime.hours().count(), whenTime.minutes().count());
 
         size_t addedHours, addedDays;
-        e.minute = adjust(whenTime.minutes().count(), utcMin, 60, &addedHours);
-        e.hour = adjust(whenTime.hours().count() + addedHours, utcHour, 24, &addedDays);
+        e.minute = adjust(whenTime.minutes().count(), 0, 60, &addedHours);
+        e.hour = adjust(whenTime.hours().count() + addedHours, 0, 24, &addedDays);
         if (addedDays) {
             wd = sys_days{wd} + days{addedDays};
             e.year = static_cast<int>(wd.year());
@@ -205,12 +205,14 @@ bool Schedule::realizeEntry(const std::shared_ptr<Loop>& loop, const std::shared
             e.weekno = wd.weekday_indexed().index();
             d = year_month_day{wd};
         }
+        // printf("update to year %d, month %d, weekday %d, weekno %d, hour %d, minute %d\n",
+        //        e.year, e.month, e.weekday, e.weekno, e.hour, e.minute);
 
-        auto nowm = floor<minutes>(system_clock::now());
+        auto nowm = floor<minutes>(system_clock::now() + utcOffset);
         auto duration = minutes{static_cast<sys_days>(d) - nowm};
         // add the hour and minute
-        auto next = duration + (hours{e.hour} + minutes{e.minute} - utcOffset);
-        // printf("time delta (hours) %ld\n", next.count());
+        auto next = duration + (hours{e.hour} + minutes{e.minute});
+        //printf("time delta (hours) %ld\n", next.count());
         makeTimer(next.count());
     }
     return true;
