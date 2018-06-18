@@ -157,9 +157,8 @@ inline void Schedule::resume(const std::shared_ptr<Entry>& entry)
     const auto end = mEntries.cend();
     while (e != end) {
         if (e->first == entry) {
-            if (e->second->timer)
-                e->second->timer->stop();
-            realizeEntry(loop, e->first, e->second);
+            if (!e->second->timer || !e->second->timer->isActive())
+                realizeEntry(loop, e->first, e->second);
             return;
         }
         ++e;
