@@ -11,6 +11,7 @@ using reckoning::util::Creatable;
 
 class Device;
 class Schedule;
+class Sunrise;
 
 class Event : public std::enable_shared_from_this<Event>, public Creatable<Event>
 {
@@ -30,6 +31,7 @@ private:
 
     friend class Device;
     friend class Schedule;
+    friend class Sunrise;
 };
 
 inline Event::Event(const std::string& name)

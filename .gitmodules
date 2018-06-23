@@ -10,3 +10,6 @@
 [submodule "3rdparty/date"]
 	path = 3rdparty/date
 	url = https://github.com/HowardHinnant/date.git
+[submodule "3rdparty/sunset"]
+	path = 3rdparty/sunset
+	url = https://github.com/buelowp/sunset.git

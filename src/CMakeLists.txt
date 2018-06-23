@@ -24,4 +24,4 @@ include(${CMAKE_CURRENT_LIST_DIR}/schedule/schedule.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/platform/platforms.cmake)
 
 add_executable(homework ${SOURCES} ${COMMON_SOURCES} ${SCHEDULE_SOURCES} ${DEVICE_SOURCES} ${PLATFORM_SOURCES})
-target_link_libraries(homework reckoning ozw nlohmann_json libedit date_interface tz)
+target_link_libraries(homework reckoning ozw nlohmann_json libedit date_interface tz libsunset)
