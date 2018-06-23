@@ -21,6 +21,9 @@ public:
     std::shared_ptr<Event> sunset(const std::string& name, std::chrono::minutes delta = std::chrono::minutes{0});
 
 private:
+    std::chrono::milliseconds calculateWhen(double secondsFromMidnight, std::chrono::milliseconds delta, bool* ok);
+
+private:
     static double sLat, sLon;
     static int sTz;
     int mYear;
