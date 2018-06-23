@@ -132,6 +132,8 @@ bool Schedule::realizeEntry(const std::shared_ptr<Loop>& loop, const std::shared
             default:
                 break;
             }
+            if (!d.ok())
+                d = d.year()/d.month()/last;
         }
         // what is the delta from now
         wd = year_month_weekday(d);
