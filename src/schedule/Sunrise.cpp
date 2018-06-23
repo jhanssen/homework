@@ -96,15 +96,15 @@ std::shared_ptr<Event> Sunrise::sunset(const std::string& name, minutes delta)
     ss.setPosition(sLat, sLon, sTz);
     ss.setCurrentDate(mYear, mMonth, mDay);
 
-    const auto rise = seconds{static_cast<int64_t>(ss.calcSunset())};
+    const auto set = seconds{static_cast<int64_t>(ss.calcSunset())};
 
     std::chrono::milliseconds when;
     if (today == date) {
         const auto now = system_clock::now() + hours{sTz};
         const auto startOfDay = floor<days>(now); // start of day
         const auto secondsFromStartOfDay = duration_cast<seconds>(now - startOfDay);
-        if (rise + delta >= secondsFromStartOfDay) {
-            when = rise + delta - secondsFromStartOfDay;
+        if (set + delta >= secondsFromStartOfDay) {
+            when = set + delta - secondsFromStartOfDay;
         } else {
             return std::shared_ptr<Event>();
         }
@@ -114,7 +114,7 @@ std::shared_ptr<Event> Sunrise::sunset(const std::string& name, minutes delta)
         const auto startOfTomorrow = ceil<days>(now); // start of tomorrow
         const auto secondsUntilTomorrow = duration_cast<seconds>(startOfTomorrow - now);
         const auto daysUntilDate = sys_days{date} - startOfTomorrow;
-        when = rise + delta + secondsUntilTomorrow + daysUntilDate;
+        when = set + delta + secondsUntilTomorrow + daysUntilDate;
     } else {
         // date is in the past
         return std::shared_ptr<Event>();
@@ -123,7 +123,7 @@ std::shared_ptr<Event> Sunrise::sunset(const std::string& name, minutes delta)
     // we have our time
     auto loop = Loop::loop();
     if (!loop) {
-        Log(Log::Error) << "couldn't get loop for sunrise";
+        Log(Log::Error) << "couldn't get loop for sunset";
         return std::shared_ptr<Event>();
     }
 
