@@ -77,13 +77,3 @@ add_dependencies(libedit external_libedit)
 
 set(USE_SYSTEM_TZ_DB ON CACHE BOOL "Use the operating system's timezone database" FORCE)
 add_subdirectory(date)
-
-add_subdirectory(sunset)
-if (APPLE)
-    set(SUNSET_SUFFIX dylib)
-else()
-    set(SUNSET_SUFFIX so)
-endif()
-add_library(libsunset SHARED IMPORTED GLOBAL)
-set_property(TARGET libsunset PROPERTY IMPORTED_LOCATION ${CMAKE_BINARY_DIR}/lib/libsunset.${SUNSET_SUFFIX})
-set_property(TARGET libsunset PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_LIST_DIR}/sunset/src)
