@@ -11,7 +11,7 @@ using namespace reckoning::log;
 
 double Sunrise::sLat = 1000;
 double Sunrise::sLon = 1000;
-int Sunrise::sTz = floor<hours>(make_zoned(current_zone(), system_clock::now()).get_info().offset).count();
+static int sTz = floor<hours>(make_zoned(current_zone(), system_clock::now()).get_info().offset).count();
 
 // code converted from JS, source: https://github.com/mourner/suncalc/blob/master/suncalc.js
 // original license: BSD 2-clause
@@ -23,6 +23,7 @@ static constexpr const double J2000 = 2451545.;
 static constexpr const double J0 = 0.0009;
 
 static constexpr const double secondsPerDay = 60 * 60 * 24;
+static constexpr const double secondsPerHour = 60 * 60;
 
 static inline double declination(double l, double b) { return asin(sin(b) * cos(obliquity) + cos(b) * sin(obliquity) * sin(l)); }
 static inline double solarMeanAnomaly(double d) { return rad * (357.5291 + 0.98560028 * d); }
@@ -36,7 +37,7 @@ static inline double eclipticLongitude(double M) {
 
 static inline double toJulian(const year_month_day& ymd)
 {
-    const double days = (sys_days{ymd} - sys_days{year{1970}/month{1}/day{1}}).count();
+    const double days = (sys_days{ymd} - sys_days{year{1970}/month{1}/day{1}}).count() + 1;
     const double julian = days - 0.5 + J1970;
     return julian;
 }
@@ -119,14 +120,14 @@ static inline double getSunrise(const year_month_day& ymd, double lat, double ln
 {
     double rise;
     getTimeForAngle(times[0].angle, ymd, lat, lng, &rise, nullptr);
-    return rise;
+    return rise + (sTz * secondsPerHour);
 }
 
 static inline double getSunset(const year_month_day& ymd, double lat, double lng)
 {
     double set;
     getTimeForAngle(times[0].angle, ymd, lat, lng, nullptr, &set);
-    return set;
+    return set + (sTz * secondsPerHour);
 }
 
 Sunrise::Sunrise(When w)
@@ -145,11 +146,11 @@ Sunrise::Sunrise(When w)
     mDay = static_cast<unsigned>(ymd.day());
 }
 
-milliseconds Sunrise::calculateWhen(double minutesFromMidnight, milliseconds delta, bool* ok)
+milliseconds Sunrise::calculateWhen(double secondsFromMidnight, milliseconds delta, bool* ok)
 {
     const year_month_day today(floor<days>(system_clock::now() + hours{sTz}));
     const year_month_day date = year{mYear}/month{mMonth}/day{mDay};
-    const auto fromMidnight = minutes{static_cast<int64_t>(minutesFromMidnight)};
+    const auto fromMidnight = seconds{static_cast<int64_t>(secondsFromMidnight)};
 
     milliseconds when;
     if (today == date) {

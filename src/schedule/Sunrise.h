@@ -25,7 +25,6 @@ private:
 
 private:
     static double sLat, sLon;
-    static int sTz;
     int mYear;
     unsigned int mMonth, mDay;
 };
