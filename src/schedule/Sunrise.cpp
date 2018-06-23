@@ -35,7 +35,7 @@ milliseconds Sunrise::calculateWhen(double secondsFromMidnight, milliseconds del
     const year_month_day date = year{mYear}/month{mMonth}/day{mDay};
     const auto fromMidnight = seconds{static_cast<int64_t>(secondsFromMidnight)};
 
-    std::chrono::milliseconds when;
+    milliseconds when;
     if (today == date) {
         // 1. find the delta between start of today and now
         // 2. add the time from now until sunrise/sunset and our delta
