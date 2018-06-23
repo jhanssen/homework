@@ -2,7 +2,6 @@
 #include <event/Loop.h>
 #include <log/Log.h>
 #include <date/tz.h>
-#include <array>
 #include <cmath>
 
 using namespace date;
