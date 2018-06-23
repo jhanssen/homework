@@ -81,6 +81,11 @@ bool Schedule::realizeEntry(const std::shared_ptr<Loop>& loop, const std::shared
 
     year_month_weekday wd(year{e.year}, month{e.month}, weekday_indexed(weekday{e.weekday}, e.weekno));
     year_month_day d(wd);
+    if (!wd.ok() || !d.ok()) {
+        Log(Log::Error) << "invalid schedule entry, year" << static_cast<int>(d.year()) << "month" << static_cast<unsigned>(d.month()) << "day" << static_cast<unsigned>(d.day());
+        return false;
+    }
+
     year_month_day nowd(floor<days>(system_clock::now() + utcOffset));
     year_month_day nextd(ceil<days>(system_clock::now() + utcOffset));
 
