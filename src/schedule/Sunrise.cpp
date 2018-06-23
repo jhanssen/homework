@@ -86,7 +86,7 @@ static inline void getTimeForAngle(double angle, const year_month_day& ymd, doub
                                    double* rise, double* set)
 {
     auto convertFrom1970 = [&ymd](const seconds& since1970) -> double {
-        static const auto diff = duration_cast<seconds>(sys_days{ymd} - sys_days{year{1970}/month{1}/day{1}});
+        const auto diff = duration_cast<seconds>(sys_days{ymd} - sys_days{year{1970}/month{1}/day{1}});
         assert(since1970 >= diff);
         assert((since1970 - diff).count() <= secondsPerDay);
         return (since1970 - diff).count();
