@@ -29,11 +29,11 @@ Sunrise::Sunrise(When w)
     mDay = static_cast<unsigned>(ymd.day());
 }
 
-milliseconds Sunrise::calculateWhen(double secondsFromMidnight, milliseconds delta, bool* ok)
+milliseconds Sunrise::calculateWhen(double minutesFromMidnight, milliseconds delta, bool* ok)
 {
     const year_month_day today(floor<days>(system_clock::now() + hours{sTz}));
     const year_month_day date = year{mYear}/month{mMonth}/day{mDay};
-    const auto fromMidnight = seconds{static_cast<int64_t>(secondsFromMidnight)};
+    const auto fromMidnight = minutes{static_cast<int64_t>(minutesFromMidnight)};
 
     milliseconds when;
     if (today == date) {
