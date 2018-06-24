@@ -1,3 +1,3 @@
 set(SCHEDULE_SOURCES
-    schedule/Sunrise.cpp
+    schedule/Sun.cpp
     schedule/Schedule.cpp)
