@@ -222,11 +222,11 @@ std::shared_ptr<Event> Sun::add(Type type, Entry&& entry)
         angle = sunriseAngle;
         break;
     case SunsetStart:
-        rise = true;
+        rise = false;
         angle = sunriseEndAngle;
         break;
     case SunriseEnd:
-        rise = false;
+        rise = true;
         angle = sunriseEndAngle;
         break;
     case Dawn:
