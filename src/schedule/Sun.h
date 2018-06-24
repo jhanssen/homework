@@ -67,6 +67,8 @@ private:
         std::shared_ptr<reckoning::event::Loop::Timer> timer;
         std::function<std::chrono::milliseconds(bool, bool*)> next;
         std::shared_ptr<Event> event;
+        std::weak_ptr<Sun> sun;
+        std::weak_ptr<Entry> entry;
     };
 
     static void makeTimer(const std::shared_ptr<reckoning::event::Loop>& loop,

@@ -168,6 +168,12 @@ void Sun::makeTimer(const std::shared_ptr<Loop>& loop,
             data->timer = loop->addTimer(ms, [weakData]() {
                     if (auto data = weakData.lock()) {
                         data->event->trigger();
+
+                        auto sun = data->sun.lock();
+                        auto entry = data->entry.lock();
+                        if (sun && entry) {
+                            sun->remove(entry);
+                        }
                     }
                 });
         } else {
@@ -269,6 +275,7 @@ std::shared_ptr<Event> Sun::add(Type type, Entry&& entry)
     data->angle = angle;
     data->adjust = entry.adjust;
     data->repeats = (entry.mode == Entry::Repeat);
+    data->sun = shared_from_this();
     if (rise) {
         data->next = [ymd, data](bool advance, bool* ok) mutable {
             if (advance)
@@ -295,6 +302,7 @@ std::shared_ptr<Event> Sun::add(Type type, Entry&& entry)
     auto e = std::make_shared<Entry>(std::forward<Entry>(entry));
 
     data->event = event;
+    data->entry = e;
 
     makeTimer(loop, data, false);
 
