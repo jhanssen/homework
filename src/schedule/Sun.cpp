@@ -276,25 +276,37 @@ std::shared_ptr<Event> Sun::add(Type type, Entry&& entry)
     data->adjust = entry.adjust;
     data->repeats = (entry.mode == Entry::Repeat);
     data->sun = shared_from_this();
+
+    std::weak_ptr<EntryData> weakData = data;
     if (rise) {
-        data->next = [ymd, data](bool advance, bool* ok) mutable {
+        data->next = [ymd, weakData](bool advance, bool* ok) mutable {
             if (advance)
                 ymd = sys_days{ymd} + days{1};
-            const auto when = calculateWhen(getRise(data->angle, ymd, data->lat, data->lon),
-                                            ymd, data->adjust, ok);
-            if (!ok)
+            if (auto data = weakData.lock()) {
+                const auto when = calculateWhen(getRise(data->angle, ymd, data->lat, data->lon),
+                                                ymd, data->adjust, ok);
+                if (!ok)
+                    return milliseconds{0};
+                return when;
+            } else {
+                *ok = false;
                 return milliseconds{0};
-            return when;
+            }
         };
     } else {
-        data->next = [ymd, data](bool advance, bool* ok) mutable {
+        data->next = [ymd, weakData](bool advance, bool* ok) mutable {
             if (advance)
                 ymd = sys_days{ymd} + days{1};
-            const auto when = calculateWhen(getSet(data->angle, ymd, data->lat, data->lon),
-                                            ymd, data->adjust, ok);
-            if (!ok)
+            if (auto data = weakData.lock()) {
+                const auto when = calculateWhen(getSet(data->angle, ymd, data->lat, data->lon),
+                                                ymd, data->adjust, ok);
+                if (!ok)
+                    return milliseconds{0};
+                return when;
+            } else {
+                *ok = false;
                 return milliseconds{0};
-            return when;
+            }
         };
     }
 
