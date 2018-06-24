@@ -18,7 +18,6 @@ static int sTz = floor<hours>(make_zoned(current_zone(), system_clock::now()).ge
 static constexpr const double rad = M_PI / 180.;
 static constexpr const double obliquity = rad * 23.4397;
 
-static constexpr const double J1970 = 2440588.;
 static constexpr const double J2000 = 2451545.;
 static constexpr const double J0 = 0.0009;
 
@@ -37,8 +36,8 @@ static inline double eclipticLongitude(double M) {
 
 static inline double toJulian(const year_month_day& ymd)
 {
-    const double days = (sys_days{ymd} - sys_days{year{1970}/month{1}/day{1}}).count() + 1;
-    const double julian = days - 0.5 + J1970;
+    const double days = (sys_days{ymd} - sys_days{year{2000}/month{1}/day{1}}).count() + 1;
+    const double julian = days - 0.5 + J2000;
     return julian;
 }
 
@@ -49,7 +48,7 @@ static inline double toDays(const year_month_day& ymd)
 
 static inline seconds fromJulian(double j)
 {
-    return seconds{static_cast<int64_t>((j + 0.5 - J1970) * secondsPerDay)};
+    return seconds{static_cast<int64_t>((j + 0.5 - J2000) * secondsPerDay)};
 }
 
 static inline double julianCycle(double d, double lw) { return round(d - J0 - lw / (2 * M_PI)); }
@@ -86,11 +85,11 @@ static constexpr const Time times[] = {
 static inline void getTimeForAngle(double angle, const year_month_day& ymd, double lat, double lng,
                                    double* rise, double* set)
 {
-    auto convertFrom1970 = [&ymd](const seconds& since1970) -> double {
-        const auto diff = duration_cast<seconds>(sys_days{ymd} - sys_days{year{1970}/month{1}/day{1}});
-        assert(since1970 >= diff);
-        assert((since1970 - diff).count() <= secondsPerDay);
-        return (since1970 - diff).count();
+    auto convertFrom2k = [&ymd](const seconds& since2000) -> double {
+        const auto diff = duration_cast<seconds>(sys_days{ymd} - sys_days{year{2000}/month{1}/day{1}});
+        assert(since2000 >= diff);
+        assert((since2000 - diff).count() <= secondsPerDay);
+        return (since2000 - diff).count();
     };
 
     const double lw = rad * -lng;
@@ -110,10 +109,10 @@ static inline void getTimeForAngle(double angle, const year_month_day& ymd, doub
 
     if (rise) {
         const double Jrise = Jnoon - (Jset - Jnoon);
-        *rise = convertFrom1970(fromJulian(Jrise));
+        *rise = convertFrom2k(fromJulian(Jrise));
     }
     if (set)
-        *set = convertFrom1970(fromJulian(Jset));
+        *set = convertFrom2k(fromJulian(Jset));
 }
 
 static inline double getSunrise(const year_month_day& ymd, double lat, double lng)
