@@ -110,6 +110,8 @@ bool Schedule::realizeEntry(const std::shared_ptr<Loop>& loop, const std::shared
     }
 
     const bool dayDelta = (e.repeat == Entry::Day
+                           || e.repeat == Entry::Weekday
+                           || e.repeat == Entry::Weekend
                            || e.repeat == Entry::Week
                            || e.repeat == Entry::Month
                            || e.repeat == Entry::Year);
@@ -120,11 +122,33 @@ bool Schedule::realizeEntry(const std::shared_ptr<Loop>& loop, const std::shared
         if (d >= compareto)
             compareto = floor<days>(sys_days{d}) + days{1};
 
+        auto isWeekend = [](const weekday& wd) {
+            return (wd == Saturday || wd == Sunday);
+        };
+
         while (d < compareto) {
             switch (e.repeat) {
             case Entry::Day:
                 d = sys_days{d} + days{e.recurrence};
                 break;
+            case Entry::Weekday: {
+                // increase by one day that is not a weekend day until we hit e.recurrence
+                size_t num = 0;
+                while (num < e.recurrence) {
+                    d = sys_days{d} + days{1};
+                    if (!isWeekend(weekday{sys_days{d}}))
+                        ++num;
+                }
+                break; }
+            case Entry::Weekend: {
+                // increase by one day that is a weekend day until we hit e.recurrence
+                size_t num = 0;
+                while (num < e.recurrence) {
+                    d = sys_days{d} + days{1};
+                    if (isWeekend(weekday{sys_days{d}}))
+                        ++num;
+                }
+                break; }
             case Entry::Week:
                 d = sys_days{d} + weeks{e.recurrence};
                 break;

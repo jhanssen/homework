@@ -32,6 +32,8 @@ public:
             Minute,
             Hour,
             Day,
+            Weekday,
+            Weekend,
             Week,
             Month,
             Year
