@@ -66,23 +66,15 @@ static inline double getSetJ(double h, double lw, double phi, double dec, double
     return solarTransitJ(a, M, L);
 }
 
-struct Time
-{
-    double angle;
-    const char* morningName;
-    const char* eveningName;
-};
+static constexpr const double sunriseAngle = -0.833;
+static constexpr const double sunriseEndAngle = -0.3;
+static constexpr const double dawnAngle = -6;
+static constexpr const double nauticalDawnAngle = -12;
+static constexpr const double nightAngle = -18;
+static constexpr const double goldenHourAngle = 6;
 
-static constexpr const Time times[] = {
-    { -0.833, "sunrise", "sunset" },
-    { -0.3, "sunriseEnd", "sunsetStart" },
-    { -6, "dawn", "dusk" },
-    { -12, "nauticalDawn", "nauticalDusk" },
-    { -18, "nightEnd", "night" },
-    { 6, "goldenHourEnd", "goldenHour" }
-};
-
-static inline void getTimeForAngle(double angle, const year_month_day& ymd, double lat, double lng,
+static inline void getTimeForAngle(double angle, const year_month_day& ymd,
+                                   double lat, double lng,
                                    double* rise, double* set)
 {
     auto convertFrom2k = [&ymd](const seconds& since2000) -> double {
@@ -115,17 +107,17 @@ static inline void getTimeForAngle(double angle, const year_month_day& ymd, doub
         *set = convertFrom2k(fromJulian(Jset));
 }
 
-static inline double getSunrise(const year_month_day& ymd, double lat, double lng)
+static inline double getRise(double angle, const year_month_day& ymd, double lat, double lng)
 {
     double rise;
-    getTimeForAngle(times[0].angle, ymd, lat, lng, &rise, nullptr);
+    getTimeForAngle(angle, ymd, lat, lng, &rise, nullptr);
     return rise + (sTz * secondsPerHour);
 }
 
-static inline double getSunset(const year_month_day& ymd, double lat, double lng)
+static inline double getSet(double angle, const year_month_day& ymd, double lat, double lng)
 {
     double set;
-    getTimeForAngle(times[0].angle, ymd, lat, lng, nullptr, &set);
+    getTimeForAngle(angle, ymd, lat, lng, nullptr, &set);
     return set + (sTz * secondsPerHour);
 }
 
@@ -145,7 +137,7 @@ Sunrise::Sunrise(When w)
     mDay = static_cast<unsigned>(ymd.day());
 }
 
-milliseconds Sunrise::calculateWhen(double secondsFromMidnight, milliseconds delta, bool* ok)
+inline milliseconds Sunrise::calculateWhen(double secondsFromMidnight, milliseconds delta, bool* ok)
 {
     const year_month_day today(floor<days>(system_clock::now() + hours{sTz}));
     const year_month_day date = year{mYear}/month{mMonth}/day{mDay};
@@ -182,19 +174,8 @@ milliseconds Sunrise::calculateWhen(double secondsFromMidnight, milliseconds del
     return when;
 }
 
-std::shared_ptr<Event> Sunrise::sunrise(const std::string& name, minutes delta)
+inline std::shared_ptr<Event> Sunrise::makeEvent(const std::string& name, milliseconds when)
 {
-    if (sLat > 180 || sLat < -180 || sLon > 180 || sLon < -180) {
-        Log(Log::Error) << "Latitude/longitude out of range" << sLat << sLon;
-        return std::shared_ptr<Event>();
-    }
-
-    bool ok;
-    const year_month_day ymd = year{mYear}/month{mMonth}/day{mDay};
-    const auto when = calculateWhen(getSunrise(ymd, sLat, sLon), delta, &ok);
-    if (!ok)
-        return std::shared_ptr<Event>();
-
     // we have our time
     auto loop = Loop::loop();
     if (!loop) {
@@ -210,30 +191,207 @@ std::shared_ptr<Event> Sunrise::sunrise(const std::string& name, minutes delta)
     return event;
 }
 
-std::shared_ptr<Event> Sunrise::sunset(const std::string& name, minutes delta)
+inline bool Sunrise::verifyLatLon()
 {
     if (sLat > 180 || sLat < -180 || sLon > 180 || sLon < -180) {
         Log(Log::Error) << "Latitude/longitude out of range" << sLat << sLon;
-        return std::shared_ptr<Event>();
+        return false;
     }
+    return true;
+}
+
+std::shared_ptr<Event> Sunrise::sunrise(const std::string& name, minutes delta)
+{
+    if (!verifyLatLon())
+        return std::shared_ptr<Event>();
 
     bool ok;
     const year_month_day ymd = year{mYear}/month{mMonth}/day{mDay};
-    const auto when = calculateWhen(getSunset(ymd, sLat, sLon), delta, &ok);
+    const auto when = calculateWhen(getRise(sunriseAngle, ymd, sLat, sLon), delta, &ok);
     if (!ok)
         return std::shared_ptr<Event>();
 
-    // we have our time
-    auto loop = Loop::loop();
-    if (!loop) {
-        Log(Log::Error) << "couldn't get loop for sunrise";
-        return std::shared_ptr<Event>();
-    }
+    return makeEvent(name, when);
+}
 
-    auto event = Event::create(name);
-    loop->addTimer(when,
-                   [event]() {
-                       event->trigger();
-                   });
-    return event;
+std::shared_ptr<Event> Sunrise::sunset(const std::string& name, minutes delta)
+{
+    if (!verifyLatLon())
+        return std::shared_ptr<Event>();
+
+    bool ok;
+    const year_month_day ymd = year{mYear}/month{mMonth}/day{mDay};
+    const auto when = calculateWhen(getSet(sunriseAngle, ymd, sLat, sLon), delta, &ok);
+    if (!ok)
+        return std::shared_ptr<Event>();
+
+    return makeEvent(name, when);
+}
+
+std::shared_ptr<Event> Sunrise::sunriseEnd(const std::string& name, minutes delta)
+{
+    if (!verifyLatLon())
+        return std::shared_ptr<Event>();
+
+    bool ok;
+    const year_month_day ymd = year{mYear}/month{mMonth}/day{mDay};
+    const auto when = calculateWhen(getRise(sunriseEndAngle, ymd, sLat, sLon), delta, &ok);
+    if (!ok)
+        return std::shared_ptr<Event>();
+
+    return makeEvent(name, when);
+}
+
+std::shared_ptr<Event> Sunrise::sunsetStart(const std::string& name, minutes delta)
+{
+    if (!verifyLatLon())
+        return std::shared_ptr<Event>();
+
+    bool ok;
+    const year_month_day ymd = year{mYear}/month{mMonth}/day{mDay};
+    const auto when = calculateWhen(getSet(sunriseEndAngle, ymd, sLat, sLon), delta, &ok);
+    if (!ok)
+        return std::shared_ptr<Event>();
+
+    return makeEvent(name, when);
+}
+
+std::shared_ptr<Event> Sunrise::dawn(const std::string& name, minutes delta)
+{
+    if (!verifyLatLon())
+        return std::shared_ptr<Event>();
+
+    bool ok;
+    const year_month_day ymd = year{mYear}/month{mMonth}/day{mDay};
+    const auto when = calculateWhen(getRise(dawnAngle, ymd, sLat, sLon), delta, &ok);
+    if (!ok)
+        return std::shared_ptr<Event>();
+
+    return makeEvent(name, when);
+}
+
+std::shared_ptr<Event> Sunrise::dusk(const std::string& name, minutes delta)
+{
+    if (!verifyLatLon())
+        return std::shared_ptr<Event>();
+
+    bool ok;
+    const year_month_day ymd = year{mYear}/month{mMonth}/day{mDay};
+    const auto when = calculateWhen(getSet(dawnAngle, ymd, sLat, sLon), delta, &ok);
+    if (!ok)
+        return std::shared_ptr<Event>();
+
+    return makeEvent(name, when);
+}
+
+std::shared_ptr<Event> Sunrise::nauticalDawn(const std::string& name, minutes delta)
+{
+    if (!verifyLatLon())
+        return std::shared_ptr<Event>();
+
+    bool ok;
+    const year_month_day ymd = year{mYear}/month{mMonth}/day{mDay};
+    const auto when = calculateWhen(getRise(nauticalDawnAngle, ymd, sLat, sLon), delta, &ok);
+    if (!ok)
+        return std::shared_ptr<Event>();
+
+    return makeEvent(name, when);
+}
+
+std::shared_ptr<Event> Sunrise::nauticalDusk(const std::string& name, minutes delta)
+{
+    if (!verifyLatLon())
+        return std::shared_ptr<Event>();
+
+    bool ok;
+    const year_month_day ymd = year{mYear}/month{mMonth}/day{mDay};
+    const auto when = calculateWhen(getSet(nauticalDawnAngle, ymd, sLat, sLon), delta, &ok);
+    if (!ok)
+        return std::shared_ptr<Event>();
+
+    return makeEvent(name, when);
+}
+
+std::shared_ptr<Event> Sunrise::night(const std::string& name, minutes delta)
+{
+    if (!verifyLatLon())
+        return std::shared_ptr<Event>();
+
+    bool ok;
+    const year_month_day ymd = year{mYear}/month{mMonth}/day{mDay};
+    const auto when = calculateWhen(getSet(nightAngle, ymd, sLat, sLon), delta, &ok);
+    if (!ok)
+        return std::shared_ptr<Event>();
+
+    return makeEvent(name, when);
+}
+
+std::shared_ptr<Event> Sunrise::nightEnd(const std::string& name, minutes delta)
+{
+    if (!verifyLatLon())
+        return std::shared_ptr<Event>();
+
+    bool ok;
+    const year_month_day ymd = year{mYear}/month{mMonth}/day{mDay};
+    const auto when = calculateWhen(getRise(nightAngle, ymd, sLat, sLon), delta, &ok);
+    if (!ok)
+        return std::shared_ptr<Event>();
+
+    return makeEvent(name, when);
+}
+
+std::shared_ptr<Event> Sunrise::goldenHour(const std::string& name, minutes delta)
+{
+    if (!verifyLatLon())
+        return std::shared_ptr<Event>();
+
+    bool ok;
+    const year_month_day ymd = year{mYear}/month{mMonth}/day{mDay};
+    const auto when = calculateWhen(getSet(goldenHourAngle, ymd, sLat, sLon), delta, &ok);
+    if (!ok)
+        return std::shared_ptr<Event>();
+
+    return makeEvent(name, when);
+}
+
+std::shared_ptr<Event> Sunrise::goldenHourEnd(const std::string& name, minutes delta)
+{
+    if (!verifyLatLon())
+        return std::shared_ptr<Event>();
+
+    bool ok;
+    const year_month_day ymd = year{mYear}/month{mMonth}/day{mDay};
+    const auto when = calculateWhen(getRise(goldenHourAngle, ymd, sLat, sLon), delta, &ok);
+    if (!ok)
+        return std::shared_ptr<Event>();
+
+    return makeEvent(name, when);
+}
+
+std::shared_ptr<Event> Sunrise::angleRise(const std::string& name, double angle, minutes delta)
+{
+    if (!verifyLatLon())
+        return std::shared_ptr<Event>();
+
+    bool ok;
+    const year_month_day ymd = year{mYear}/month{mMonth}/day{mDay};
+    const auto when = calculateWhen(getRise(angle, ymd, sLat, sLon), delta, &ok);
+    if (!ok)
+        return std::shared_ptr<Event>();
+
+    return makeEvent(name, when);
+}
+
+std::shared_ptr<Event> Sunrise::angleSet(const std::string& name, double angle, minutes delta)
+{
+    if (!verifyLatLon())
+        return std::shared_ptr<Event>();
+
+    bool ok;
+    const year_month_day ymd = year{mYear}/month{mMonth}/day{mDay};
+    const auto when = calculateWhen(getSet(angle, ymd, sLat, sLon), delta, &ok);
+    if (!ok)
+        return std::shared_ptr<Event>();
+
+    return makeEvent(name, when);
 }
