@@ -361,9 +361,10 @@ void Sun::pause(const std::shared_ptr<Entry>& entry)
     const auto end = mEntries.cend();
     while (e != end) {
         if (std::get<1>(*e) == entry) {
-            const auto& t = std::get<2>(*e)->timer;
+            auto& t = std::get<2>(*e)->timer;
             if (t) {
                 t->stop();
+                t.reset();
             }
             return;
         }
@@ -377,7 +378,8 @@ void Sun::resume(const std::shared_ptr<Entry>& entry)
     const auto end = mEntries.cend();
     while (e != end) {
         if (std::get<1>(*e) == entry) {
-            if (!std::get<2>(*e)->timer) {
+            const auto& t = std::get<2>(*e)->timer;
+            if (!t || !t->isActive()) {
                 auto loop = Loop::loop();
                 if (!loop) {
                     Log(Log::Error) << "couldn't get loop for sun resume";
